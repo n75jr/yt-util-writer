@@ -1,0 +1,29 @@
+{
+  "name": "autoscroll-target",
+  "displayName": "AutoScroll Target",
+  "description": "Automatically scrolls to bottom when text is appended.",
+  "version": "0.0.1",
+  "publisher": "n75rom",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/n75rom/vscode-autoscroll-target"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": ["*"],
+  "main": "./out/extension.js",
+  "contributes": {},
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.80.0",
+    "typescript": "^5.4.0",
+    "vscode-test": "^1.8.0"
+  }
+}
