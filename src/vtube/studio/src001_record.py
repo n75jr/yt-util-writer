@@ -10,8 +10,9 @@ APP_AUTHOR = "RichMan"
 URL_HOST = "localhost"
 URL_PORT = 8001
 RECORD_INTERVAL = 0.033
-TOKEN_FILE = "./resources/data/token.json"
 RECORD_FOLDER = "resources/data/record/"
+TOKEN_FILE_TEMPLATE = "./data/token_%s.json"
+TOKEN_FILE = None
 
 # Глобальный флаг остановки
 STOP_RECORDING = False
@@ -104,6 +105,8 @@ async def record_task(ws):
 
 async def main(host: str, port: int):
     global STOP_RECORDING
+    global TOKEN_FILE
+    TOKEN_FILE = TOKEN_FILE_TEMPLATE % port
 
     uri = f"ws://{host}:{port}"
     async with websockets.connect(uri) as ws:
