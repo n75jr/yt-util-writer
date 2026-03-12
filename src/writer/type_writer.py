@@ -74,25 +74,28 @@ def main():
 
     # Цикл записи с удалением
     print("Запись....")
-    with open(target_file_path, 'a', encoding='utf-8') as tf:
-        while content:
-            char = content.pop(0)  # берём первый символ
+    try:
+        with open(target_file_path, 'a', encoding='utf-8') as tf:
+            while content:
+                char = content.pop(0)  # берём первый символ
 
-            # Записываем в файл-назначение
-            tf.write(char)
-            tf.flush()
+                # Записываем в файл-назначение
+                tf.write(char)
+                tf.flush()
 
-            # Обновляем исходный файл — перезаписываем без уже "набранного" символа
-            with open(source_file_path, 'w', encoding='utf-8') as sf:
-                sf.write(''.join(content))
+                # Обновляем исходный файл — перезаписываем без уже "набранного" символа
+                with open(source_file_path, 'w', encoding='utf-8') as sf:
+                    sf.write(''.join(content))
 
-            # Задержки
-            current_time = time.time()
-            if current_time >= next_pause_at:
-                time.sleep(random.uniform(SPEED_PAUSE_LOW, SPEED_PAUSE_MAX))  # "замешательство"
-                next_pause_at = current_time + random.uniform(SPEED_PAUSE_LOW, SPEED_PAUSE_MAX)
-            else:
-                time.sleep(random.uniform(SPEED_TYPING_LOW, SPEED_TYPING_UPPER))
+                # Задержки
+                current_time = time.time()
+                if current_time >= next_pause_at:
+                    time.sleep(random.uniform(SPEED_PAUSE_LOW, SPEED_PAUSE_MAX))  # "замешательство"
+                    next_pause_at = current_time + random.uniform(SPEED_PAUSE_LOW, SPEED_PAUSE_MAX)
+                else:
+                    time.sleep(random.uniform(SPEED_TYPING_LOW, SPEED_TYPING_UPPER))
+    except KeyboardInterrupt:
+        print("Завершена запись")
 
 
 if __name__ == "__main__":
