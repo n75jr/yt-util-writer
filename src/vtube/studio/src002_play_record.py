@@ -124,21 +124,20 @@ async def vtube_play_record(host: str, port: int, play_interval: float):
                 break
 
 
-if __name__ == "__main__":
-    fps = FPS
-    interval = 1.0 / fps
+async def main():
     host = URL_HOST
 
-    # --- Читаем порт из аргументов ---
-    if len(sys.argv) > 1:
-        try:
-            port = int(sys.argv[1])
-        except ValueError:
-            print("⚠️ Неверный порт, используется значение по умолчанию.")
-            port = DEFAULT_PORT
-    else:
-        # port = DEFAULT_PORT
-        port = int(input("Порт: > "))
+    try:
+        sys.argv[1]
+        port = int(sys.argv[1])
+    except Exception:
+        print(f"Ошибка при извлечении порта: {sys.argv[1]}")
+        return
 
-    print(f"🚀 Запуск с портом {port}")
-    asyncio.run(vtube_play_record(host=host, port=port, play_interval=interval))
+    fps = FPS
+    interval = 1.0 / fps
+    await vtube_play_record(host=host, port=port, play_interval=interval)
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
