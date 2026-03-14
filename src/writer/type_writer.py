@@ -201,9 +201,9 @@ def main():
         content = list(f.read())  # преобразуем в список символов
         print(f"Прочитано содержимое {source_file_path}: {len(content)}")
 
-    # Очистим целевой файл перед записью
-    with open(target_file_path, 'w', encoding='utf-8') as f:
-        f.write('')
+    if not os.path.exists(target_file_path):
+        with open(target_file_path, 'w', encoding='utf-8'):
+            pass
 
     # Цикл записи с удалением
     print("Запись....")
