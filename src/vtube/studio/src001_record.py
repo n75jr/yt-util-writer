@@ -1,4 +1,6 @@
 import asyncio
+import sys
+
 import websockets
 import json
 import os
@@ -10,8 +12,9 @@ APP_AUTHOR = "RichMan"
 URL_HOST = "localhost"
 URL_PORT = 8001
 RECORD_INTERVAL = 0.033
-TOKEN_FILE = "./resources/data/token.json"
-RECORD_FOLDER = "resources/data/record/"
+RECORD_FOLDER = "./data/record"
+TOKEN_FILE_TEMPLATE = "./data/token_%s.json"
+TOKEN_FILE = None
 
 # Глобальный флаг остановки
 STOP_RECORDING = False
@@ -75,6 +78,7 @@ async def request_new_token(ws) -> str | None:
 
 async def record_task(ws):
     global STOP_RECORDING, recorded_frames
+    recorded_frames = []
     output_file = get_next_filename()
     print(f"\n🎥 Начинаем запись... Введите Enter для остановки. Файл: {output_file}")
     start_time = time.time()
@@ -102,10 +106,19 @@ async def record_task(ws):
     print(f"💾 Сохранено в {output_file}")
 
 
-async def main(host: str, port: int):
-    global STOP_RECORDING
+async def main():
+    try:
+        sys.argv[1]
+        port = int(sys.argv[1])
+    except Exception:
+        print(f"Ошибка при извлечении порта: {sys.argv[1]}")
+        return
 
-    uri = f"ws://{host}:{port}"
+    global STOP_RECORDING
+    global TOKEN_FILE
+    TOKEN_FILE = TOKEN_FILE_TEMPLATE % port
+
+    uri = f"ws://{URL_HOST}:{port}"
     async with websockets.connect(uri) as ws:
         print("✅ Подключено к VTube Studio!")
 
@@ -139,4 +152,4 @@ async def main(host: str, port: int):
 
 
 if __name__ == "__main__":
-    asyncio.run(main(URL_HOST, URL_PORT))
+    asyncio.run(main())

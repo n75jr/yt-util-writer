@@ -10,13 +10,19 @@ FPS = 10
 URL_HOST = "localhost"
 DEFAULT_PORT = 8001
 RECORD_INTERVAL = 0.033
-TOKEN_FILE = "./data/token.json"
+TOKEN_FILE_TEMPLATE = "./data/token_%s.json"
 RECORD_FOLDER = "./data/record"
+TOKEN_FILE = None
 CURRENT_BACKGROUND = None
+PLUGIN_DEVELOPER_TEMPLATE = "RichMan_%s"
+PLUGIN_NAME_TEMPLATE = "RandomMover_%s"
+PLUGIN_DEVELOPER = None
+PLUGIN_NAME = None
 
 
 async def vtube_play_record_while_true(host: str, port: int, play_interval: float):
     uri = f"ws://{host}:{port}"
+    token_file = f""
     async with websockets.connect(uri) as ws:
         # --- Получаем токен ---
         if not os.path.exists(TOKEN_FILE):
@@ -26,8 +32,8 @@ async def vtube_play_record_while_true(host: str, port: int, play_interval: floa
                 "requestID": "token1",
                 "messageType": "AuthenticationTokenRequest",
                 "data": {
-                    "pluginName": "RandomMover",
-                    "pluginDeveloper": "RichMan"
+                    "pluginName": PLUGIN_NAME,
+                    "pluginDeveloper": PLUGIN_DEVELOPER
                 }
             }))
             response = json.loads(await ws.recv())
@@ -46,8 +52,8 @@ async def vtube_play_record_while_true(host: str, port: int, play_interval: floa
             "requestID": "auth1",
             "messageType": "AuthenticationRequest",
             "data": {
-                "pluginName": "RandomMover",
-                "pluginDeveloper": "RichMan",
+                "pluginName": PLUGIN_NAME,
+                "pluginDeveloper": PLUGIN_DEVELOPER,
                 "authenticationToken": token
             }
         }))
@@ -97,6 +103,13 @@ async def vtube_play_record_while_true(host: str, port: int, play_interval: floa
 
 
 async def vtube_play_record(host: str, port: int, play_interval: float):
+    global TOKEN_FILE
+    global PLUGIN_NAME
+    global PLUGIN_DEVELOPER
+    TOKEN_FILE = TOKEN_FILE_TEMPLATE % str(port)
+    PLUGIN_NAME = PLUGIN_NAME_TEMPLATE % str(port)
+    PLUGIN_DEVELOPER = PLUGIN_DEVELOPER_TEMPLATE % str(port)
+
     while True:
         try:
             print("-------- Запуск")
@@ -111,20 +124,20 @@ async def vtube_play_record(host: str, port: int, play_interval: float):
                 break
 
 
-if __name__ == "__main__":
-    fps = FPS
-    interval = 1.0 / fps
+async def main():
     host = URL_HOST
 
-    # --- Читаем порт из аргументов ---
-    if len(sys.argv) > 1:
-        try:
-            port = int(sys.argv[1])
-        except ValueError:
-            print("⚠️ Неверный порт, используется значение по умолчанию.")
-            port = DEFAULT_PORT
-    else:
-        port = DEFAULT_PORT
+    try:
+        sys.argv[1]
+        port = int(sys.argv[1])
+    except Exception:
+        print(f"Ошибка при извлечении порта: {sys.argv[1]}")
+        return
 
-    print(f"🚀 Запуск с портом {port}")
-    asyncio.run(vtube_play_record(host=host, port=port, play_interval=interval))
+    fps = FPS
+    interval = 1.0 / fps
+    await vtube_play_record(host=host, port=port, play_interval=interval)
+
+
+if __name__ == "__main__":
+    asyncio.run(main())

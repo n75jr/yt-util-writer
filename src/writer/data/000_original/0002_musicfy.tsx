@@ -1,0 +1,6671 @@
+import { StrictMode, useDeferredValue, useEffect, useId, useMemo, useState, startTransition } from 'react'
+import { createRoot } from 'react-dom/client'
+
+type TabId = 'home' | 'discover' | 'library' | 'radio'
+type FilterId = 'all' | 'focus' | 'workout' | 'chill' | 'party' | 'sleep'
+type PageId = 'for-you' | 'charts' | 'podcasts' | 'concerts'
+type QueueMode = 'smart' | 'manual'
+
+type Track = {
+  id: string
+  title: string
+  artist: string
+  artists: string[]
+  album: string
+  cover: string
+  genre: string
+  mood: FilterId
+  duration: string
+  lengthSeconds: number
+  plays: string
+  explicit: boolean
+  saved: boolean
+  popular: number
+  energy: number
+  danceability: number
+  year: number
+  accent: string
+}
+
+type Playlist = {
+  id: string
+  name: string
+  subtitle: string
+  description: string
+  mood: FilterId
+  cover: string
+  accent: string
+  saves: string
+  curator: string
+  duration: string
+  trackIds: string[]
+}
+
+type Episode = {
+  id: string
+  title: string
+  show: string
+  host: string
+  length: string
+  topic: string
+  cover: string
+  accent: string
+}
+
+type Concert = {
+  id: string
+  city: string
+  venue: string
+  date: string
+  artist: string
+  price: string
+  accent: string
+}
+
+type Activity = {
+  id: string
+  label: string
+  detail: string
+  time: string
+}
+
+const tracks: Track[] = [
+  {
+    "id": "track-1",
+    "title": "Pulse 1",
+    "artist": "Luna Harbor",
+    "artists": [
+      "Luna Harbor",
+      "Mira Echo"
+    ],
+    "album": "Berlin Sessions",
+    "cover": "Neon Archive",
+    "genre": "Alt Pop",
+    "mood": "focus",
+    "duration": "3:17",
+    "lengthSeconds": 197,
+    "plays": "2.1M",
+    "explicit": false,
+    "saved": false,
+    "popular": 56,
+    "energy": 37,
+    "danceability": 46,
+    "year": 2017,
+    "accent": "linear-gradient(135deg, #22c55e 0%, #14b8a6 55%, #0f172a 100%)"
+  },
+  {
+    "id": "track-2",
+    "title": "Velvet 2",
+    "artist": "Velvet Static",
+    "artists": [
+      "Velvet Static",
+      "The Night Index"
+    ],
+    "album": "Seoul Sessions",
+    "cover": "Sunset Archive",
+    "genre": "House",
+    "mood": "workout",
+    "duration": "4:34",
+    "lengthSeconds": 274,
+    "plays": "3.2M",
+    "explicit": false,
+    "saved": false,
+    "popular": 57,
+    "energy": 44,
+    "danceability": 57,
+    "year": 2018,
+    "accent": "linear-gradient(135deg, #60a5fa 0%, #818cf8 40%, #f472b6 100%)"
+  },
+  {
+    "id": "track-3",
+    "title": "Neon 3",
+    "artist": "Kairo Bloom",
+    "artists": [
+      "Kairo Bloom",
+      "Cobalt Hearts"
+    ],
+    "album": "Lagos Sessions",
+    "cover": "Aurora Archive",
+    "genre": "Indie Soul",
+    "mood": "chill",
+    "duration": "5:51",
+    "lengthSeconds": 351,
+    "plays": "4.3M",
+    "explicit": false,
+    "saved": true,
+    "popular": 58,
+    "energy": 51,
+    "danceability": 68,
+    "year": 2019,
+    "accent": "linear-gradient(135deg, #f59e0b 0%, #ef4444 60%, #7c3aed 100%)"
+  },
+  {
+    "id": "track-4",
+    "title": "Sunset 4",
+    "artist": "Mira Echo",
+    "artists": [
+      "Mira Echo",
+      "Aster Vale"
+    ],
+    "album": "London Sessions",
+    "cover": "Static Archive",
+    "genre": "Future Funk",
+    "mood": "party",
+    "duration": "2:08",
+    "lengthSeconds": 128,
+    "plays": "5.4M",
+    "explicit": false,
+    "saved": false,
+    "popular": 59,
+    "energy": 58,
+    "danceability": 79,
+    "year": 2020,
+    "accent": "linear-gradient(135deg, #34d399 0%, #06b6d4 55%, #2563eb 100%)"
+  },
+  {
+    "id": "track-5",
+    "title": "Aurora 5",
+    "artist": "The Night Index",
+    "artists": [
+      "The Night Index",
+      "Signal Youth"
+    ],
+    "album": "Sao Paulo Sessions",
+    "cover": "Afterglow Archive",
+    "genre": "Lo-fi",
+    "mood": "sleep",
+    "duration": "3:25",
+    "lengthSeconds": 205,
+    "plays": "6.5M",
+    "explicit": false,
+    "saved": false,
+    "popular": 60,
+    "energy": 65,
+    "danceability": 90,
+    "year": 2021,
+    "accent": "linear-gradient(135deg, #f43f5e 0%, #fb7185 40%, #facc15 100%)"
+  },
+  {
+    "id": "track-6",
+    "title": "Static 6",
+    "artist": "Cobalt Hearts",
+    "artists": [
+      "Cobalt Hearts",
+      "Golden Relay"
+    ],
+    "album": "Stockholm Sessions",
+    "cover": "Mirage Archive",
+    "genre": "Electronica",
+    "mood": "all",
+    "duration": "4:42",
+    "lengthSeconds": 282,
+    "plays": "7.6M",
+    "explicit": false,
+    "saved": true,
+    "popular": 61,
+    "energy": 72,
+    "danceability": 41,
+    "year": 2022,
+    "accent": "linear-gradient(135deg, #a78bfa 0%, #38bdf8 50%, #4ade80 100%)"
+  },
+  {
+    "id": "track-7",
+    "title": "Afterglow 7",
+    "artist": "Aster Vale",
+    "artists": [
+      "Aster Vale",
+      "Nova Atlas"
+    ],
+    "album": "Toronto Sessions",
+    "cover": "Starlight Archive",
+    "genre": "Afrobeats",
+    "mood": "focus",
+    "duration": "5:59",
+    "lengthSeconds": 359,
+    "plays": "8.7M",
+    "explicit": true,
+    "saved": false,
+    "popular": 62,
+    "energy": 79,
+    "danceability": 52,
+    "year": 2023,
+    "accent": "linear-gradient(135deg, #fb7185 0%, #c084fc 45%, #60a5fa 100%)"
+  },
+  {
+    "id": "track-8",
+    "title": "Mirage 8",
+    "artist": "Signal Youth",
+    "artists": [
+      "Signal Youth",
+      "Luna Harbor"
+    ],
+    "album": "Barcelona Sessions",
+    "cover": "Night Drive Archive",
+    "genre": "R&B",
+    "mood": "workout",
+    "duration": "2:16",
+    "lengthSeconds": 136,
+    "plays": "9.8M",
+    "explicit": false,
+    "saved": false,
+    "popular": 63,
+    "energy": 86,
+    "danceability": 63,
+    "year": 2024,
+    "accent": "linear-gradient(135deg, #f97316 0%, #fb7185 45%, #2dd4bf 100%)"
+  },
+  {
+    "id": "track-9",
+    "title": "Starlight 9",
+    "artist": "Golden Relay",
+    "artists": [
+      "Golden Relay",
+      "Velvet Static"
+    ],
+    "album": "Jakarta Sessions",
+    "cover": "Pulse Archive",
+    "genre": "Ambient",
+    "mood": "chill",
+    "duration": "3:33",
+    "lengthSeconds": 213,
+    "plays": "1.9M",
+    "explicit": false,
+    "saved": true,
+    "popular": 64,
+    "energy": 93,
+    "danceability": 74,
+    "year": 2025,
+    "accent": "linear-gradient(135deg, #22c55e 0%, #14b8a6 55%, #0f172a 100%)"
+  },
+  {
+    "id": "track-10",
+    "title": "Night Drive 10",
+    "artist": "Nova Atlas",
+    "artists": [
+      "Nova Atlas",
+      "Kairo Bloom"
+    ],
+    "album": "Tokyo Sessions",
+    "cover": "Velvet Archive",
+    "genre": "Synthwave",
+    "mood": "party",
+    "duration": "4:50",
+    "lengthSeconds": 290,
+    "plays": "2.0M",
+    "explicit": false,
+    "saved": false,
+    "popular": 65,
+    "energy": 30,
+    "danceability": 85,
+    "year": 2016,
+    "accent": "linear-gradient(135deg, #60a5fa 0%, #818cf8 40%, #f472b6 100%)"
+  },
+  {
+    "id": "track-11",
+    "title": "Pulse 11",
+    "artist": "Luna Harbor",
+    "artists": [
+      "Luna Harbor",
+      "Mira Echo"
+    ],
+    "album": "Berlin Sessions",
+    "cover": "Neon Archive",
+    "genre": "Alt Pop",
+    "mood": "sleep",
+    "duration": "5:07",
+    "lengthSeconds": 307,
+    "plays": "3.1M",
+    "explicit": false,
+    "saved": false,
+    "popular": 66,
+    "energy": 37,
+    "danceability": 36,
+    "year": 2017,
+    "accent": "linear-gradient(135deg, #f59e0b 0%, #ef4444 60%, #7c3aed 100%)"
+  },
+  {
+    "id": "track-12",
+    "title": "Velvet 12",
+    "artist": "Velvet Static",
+    "artists": [
+      "Velvet Static",
+      "The Night Index"
+    ],
+    "album": "Seoul Sessions",
+    "cover": "Sunset Archive",
+    "genre": "House",
+    "mood": "all",
+    "duration": "2:24",
+    "lengthSeconds": 144,
+    "plays": "4.2M",
+    "explicit": false,
+    "saved": true,
+    "popular": 67,
+    "energy": 44,
+    "danceability": 47,
+    "year": 2018,
+    "accent": "linear-gradient(135deg, #34d399 0%, #06b6d4 55%, #2563eb 100%)"
+  },
+  {
+    "id": "track-13",
+    "title": "Neon 13",
+    "artist": "Kairo Bloom",
+    "artists": [
+      "Kairo Bloom",
+      "Cobalt Hearts"
+    ],
+    "album": "Lagos Sessions",
+    "cover": "Aurora Archive",
+    "genre": "Indie Soul",
+    "mood": "focus",
+    "duration": "3:41",
+    "lengthSeconds": 221,
+    "plays": "5.3M",
+    "explicit": false,
+    "saved": false,
+    "popular": 68,
+    "energy": 51,
+    "danceability": 58,
+    "year": 2019,
+    "accent": "linear-gradient(135deg, #f43f5e 0%, #fb7185 40%, #facc15 100%)"
+  },
+  {
+    "id": "track-14",
+    "title": "Sunset 14",
+    "artist": "Mira Echo",
+    "artists": [
+      "Mira Echo",
+      "Aster Vale"
+    ],
+    "album": "London Sessions",
+    "cover": "Static Archive",
+    "genre": "Future Funk",
+    "mood": "workout",
+    "duration": "4:58",
+    "lengthSeconds": 298,
+    "plays": "6.4M",
+    "explicit": true,
+    "saved": false,
+    "popular": 69,
+    "energy": 58,
+    "danceability": 69,
+    "year": 2020,
+    "accent": "linear-gradient(135deg, #a78bfa 0%, #38bdf8 50%, #4ade80 100%)"
+  },
+  {
+    "id": "track-15",
+    "title": "Aurora 15",
+    "artist": "The Night Index",
+    "artists": [
+      "The Night Index",
+      "Signal Youth"
+    ],
+    "album": "Sao Paulo Sessions",
+    "cover": "Afterglow Archive",
+    "genre": "Lo-fi",
+    "mood": "chill",
+    "duration": "5:15",
+    "lengthSeconds": 315,
+    "plays": "7.5M",
+    "explicit": false,
+    "saved": true,
+    "popular": 70,
+    "energy": 65,
+    "danceability": 80,
+    "year": 2021,
+    "accent": "linear-gradient(135deg, #fb7185 0%, #c084fc 45%, #60a5fa 100%)"
+  },
+  {
+    "id": "track-16",
+    "title": "Static 16",
+    "artist": "Cobalt Hearts",
+    "artists": [
+      "Cobalt Hearts",
+      "Golden Relay"
+    ],
+    "album": "Stockholm Sessions",
+    "cover": "Mirage Archive",
+    "genre": "Electronica",
+    "mood": "party",
+    "duration": "2:32",
+    "lengthSeconds": 152,
+    "plays": "8.6M",
+    "explicit": false,
+    "saved": false,
+    "popular": 71,
+    "energy": 72,
+    "danceability": 91,
+    "year": 2022,
+    "accent": "linear-gradient(135deg, #f97316 0%, #fb7185 45%, #2dd4bf 100%)"
+  },
+  {
+    "id": "track-17",
+    "title": "Afterglow 17",
+    "artist": "Aster Vale",
+    "artists": [
+      "Aster Vale",
+      "Nova Atlas"
+    ],
+    "album": "Toronto Sessions",
+    "cover": "Starlight Archive",
+    "genre": "Afrobeats",
+    "mood": "sleep",
+    "duration": "3:49",
+    "lengthSeconds": 229,
+    "plays": "9.7M",
+    "explicit": false,
+    "saved": false,
+    "popular": 72,
+    "energy": 79,
+    "danceability": 42,
+    "year": 2023,
+    "accent": "linear-gradient(135deg, #22c55e 0%, #14b8a6 55%, #0f172a 100%)"
+  },
+  {
+    "id": "track-18",
+    "title": "Mirage 18",
+    "artist": "Signal Youth",
+    "artists": [
+      "Signal Youth",
+      "Luna Harbor"
+    ],
+    "album": "Barcelona Sessions",
+    "cover": "Night Drive Archive",
+    "genre": "R&B",
+    "mood": "all",
+    "duration": "4:06",
+    "lengthSeconds": 246,
+    "plays": "1.8M",
+    "explicit": false,
+    "saved": true,
+    "popular": 73,
+    "energy": 86,
+    "danceability": 53,
+    "year": 2024,
+    "accent": "linear-gradient(135deg, #60a5fa 0%, #818cf8 40%, #f472b6 100%)"
+  },
+  {
+    "id": "track-19",
+    "title": "Starlight 19",
+    "artist": "Golden Relay",
+    "artists": [
+      "Golden Relay",
+      "Velvet Static"
+    ],
+    "album": "Jakarta Sessions",
+    "cover": "Pulse Archive",
+    "genre": "Ambient",
+    "mood": "focus",
+    "duration": "5:23",
+    "lengthSeconds": 323,
+    "plays": "2.9M",
+    "explicit": false,
+    "saved": false,
+    "popular": 74,
+    "energy": 93,
+    "danceability": 64,
+    "year": 2025,
+    "accent": "linear-gradient(135deg, #f59e0b 0%, #ef4444 60%, #7c3aed 100%)"
+  },
+  {
+    "id": "track-20",
+    "title": "Night Drive 20",
+    "artist": "Nova Atlas",
+    "artists": [
+      "Nova Atlas",
+      "Kairo Bloom"
+    ],
+    "album": "Tokyo Sessions",
+    "cover": "Velvet Archive",
+    "genre": "Synthwave",
+    "mood": "workout",
+    "duration": "2:40",
+    "lengthSeconds": 160,
+    "plays": "3.0M",
+    "explicit": false,
+    "saved": false,
+    "popular": 75,
+    "energy": 30,
+    "danceability": 75,
+    "year": 2016,
+    "accent": "linear-gradient(135deg, #34d399 0%, #06b6d4 55%, #2563eb 100%)"
+  },
+  {
+    "id": "track-21",
+    "title": "Pulse 21",
+    "artist": "Luna Harbor",
+    "artists": [
+      "Luna Harbor",
+      "Mira Echo"
+    ],
+    "album": "Berlin Sessions",
+    "cover": "Neon Archive",
+    "genre": "Alt Pop",
+    "mood": "chill",
+    "duration": "3:57",
+    "lengthSeconds": 237,
+    "plays": "4.1M",
+    "explicit": true,
+    "saved": true,
+    "popular": 76,
+    "energy": 37,
+    "danceability": 86,
+    "year": 2017,
+    "accent": "linear-gradient(135deg, #f43f5e 0%, #fb7185 40%, #facc15 100%)"
+  },
+  {
+    "id": "track-22",
+    "title": "Velvet 22",
+    "artist": "Velvet Static",
+    "artists": [
+      "Velvet Static",
+      "The Night Index"
+    ],
+    "album": "Seoul Sessions",
+    "cover": "Sunset Archive",
+    "genre": "House",
+    "mood": "party",
+    "duration": "4:14",
+    "lengthSeconds": 254,
+    "plays": "5.2M",
+    "explicit": false,
+    "saved": false,
+    "popular": 77,
+    "energy": 44,
+    "danceability": 37,
+    "year": 2018,
+    "accent": "linear-gradient(135deg, #a78bfa 0%, #38bdf8 50%, #4ade80 100%)"
+  },
+  {
+    "id": "track-23",
+    "title": "Neon 23",
+    "artist": "Kairo Bloom",
+    "artists": [
+      "Kairo Bloom",
+      "Cobalt Hearts"
+    ],
+    "album": "Lagos Sessions",
+    "cover": "Aurora Archive",
+    "genre": "Indie Soul",
+    "mood": "sleep",
+    "duration": "5:31",
+    "lengthSeconds": 331,
+    "plays": "6.3M",
+    "explicit": false,
+    "saved": false,
+    "popular": 78,
+    "energy": 51,
+    "danceability": 48,
+    "year": 2019,
+    "accent": "linear-gradient(135deg, #fb7185 0%, #c084fc 45%, #60a5fa 100%)"
+  },
+  {
+    "id": "track-24",
+    "title": "Sunset 24",
+    "artist": "Mira Echo",
+    "artists": [
+      "Mira Echo",
+      "Aster Vale"
+    ],
+    "album": "London Sessions",
+    "cover": "Static Archive",
+    "genre": "Future Funk",
+    "mood": "all",
+    "duration": "2:48",
+    "lengthSeconds": 168,
+    "plays": "7.4M",
+    "explicit": false,
+    "saved": true,
+    "popular": 79,
+    "energy": 58,
+    "danceability": 59,
+    "year": 2020,
+    "accent": "linear-gradient(135deg, #f97316 0%, #fb7185 45%, #2dd4bf 100%)"
+  },
+  {
+    "id": "track-25",
+    "title": "Aurora 25",
+    "artist": "The Night Index",
+    "artists": [
+      "The Night Index",
+      "Signal Youth"
+    ],
+    "album": "Sao Paulo Sessions",
+    "cover": "Afterglow Archive",
+    "genre": "Lo-fi",
+    "mood": "focus",
+    "duration": "3:05",
+    "lengthSeconds": 185,
+    "plays": "8.5M",
+    "explicit": false,
+    "saved": false,
+    "popular": 80,
+    "energy": 65,
+    "danceability": 70,
+    "year": 2021,
+    "accent": "linear-gradient(135deg, #22c55e 0%, #14b8a6 55%, #0f172a 100%)"
+  },
+  {
+    "id": "track-26",
+    "title": "Static 26",
+    "artist": "Cobalt Hearts",
+    "artists": [
+      "Cobalt Hearts",
+      "Golden Relay"
+    ],
+    "album": "Stockholm Sessions",
+    "cover": "Mirage Archive",
+    "genre": "Electronica",
+    "mood": "workout",
+    "duration": "4:22",
+    "lengthSeconds": 262,
+    "plays": "9.6M",
+    "explicit": false,
+    "saved": false,
+    "popular": 81,
+    "energy": 72,
+    "danceability": 81,
+    "year": 2022,
+    "accent": "linear-gradient(135deg, #60a5fa 0%, #818cf8 40%, #f472b6 100%)"
+  },
+  {
+    "id": "track-27",
+    "title": "Afterglow 27",
+    "artist": "Aster Vale",
+    "artists": [
+      "Aster Vale",
+      "Nova Atlas"
+    ],
+    "album": "Toronto Sessions",
+    "cover": "Starlight Archive",
+    "genre": "Afrobeats",
+    "mood": "chill",
+    "duration": "5:39",
+    "lengthSeconds": 339,
+    "plays": "1.7M",
+    "explicit": false,
+    "saved": true,
+    "popular": 82,
+    "energy": 79,
+    "danceability": 92,
+    "year": 2023,
+    "accent": "linear-gradient(135deg, #f59e0b 0%, #ef4444 60%, #7c3aed 100%)"
+  },
+  {
+    "id": "track-28",
+    "title": "Mirage 28",
+    "artist": "Signal Youth",
+    "artists": [
+      "Signal Youth",
+      "Luna Harbor"
+    ],
+    "album": "Barcelona Sessions",
+    "cover": "Night Drive Archive",
+    "genre": "R&B",
+    "mood": "party",
+    "duration": "2:56",
+    "lengthSeconds": 176,
+    "plays": "2.8M",
+    "explicit": true,
+    "saved": false,
+    "popular": 83,
+    "energy": 86,
+    "danceability": 43,
+    "year": 2024,
+    "accent": "linear-gradient(135deg, #34d399 0%, #06b6d4 55%, #2563eb 100%)"
+  },
+  {
+    "id": "track-29",
+    "title": "Starlight 29",
+    "artist": "Golden Relay",
+    "artists": [
+      "Golden Relay",
+      "Velvet Static"
+    ],
+    "album": "Jakarta Sessions",
+    "cover": "Pulse Archive",
+    "genre": "Ambient",
+    "mood": "sleep",
+    "duration": "3:13",
+    "lengthSeconds": 193,
+    "plays": "3.9M",
+    "explicit": false,
+    "saved": false,
+    "popular": 84,
+    "energy": 93,
+    "danceability": 54,
+    "year": 2025,
+    "accent": "linear-gradient(135deg, #f43f5e 0%, #fb7185 40%, #facc15 100%)"
+  },
+  {
+    "id": "track-30",
+    "title": "Night Drive 30",
+    "artist": "Nova Atlas",
+    "artists": [
+      "Nova Atlas",
+      "Kairo Bloom"
+    ],
+    "album": "Tokyo Sessions",
+    "cover": "Velvet Archive",
+    "genre": "Synthwave",
+    "mood": "all",
+    "duration": "4:30",
+    "lengthSeconds": 270,
+    "plays": "4.0M",
+    "explicit": false,
+    "saved": true,
+    "popular": 85,
+    "energy": 30,
+    "danceability": 65,
+    "year": 2016,
+    "accent": "linear-gradient(135deg, #a78bfa 0%, #38bdf8 50%, #4ade80 100%)"
+  },
+  {
+    "id": "track-31",
+    "title": "Pulse 31",
+    "artist": "Luna Harbor",
+    "artists": [
+      "Luna Harbor",
+      "Mira Echo"
+    ],
+    "album": "Berlin Sessions",
+    "cover": "Neon Archive",
+    "genre": "Alt Pop",
+    "mood": "focus",
+    "duration": "5:47",
+    "lengthSeconds": 347,
+    "plays": "5.1M",
+    "explicit": false,
+    "saved": false,
+    "popular": 86,
+    "energy": 37,
+    "danceability": 76,
+    "year": 2017,
+    "accent": "linear-gradient(135deg, #fb7185 0%, #c084fc 45%, #60a5fa 100%)"
+  },
+  {
+    "id": "track-32",
+    "title": "Velvet 32",
+    "artist": "Velvet Static",
+    "artists": [
+      "Velvet Static",
+      "The Night Index"
+    ],
+    "album": "Seoul Sessions",
+    "cover": "Sunset Archive",
+    "genre": "House",
+    "mood": "workout",
+    "duration": "2:04",
+    "lengthSeconds": 124,
+    "plays": "6.2M",
+    "explicit": false,
+    "saved": false,
+    "popular": 87,
+    "energy": 44,
+    "danceability": 87,
+    "year": 2018,
+    "accent": "linear-gradient(135deg, #f97316 0%, #fb7185 45%, #2dd4bf 100%)"
+  },
+  {
+    "id": "track-33",
+    "title": "Neon 33",
+    "artist": "Kairo Bloom",
+    "artists": [
+      "Kairo Bloom",
+      "Cobalt Hearts"
+    ],
+    "album": "Lagos Sessions",
+    "cover": "Aurora Archive",
+    "genre": "Indie Soul",
+    "mood": "chill",
+    "duration": "3:21",
+    "lengthSeconds": 201,
+    "plays": "7.3M",
+    "explicit": false,
+    "saved": true,
+    "popular": 88,
+    "energy": 51,
+    "danceability": 38,
+    "year": 2019,
+    "accent": "linear-gradient(135deg, #22c55e 0%, #14b8a6 55%, #0f172a 100%)"
+  },
+  {
+    "id": "track-34",
+    "title": "Sunset 34",
+    "artist": "Mira Echo",
+    "artists": [
+      "Mira Echo",
+      "Aster Vale"
+    ],
+    "album": "London Sessions",
+    "cover": "Static Archive",
+    "genre": "Future Funk",
+    "mood": "party",
+    "duration": "4:38",
+    "lengthSeconds": 278,
+    "plays": "8.4M",
+    "explicit": false,
+    "saved": false,
+    "popular": 89,
+    "energy": 58,
+    "danceability": 49,
+    "year": 2020,
+    "accent": "linear-gradient(135deg, #60a5fa 0%, #818cf8 40%, #f472b6 100%)"
+  },
+  {
+    "id": "track-35",
+    "title": "Aurora 35",
+    "artist": "The Night Index",
+    "artists": [
+      "The Night Index",
+      "Signal Youth"
+    ],
+    "album": "Sao Paulo Sessions",
+    "cover": "Afterglow Archive",
+    "genre": "Lo-fi",
+    "mood": "sleep",
+    "duration": "5:55",
+    "lengthSeconds": 355,
+    "plays": "9.5M",
+    "explicit": true,
+    "saved": false,
+    "popular": 90,
+    "energy": 65,
+    "danceability": 60,
+    "year": 2021,
+    "accent": "linear-gradient(135deg, #f59e0b 0%, #ef4444 60%, #7c3aed 100%)"
+  },
+  {
+    "id": "track-36",
+    "title": "Static 36",
+    "artist": "Cobalt Hearts",
+    "artists": [
+      "Cobalt Hearts",
+      "Golden Relay"
+    ],
+    "album": "Stockholm Sessions",
+    "cover": "Mirage Archive",
+    "genre": "Electronica",
+    "mood": "all",
+    "duration": "2:12",
+    "lengthSeconds": 132,
+    "plays": "1.6M",
+    "explicit": false,
+    "saved": true,
+    "popular": 91,
+    "energy": 72,
+    "danceability": 71,
+    "year": 2022,
+    "accent": "linear-gradient(135deg, #34d399 0%, #06b6d4 55%, #2563eb 100%)"
+  },
+  {
+    "id": "track-37",
+    "title": "Afterglow 37",
+    "artist": "Aster Vale",
+    "artists": [
+      "Aster Vale",
+      "Nova Atlas"
+    ],
+    "album": "Toronto Sessions",
+    "cover": "Starlight Archive",
+    "genre": "Afrobeats",
+    "mood": "focus",
+    "duration": "3:29",
+    "lengthSeconds": 209,
+    "plays": "2.7M",
+    "explicit": false,
+    "saved": false,
+    "popular": 92,
+    "energy": 79,
+    "danceability": 82,
+    "year": 2023,
+    "accent": "linear-gradient(135deg, #f43f5e 0%, #fb7185 40%, #facc15 100%)"
+  },
+  {
+    "id": "track-38",
+    "title": "Mirage 38",
+    "artist": "Signal Youth",
+    "artists": [
+      "Signal Youth",
+      "Luna Harbor"
+    ],
+    "album": "Barcelona Sessions",
+    "cover": "Night Drive Archive",
+    "genre": "R&B",
+    "mood": "workout",
+    "duration": "4:46",
+    "lengthSeconds": 286,
+    "plays": "3.8M",
+    "explicit": false,
+    "saved": false,
+    "popular": 93,
+    "energy": 86,
+    "danceability": 93,
+    "year": 2024,
+    "accent": "linear-gradient(135deg, #a78bfa 0%, #38bdf8 50%, #4ade80 100%)"
+  },
+  {
+    "id": "track-39",
+    "title": "Starlight 39",
+    "artist": "Golden Relay",
+    "artists": [
+      "Golden Relay",
+      "Velvet Static"
+    ],
+    "album": "Jakarta Sessions",
+    "cover": "Pulse Archive",
+    "genre": "Ambient",
+    "mood": "chill",
+    "duration": "5:03",
+    "lengthSeconds": 303,
+    "plays": "4.9M",
+    "explicit": false,
+    "saved": true,
+    "popular": 94,
+    "energy": 93,
+    "danceability": 44,
+    "year": 2025,
+    "accent": "linear-gradient(135deg, #fb7185 0%, #c084fc 45%, #60a5fa 100%)"
+  },
+  {
+    "id": "track-40",
+    "title": "Night Drive 40",
+    "artist": "Nova Atlas",
+    "artists": [
+      "Nova Atlas",
+      "Kairo Bloom"
+    ],
+    "album": "Tokyo Sessions",
+    "cover": "Velvet Archive",
+    "genre": "Synthwave",
+    "mood": "party",
+    "duration": "2:20",
+    "lengthSeconds": 140,
+    "plays": "5.0M",
+    "explicit": false,
+    "saved": false,
+    "popular": 95,
+    "energy": 30,
+    "danceability": 55,
+    "year": 2016,
+    "accent": "linear-gradient(135deg, #f97316 0%, #fb7185 45%, #2dd4bf 100%)"
+  },
+  {
+    "id": "track-41",
+    "title": "Pulse 41",
+    "artist": "Luna Harbor",
+    "artists": [
+      "Luna Harbor",
+      "Mira Echo"
+    ],
+    "album": "Berlin Sessions",
+    "cover": "Neon Archive",
+    "genre": "Alt Pop",
+    "mood": "sleep",
+    "duration": "3:37",
+    "lengthSeconds": 217,
+    "plays": "6.1M",
+    "explicit": false,
+    "saved": false,
+    "popular": 96,
+    "energy": 37,
+    "danceability": 66,
+    "year": 2017,
+    "accent": "linear-gradient(135deg, #22c55e 0%, #14b8a6 55%, #0f172a 100%)"
+  },
+  {
+    "id": "track-42",
+    "title": "Velvet 42",
+    "artist": "Velvet Static",
+    "artists": [
+      "Velvet Static",
+      "The Night Index"
+    ],
+    "album": "Seoul Sessions",
+    "cover": "Sunset Archive",
+    "genre": "House",
+    "mood": "all",
+    "duration": "4:54",
+    "lengthSeconds": 294,
+    "plays": "7.2M",
+    "explicit": true,
+    "saved": true,
+    "popular": 97,
+    "energy": 44,
+    "danceability": 77,
+    "year": 2018,
+    "accent": "linear-gradient(135deg, #60a5fa 0%, #818cf8 40%, #f472b6 100%)"
+  },
+  {
+    "id": "track-43",
+    "title": "Neon 43",
+    "artist": "Kairo Bloom",
+    "artists": [
+      "Kairo Bloom",
+      "Cobalt Hearts"
+    ],
+    "album": "Lagos Sessions",
+    "cover": "Aurora Archive",
+    "genre": "Indie Soul",
+    "mood": "focus",
+    "duration": "5:11",
+    "lengthSeconds": 311,
+    "plays": "8.3M",
+    "explicit": false,
+    "saved": false,
+    "popular": 98,
+    "energy": 51,
+    "danceability": 88,
+    "year": 2019,
+    "accent": "linear-gradient(135deg, #f59e0b 0%, #ef4444 60%, #7c3aed 100%)"
+  },
+  {
+    "id": "track-44",
+    "title": "Sunset 44",
+    "artist": "Mira Echo",
+    "artists": [
+      "Mira Echo",
+      "Aster Vale"
+    ],
+    "album": "London Sessions",
+    "cover": "Static Archive",
+    "genre": "Future Funk",
+    "mood": "workout",
+    "duration": "2:28",
+    "lengthSeconds": 148,
+    "plays": "9.4M",
+    "explicit": false,
+    "saved": false,
+    "popular": 99,
+    "energy": 58,
+    "danceability": 39,
+    "year": 2020,
+    "accent": "linear-gradient(135deg, #34d399 0%, #06b6d4 55%, #2563eb 100%)"
+  },
+  {
+    "id": "track-45",
+    "title": "Aurora 45",
+    "artist": "The Night Index",
+    "artists": [
+      "The Night Index",
+      "Signal Youth"
+    ],
+    "album": "Sao Paulo Sessions",
+    "cover": "Afterglow Archive",
+    "genre": "Lo-fi",
+    "mood": "chill",
+    "duration": "3:45",
+    "lengthSeconds": 225,
+    "plays": "1.5M",
+    "explicit": false,
+    "saved": true,
+    "popular": 55,
+    "energy": 65,
+    "danceability": 50,
+    "year": 2021,
+    "accent": "linear-gradient(135deg, #f43f5e 0%, #fb7185 40%, #facc15 100%)"
+  },
+  {
+    "id": "track-46",
+    "title": "Static 46",
+    "artist": "Cobalt Hearts",
+    "artists": [
+      "Cobalt Hearts",
+      "Golden Relay"
+    ],
+    "album": "Stockholm Sessions",
+    "cover": "Mirage Archive",
+    "genre": "Electronica",
+    "mood": "party",
+    "duration": "4:02",
+    "lengthSeconds": 242,
+    "plays": "2.6M",
+    "explicit": false,
+    "saved": false,
+    "popular": 56,
+    "energy": 72,
+    "danceability": 61,
+    "year": 2022,
+    "accent": "linear-gradient(135deg, #a78bfa 0%, #38bdf8 50%, #4ade80 100%)"
+  },
+  {
+    "id": "track-47",
+    "title": "Afterglow 47",
+    "artist": "Aster Vale",
+    "artists": [
+      "Aster Vale",
+      "Nova Atlas"
+    ],
+    "album": "Toronto Sessions",
+    "cover": "Starlight Archive",
+    "genre": "Afrobeats",
+    "mood": "sleep",
+    "duration": "5:19",
+    "lengthSeconds": 319,
+    "plays": "3.7M",
+    "explicit": false,
+    "saved": false,
+    "popular": 57,
+    "energy": 79,
+    "danceability": 72,
+    "year": 2023,
+    "accent": "linear-gradient(135deg, #fb7185 0%, #c084fc 45%, #60a5fa 100%)"
+  },
+  {
+    "id": "track-48",
+    "title": "Mirage 48",
+    "artist": "Signal Youth",
+    "artists": [
+      "Signal Youth",
+      "Luna Harbor"
+    ],
+    "album": "Barcelona Sessions",
+    "cover": "Night Drive Archive",
+    "genre": "R&B",
+    "mood": "all",
+    "duration": "2:36",
+    "lengthSeconds": 156,
+    "plays": "4.8M",
+    "explicit": false,
+    "saved": true,
+    "popular": 58,
+    "energy": 86,
+    "danceability": 83,
+    "year": 2024,
+    "accent": "linear-gradient(135deg, #f97316 0%, #fb7185 45%, #2dd4bf 100%)"
+  },
+  {
+    "id": "track-49",
+    "title": "Starlight 49",
+    "artist": "Golden Relay",
+    "artists": [
+      "Golden Relay",
+      "Velvet Static"
+    ],
+    "album": "Jakarta Sessions",
+    "cover": "Pulse Archive",
+    "genre": "Ambient",
+    "mood": "focus",
+    "duration": "3:53",
+    "lengthSeconds": 233,
+    "plays": "5.9M",
+    "explicit": true,
+    "saved": false,
+    "popular": 59,
+    "energy": 93,
+    "danceability": 94,
+    "year": 2025,
+    "accent": "linear-gradient(135deg, #22c55e 0%, #14b8a6 55%, #0f172a 100%)"
+  },
+  {
+    "id": "track-50",
+    "title": "Night Drive 50",
+    "artist": "Nova Atlas",
+    "artists": [
+      "Nova Atlas",
+      "Kairo Bloom"
+    ],
+    "album": "Tokyo Sessions",
+    "cover": "Velvet Archive",
+    "genre": "Synthwave",
+    "mood": "workout",
+    "duration": "4:10",
+    "lengthSeconds": 250,
+    "plays": "6.0M",
+    "explicit": false,
+    "saved": false,
+    "popular": 60,
+    "energy": 30,
+    "danceability": 45,
+    "year": 2016,
+    "accent": "linear-gradient(135deg, #60a5fa 0%, #818cf8 40%, #f472b6 100%)"
+  },
+  {
+    "id": "track-51",
+    "title": "Pulse 51",
+    "artist": "Luna Harbor",
+    "artists": [
+      "Luna Harbor",
+      "Mira Echo"
+    ],
+    "album": "Berlin Sessions",
+    "cover": "Neon Archive",
+    "genre": "Alt Pop",
+    "mood": "chill",
+    "duration": "5:27",
+    "lengthSeconds": 327,
+    "plays": "7.1M",
+    "explicit": false,
+    "saved": true,
+    "popular": 61,
+    "energy": 37,
+    "danceability": 56,
+    "year": 2017,
+    "accent": "linear-gradient(135deg, #f59e0b 0%, #ef4444 60%, #7c3aed 100%)"
+  },
+  {
+    "id": "track-52",
+    "title": "Velvet 52",
+    "artist": "Velvet Static",
+    "artists": [
+      "Velvet Static",
+      "The Night Index"
+    ],
+    "album": "Seoul Sessions",
+    "cover": "Sunset Archive",
+    "genre": "House",
+    "mood": "party",
+    "duration": "2:44",
+    "lengthSeconds": 164,
+    "plays": "8.2M",
+    "explicit": false,
+    "saved": false,
+    "popular": 62,
+    "energy": 44,
+    "danceability": 67,
+    "year": 2018,
+    "accent": "linear-gradient(135deg, #34d399 0%, #06b6d4 55%, #2563eb 100%)"
+  },
+  {
+    "id": "track-53",
+    "title": "Neon 53",
+    "artist": "Kairo Bloom",
+    "artists": [
+      "Kairo Bloom",
+      "Cobalt Hearts"
+    ],
+    "album": "Lagos Sessions",
+    "cover": "Aurora Archive",
+    "genre": "Indie Soul",
+    "mood": "sleep",
+    "duration": "3:01",
+    "lengthSeconds": 181,
+    "plays": "9.3M",
+    "explicit": false,
+    "saved": false,
+    "popular": 63,
+    "energy": 51,
+    "danceability": 78,
+    "year": 2019,
+    "accent": "linear-gradient(135deg, #f43f5e 0%, #fb7185 40%, #facc15 100%)"
+  },
+  {
+    "id": "track-54",
+    "title": "Sunset 54",
+    "artist": "Mira Echo",
+    "artists": [
+      "Mira Echo",
+      "Aster Vale"
+    ],
+    "album": "London Sessions",
+    "cover": "Static Archive",
+    "genre": "Future Funk",
+    "mood": "all",
+    "duration": "4:18",
+    "lengthSeconds": 258,
+    "plays": "1.4M",
+    "explicit": false,
+    "saved": true,
+    "popular": 64,
+    "energy": 58,
+    "danceability": 89,
+    "year": 2020,
+    "accent": "linear-gradient(135deg, #a78bfa 0%, #38bdf8 50%, #4ade80 100%)"
+  },
+  {
+    "id": "track-55",
+    "title": "Aurora 55",
+    "artist": "The Night Index",
+    "artists": [
+      "The Night Index",
+      "Signal Youth"
+    ],
+    "album": "Sao Paulo Sessions",
+    "cover": "Afterglow Archive",
+    "genre": "Lo-fi",
+    "mood": "focus",
+    "duration": "5:35",
+    "lengthSeconds": 335,
+    "plays": "2.5M",
+    "explicit": false,
+    "saved": false,
+    "popular": 65,
+    "energy": 65,
+    "danceability": 40,
+    "year": 2021,
+    "accent": "linear-gradient(135deg, #fb7185 0%, #c084fc 45%, #60a5fa 100%)"
+  },
+  {
+    "id": "track-56",
+    "title": "Static 56",
+    "artist": "Cobalt Hearts",
+    "artists": [
+      "Cobalt Hearts",
+      "Golden Relay"
+    ],
+    "album": "Stockholm Sessions",
+    "cover": "Mirage Archive",
+    "genre": "Electronica",
+    "mood": "workout",
+    "duration": "2:52",
+    "lengthSeconds": 172,
+    "plays": "3.6M",
+    "explicit": true,
+    "saved": false,
+    "popular": 66,
+    "energy": 72,
+    "danceability": 51,
+    "year": 2022,
+    "accent": "linear-gradient(135deg, #f97316 0%, #fb7185 45%, #2dd4bf 100%)"
+  },
+  {
+    "id": "track-57",
+    "title": "Afterglow 57",
+    "artist": "Aster Vale",
+    "artists": [
+      "Aster Vale",
+      "Nova Atlas"
+    ],
+    "album": "Toronto Sessions",
+    "cover": "Starlight Archive",
+    "genre": "Afrobeats",
+    "mood": "chill",
+    "duration": "3:09",
+    "lengthSeconds": 189,
+    "plays": "4.7M",
+    "explicit": false,
+    "saved": true,
+    "popular": 67,
+    "energy": 79,
+    "danceability": 62,
+    "year": 2023,
+    "accent": "linear-gradient(135deg, #22c55e 0%, #14b8a6 55%, #0f172a 100%)"
+  },
+  {
+    "id": "track-58",
+    "title": "Mirage 58",
+    "artist": "Signal Youth",
+    "artists": [
+      "Signal Youth",
+      "Luna Harbor"
+    ],
+    "album": "Barcelona Sessions",
+    "cover": "Night Drive Archive",
+    "genre": "R&B",
+    "mood": "party",
+    "duration": "4:26",
+    "lengthSeconds": 266,
+    "plays": "5.8M",
+    "explicit": false,
+    "saved": false,
+    "popular": 68,
+    "energy": 86,
+    "danceability": 73,
+    "year": 2024,
+    "accent": "linear-gradient(135deg, #60a5fa 0%, #818cf8 40%, #f472b6 100%)"
+  },
+  {
+    "id": "track-59",
+    "title": "Starlight 59",
+    "artist": "Golden Relay",
+    "artists": [
+      "Golden Relay",
+      "Velvet Static"
+    ],
+    "album": "Jakarta Sessions",
+    "cover": "Pulse Archive",
+    "genre": "Ambient",
+    "mood": "sleep",
+    "duration": "5:43",
+    "lengthSeconds": 343,
+    "plays": "6.9M",
+    "explicit": false,
+    "saved": false,
+    "popular": 69,
+    "energy": 93,
+    "danceability": 84,
+    "year": 2025,
+    "accent": "linear-gradient(135deg, #f59e0b 0%, #ef4444 60%, #7c3aed 100%)"
+  },
+  {
+    "id": "track-60",
+    "title": "Night Drive 60",
+    "artist": "Nova Atlas",
+    "artists": [
+      "Nova Atlas",
+      "Kairo Bloom"
+    ],
+    "album": "Tokyo Sessions",
+    "cover": "Velvet Archive",
+    "genre": "Synthwave",
+    "mood": "all",
+    "duration": "2:00",
+    "lengthSeconds": 120,
+    "plays": "7.0M",
+    "explicit": false,
+    "saved": true,
+    "popular": 70,
+    "energy": 30,
+    "danceability": 35,
+    "year": 2016,
+    "accent": "linear-gradient(135deg, #34d399 0%, #06b6d4 55%, #2563eb 100%)"
+  },
+  {
+    "id": "track-61",
+    "title": "Pulse 61",
+    "artist": "Luna Harbor",
+    "artists": [
+      "Luna Harbor",
+      "Mira Echo"
+    ],
+    "album": "Berlin Sessions",
+    "cover": "Neon Archive",
+    "genre": "Alt Pop",
+    "mood": "focus",
+    "duration": "3:17",
+    "lengthSeconds": 197,
+    "plays": "8.1M",
+    "explicit": false,
+    "saved": false,
+    "popular": 71,
+    "energy": 37,
+    "danceability": 46,
+    "year": 2017,
+    "accent": "linear-gradient(135deg, #f43f5e 0%, #fb7185 40%, #facc15 100%)"
+  },
+  {
+    "id": "track-62",
+    "title": "Velvet 62",
+    "artist": "Velvet Static",
+    "artists": [
+      "Velvet Static",
+      "The Night Index"
+    ],
+    "album": "Seoul Sessions",
+    "cover": "Sunset Archive",
+    "genre": "House",
+    "mood": "workout",
+    "duration": "4:34",
+    "lengthSeconds": 274,
+    "plays": "9.2M",
+    "explicit": false,
+    "saved": false,
+    "popular": 72,
+    "energy": 44,
+    "danceability": 57,
+    "year": 2018,
+    "accent": "linear-gradient(135deg, #a78bfa 0%, #38bdf8 50%, #4ade80 100%)"
+  },
+  {
+    "id": "track-63",
+    "title": "Neon 63",
+    "artist": "Kairo Bloom",
+    "artists": [
+      "Kairo Bloom",
+      "Cobalt Hearts"
+    ],
+    "album": "Lagos Sessions",
+    "cover": "Aurora Archive",
+    "genre": "Indie Soul",
+    "mood": "chill",
+    "duration": "5:51",
+    "lengthSeconds": 351,
+    "plays": "1.3M",
+    "explicit": true,
+    "saved": true,
+    "popular": 73,
+    "energy": 51,
+    "danceability": 68,
+    "year": 2019,
+    "accent": "linear-gradient(135deg, #fb7185 0%, #c084fc 45%, #60a5fa 100%)"
+  },
+  {
+    "id": "track-64",
+    "title": "Sunset 64",
+    "artist": "Mira Echo",
+    "artists": [
+      "Mira Echo",
+      "Aster Vale"
+    ],
+    "album": "London Sessions",
+    "cover": "Static Archive",
+    "genre": "Future Funk",
+    "mood": "party",
+    "duration": "2:08",
+    "lengthSeconds": 128,
+    "plays": "2.4M",
+    "explicit": false,
+    "saved": false,
+    "popular": 74,
+    "energy": 58,
+    "danceability": 79,
+    "year": 2020,
+    "accent": "linear-gradient(135deg, #f97316 0%, #fb7185 45%, #2dd4bf 100%)"
+  },
+  {
+    "id": "track-65",
+    "title": "Aurora 65",
+    "artist": "The Night Index",
+    "artists": [
+      "The Night Index",
+      "Signal Youth"
+    ],
+    "album": "Sao Paulo Sessions",
+    "cover": "Afterglow Archive",
+    "genre": "Lo-fi",
+    "mood": "sleep",
+    "duration": "3:25",
+    "lengthSeconds": 205,
+    "plays": "3.5M",
+    "explicit": false,
+    "saved": false,
+    "popular": 75,
+    "energy": 65,
+    "danceability": 90,
+    "year": 2021,
+    "accent": "linear-gradient(135deg, #22c55e 0%, #14b8a6 55%, #0f172a 100%)"
+  },
+  {
+    "id": "track-66",
+    "title": "Static 66",
+    "artist": "Cobalt Hearts",
+    "artists": [
+      "Cobalt Hearts",
+      "Golden Relay"
+    ],
+    "album": "Stockholm Sessions",
+    "cover": "Mirage Archive",
+    "genre": "Electronica",
+    "mood": "all",
+    "duration": "4:42",
+    "lengthSeconds": 282,
+    "plays": "4.6M",
+    "explicit": false,
+    "saved": true,
+    "popular": 76,
+    "energy": 72,
+    "danceability": 41,
+    "year": 2022,
+    "accent": "linear-gradient(135deg, #60a5fa 0%, #818cf8 40%, #f472b6 100%)"
+  },
+  {
+    "id": "track-67",
+    "title": "Afterglow 67",
+    "artist": "Aster Vale",
+    "artists": [
+      "Aster Vale",
+      "Nova Atlas"
+    ],
+    "album": "Toronto Sessions",
+    "cover": "Starlight Archive",
+    "genre": "Afrobeats",
+    "mood": "focus",
+    "duration": "5:59",
+    "lengthSeconds": 359,
+    "plays": "5.7M",
+    "explicit": false,
+    "saved": false,
+    "popular": 77,
+    "energy": 79,
+    "danceability": 52,
+    "year": 2023,
+    "accent": "linear-gradient(135deg, #f59e0b 0%, #ef4444 60%, #7c3aed 100%)"
+  },
+  {
+    "id": "track-68",
+    "title": "Mirage 68",
+    "artist": "Signal Youth",
+    "artists": [
+      "Signal Youth",
+      "Luna Harbor"
+    ],
+    "album": "Barcelona Sessions",
+    "cover": "Night Drive Archive",
+    "genre": "R&B",
+    "mood": "workout",
+    "duration": "2:16",
+    "lengthSeconds": 136,
+    "plays": "6.8M",
+    "explicit": false,
+    "saved": false,
+    "popular": 78,
+    "energy": 86,
+    "danceability": 63,
+    "year": 2024,
+    "accent": "linear-gradient(135deg, #34d399 0%, #06b6d4 55%, #2563eb 100%)"
+  },
+  {
+    "id": "track-69",
+    "title": "Starlight 69",
+    "artist": "Golden Relay",
+    "artists": [
+      "Golden Relay",
+      "Velvet Static"
+    ],
+    "album": "Jakarta Sessions",
+    "cover": "Pulse Archive",
+    "genre": "Ambient",
+    "mood": "chill",
+    "duration": "3:33",
+    "lengthSeconds": 213,
+    "plays": "7.9M",
+    "explicit": false,
+    "saved": true,
+    "popular": 79,
+    "energy": 93,
+    "danceability": 74,
+    "year": 2025,
+    "accent": "linear-gradient(135deg, #f43f5e 0%, #fb7185 40%, #facc15 100%)"
+  },
+  {
+    "id": "track-70",
+    "title": "Night Drive 70",
+    "artist": "Nova Atlas",
+    "artists": [
+      "Nova Atlas",
+      "Kairo Bloom"
+    ],
+    "album": "Tokyo Sessions",
+    "cover": "Velvet Archive",
+    "genre": "Synthwave",
+    "mood": "party",
+    "duration": "4:50",
+    "lengthSeconds": 290,
+    "plays": "8.0M",
+    "explicit": true,
+    "saved": false,
+    "popular": 80,
+    "energy": 30,
+    "danceability": 85,
+    "year": 2016,
+    "accent": "linear-gradient(135deg, #a78bfa 0%, #38bdf8 50%, #4ade80 100%)"
+  },
+  {
+    "id": "track-71",
+    "title": "Pulse 71",
+    "artist": "Luna Harbor",
+    "artists": [
+      "Luna Harbor",
+      "Mira Echo"
+    ],
+    "album": "Berlin Sessions",
+    "cover": "Neon Archive",
+    "genre": "Alt Pop",
+    "mood": "sleep",
+    "duration": "5:07",
+    "lengthSeconds": 307,
+    "plays": "9.1M",
+    "explicit": false,
+    "saved": false,
+    "popular": 81,
+    "energy": 37,
+    "danceability": 36,
+    "year": 2017,
+    "accent": "linear-gradient(135deg, #fb7185 0%, #c084fc 45%, #60a5fa 100%)"
+  },
+  {
+    "id": "track-72",
+    "title": "Velvet 72",
+    "artist": "Velvet Static",
+    "artists": [
+      "Velvet Static",
+      "The Night Index"
+    ],
+    "album": "Seoul Sessions",
+    "cover": "Sunset Archive",
+    "genre": "House",
+    "mood": "all",
+    "duration": "2:24",
+    "lengthSeconds": 144,
+    "plays": "1.2M",
+    "explicit": false,
+    "saved": true,
+    "popular": 82,
+    "energy": 44,
+    "danceability": 47,
+    "year": 2018,
+    "accent": "linear-gradient(135deg, #f97316 0%, #fb7185 45%, #2dd4bf 100%)"
+  },
+  {
+    "id": "track-73",
+    "title": "Neon 73",
+    "artist": "Kairo Bloom",
+    "artists": [
+      "Kairo Bloom",
+      "Cobalt Hearts"
+    ],
+    "album": "Lagos Sessions",
+    "cover": "Aurora Archive",
+    "genre": "Indie Soul",
+    "mood": "focus",
+    "duration": "3:41",
+    "lengthSeconds": 221,
+    "plays": "2.3M",
+    "explicit": false,
+    "saved": false,
+    "popular": 83,
+    "energy": 51,
+    "danceability": 58,
+    "year": 2019,
+    "accent": "linear-gradient(135deg, #22c55e 0%, #14b8a6 55%, #0f172a 100%)"
+  },
+  {
+    "id": "track-74",
+    "title": "Sunset 74",
+    "artist": "Mira Echo",
+    "artists": [
+      "Mira Echo",
+      "Aster Vale"
+    ],
+    "album": "London Sessions",
+    "cover": "Static Archive",
+    "genre": "Future Funk",
+    "mood": "workout",
+    "duration": "4:58",
+    "lengthSeconds": 298,
+    "plays": "3.4M",
+    "explicit": false,
+    "saved": false,
+    "popular": 84,
+    "energy": 58,
+    "danceability": 69,
+    "year": 2020,
+    "accent": "linear-gradient(135deg, #60a5fa 0%, #818cf8 40%, #f472b6 100%)"
+  },
+  {
+    "id": "track-75",
+    "title": "Aurora 75",
+    "artist": "The Night Index",
+    "artists": [
+      "The Night Index",
+      "Signal Youth"
+    ],
+    "album": "Sao Paulo Sessions",
+    "cover": "Afterglow Archive",
+    "genre": "Lo-fi",
+    "mood": "chill",
+    "duration": "5:15",
+    "lengthSeconds": 315,
+    "plays": "4.5M",
+    "explicit": false,
+    "saved": true,
+    "popular": 85,
+    "energy": 65,
+    "danceability": 80,
+    "year": 2021,
+    "accent": "linear-gradient(135deg, #f59e0b 0%, #ef4444 60%, #7c3aed 100%)"
+  },
+  {
+    "id": "track-76",
+    "title": "Static 76",
+    "artist": "Cobalt Hearts",
+    "artists": [
+      "Cobalt Hearts",
+      "Golden Relay"
+    ],
+    "album": "Stockholm Sessions",
+    "cover": "Mirage Archive",
+    "genre": "Electronica",
+    "mood": "party",
+    "duration": "2:32",
+    "lengthSeconds": 152,
+    "plays": "5.6M",
+    "explicit": false,
+    "saved": false,
+    "popular": 86,
+    "energy": 72,
+    "danceability": 91,
+    "year": 2022,
+    "accent": "linear-gradient(135deg, #34d399 0%, #06b6d4 55%, #2563eb 100%)"
+  },
+  {
+    "id": "track-77",
+    "title": "Afterglow 77",
+    "artist": "Aster Vale",
+    "artists": [
+      "Aster Vale",
+      "Nova Atlas"
+    ],
+    "album": "Toronto Sessions",
+    "cover": "Starlight Archive",
+    "genre": "Afrobeats",
+    "mood": "sleep",
+    "duration": "3:49",
+    "lengthSeconds": 229,
+    "plays": "6.7M",
+    "explicit": true,
+    "saved": false,
+    "popular": 87,
+    "energy": 79,
+    "danceability": 42,
+    "year": 2023,
+    "accent": "linear-gradient(135deg, #f43f5e 0%, #fb7185 40%, #facc15 100%)"
+  },
+  {
+    "id": "track-78",
+    "title": "Mirage 78",
+    "artist": "Signal Youth",
+    "artists": [
+      "Signal Youth",
+      "Luna Harbor"
+    ],
+    "album": "Barcelona Sessions",
+    "cover": "Night Drive Archive",
+    "genre": "R&B",
+    "mood": "all",
+    "duration": "4:06",
+    "lengthSeconds": 246,
+    "plays": "7.8M",
+    "explicit": false,
+    "saved": true,
+    "popular": 88,
+    "energy": 86,
+    "danceability": 53,
+    "year": 2024,
+    "accent": "linear-gradient(135deg, #a78bfa 0%, #38bdf8 50%, #4ade80 100%)"
+  },
+  {
+    "id": "track-79",
+    "title": "Starlight 79",
+    "artist": "Golden Relay",
+    "artists": [
+      "Golden Relay",
+      "Velvet Static"
+    ],
+    "album": "Jakarta Sessions",
+    "cover": "Pulse Archive",
+    "genre": "Ambient",
+    "mood": "focus",
+    "duration": "5:23",
+    "lengthSeconds": 323,
+    "plays": "8.9M",
+    "explicit": false,
+    "saved": false,
+    "popular": 89,
+    "energy": 93,
+    "danceability": 64,
+    "year": 2025,
+    "accent": "linear-gradient(135deg, #fb7185 0%, #c084fc 45%, #60a5fa 100%)"
+  },
+  {
+    "id": "track-80",
+    "title": "Night Drive 80",
+    "artist": "Nova Atlas",
+    "artists": [
+      "Nova Atlas",
+      "Kairo Bloom"
+    ],
+    "album": "Tokyo Sessions",
+    "cover": "Velvet Archive",
+    "genre": "Synthwave",
+    "mood": "workout",
+    "duration": "2:40",
+    "lengthSeconds": 160,
+    "plays": "9.0M",
+    "explicit": false,
+    "saved": false,
+    "popular": 90,
+    "energy": 30,
+    "danceability": 75,
+    "year": 2016,
+    "accent": "linear-gradient(135deg, #f97316 0%, #fb7185 45%, #2dd4bf 100%)"
+  },
+  {
+    "id": "track-81",
+    "title": "Pulse 81",
+    "artist": "Luna Harbor",
+    "artists": [
+      "Luna Harbor",
+      "Mira Echo"
+    ],
+    "album": "Berlin Sessions",
+    "cover": "Neon Archive",
+    "genre": "Alt Pop",
+    "mood": "chill",
+    "duration": "3:57",
+    "lengthSeconds": 237,
+    "plays": "1.1M",
+    "explicit": false,
+    "saved": true,
+    "popular": 91,
+    "energy": 37,
+    "danceability": 86,
+    "year": 2017,
+    "accent": "linear-gradient(135deg, #22c55e 0%, #14b8a6 55%, #0f172a 100%)"
+  },
+  {
+    "id": "track-82",
+    "title": "Velvet 82",
+    "artist": "Velvet Static",
+    "artists": [
+      "Velvet Static",
+      "The Night Index"
+    ],
+    "album": "Seoul Sessions",
+    "cover": "Sunset Archive",
+    "genre": "House",
+    "mood": "party",
+    "duration": "4:14",
+    "lengthSeconds": 254,
+    "plays": "2.2M",
+    "explicit": false,
+    "saved": false,
+    "popular": 92,
+    "energy": 44,
+    "danceability": 37,
+    "year": 2018,
+    "accent": "linear-gradient(135deg, #60a5fa 0%, #818cf8 40%, #f472b6 100%)"
+  },
+  {
+    "id": "track-83",
+    "title": "Neon 83",
+    "artist": "Kairo Bloom",
+    "artists": [
+      "Kairo Bloom",
+      "Cobalt Hearts"
+    ],
+    "album": "Lagos Sessions",
+    "cover": "Aurora Archive",
+    "genre": "Indie Soul",
+    "mood": "sleep",
+    "duration": "5:31",
+    "lengthSeconds": 331,
+    "plays": "3.3M",
+    "explicit": false,
+    "saved": false,
+    "popular": 93,
+    "energy": 51,
+    "danceability": 48,
+    "year": 2019,
+    "accent": "linear-gradient(135deg, #f59e0b 0%, #ef4444 60%, #7c3aed 100%)"
+  },
+  {
+    "id": "track-84",
+    "title": "Sunset 84",
+    "artist": "Mira Echo",
+    "artists": [
+      "Mira Echo",
+      "Aster Vale"
+    ],
+    "album": "London Sessions",
+    "cover": "Static Archive",
+    "genre": "Future Funk",
+    "mood": "all",
+    "duration": "2:48",
+    "lengthSeconds": 168,
+    "plays": "4.4M",
+    "explicit": true,
+    "saved": true,
+    "popular": 94,
+    "energy": 58,
+    "danceability": 59,
+    "year": 2020,
+    "accent": "linear-gradient(135deg, #34d399 0%, #06b6d4 55%, #2563eb 100%)"
+  },
+  {
+    "id": "track-85",
+    "title": "Aurora 85",
+    "artist": "The Night Index",
+    "artists": [
+      "The Night Index",
+      "Signal Youth"
+    ],
+    "album": "Sao Paulo Sessions",
+    "cover": "Afterglow Archive",
+    "genre": "Lo-fi",
+    "mood": "focus",
+    "duration": "3:05",
+    "lengthSeconds": 185,
+    "plays": "5.5M",
+    "explicit": false,
+    "saved": false,
+    "popular": 95,
+    "energy": 65,
+    "danceability": 70,
+    "year": 2021,
+    "accent": "linear-gradient(135deg, #f43f5e 0%, #fb7185 40%, #facc15 100%)"
+  },
+  {
+    "id": "track-86",
+    "title": "Static 86",
+    "artist": "Cobalt Hearts",
+    "artists": [
+      "Cobalt Hearts",
+      "Golden Relay"
+    ],
+    "album": "Stockholm Sessions",
+    "cover": "Mirage Archive",
+    "genre": "Electronica",
+    "mood": "workout",
+    "duration": "4:22",
+    "lengthSeconds": 262,
+    "plays": "6.6M",
+    "explicit": false,
+    "saved": false,
+    "popular": 96,
+    "energy": 72,
+    "danceability": 81,
+    "year": 2022,
+    "accent": "linear-gradient(135deg, #a78bfa 0%, #38bdf8 50%, #4ade80 100%)"
+  },
+  {
+    "id": "track-87",
+    "title": "Afterglow 87",
+    "artist": "Aster Vale",
+    "artists": [
+      "Aster Vale",
+      "Nova Atlas"
+    ],
+    "album": "Toronto Sessions",
+    "cover": "Starlight Archive",
+    "genre": "Afrobeats",
+    "mood": "chill",
+    "duration": "5:39",
+    "lengthSeconds": 339,
+    "plays": "7.7M",
+    "explicit": false,
+    "saved": true,
+    "popular": 97,
+    "energy": 79,
+    "danceability": 92,
+    "year": 2023,
+    "accent": "linear-gradient(135deg, #fb7185 0%, #c084fc 45%, #60a5fa 100%)"
+  },
+  {
+    "id": "track-88",
+    "title": "Mirage 88",
+    "artist": "Signal Youth",
+    "artists": [
+      "Signal Youth",
+      "Luna Harbor"
+    ],
+    "album": "Barcelona Sessions",
+    "cover": "Night Drive Archive",
+    "genre": "R&B",
+    "mood": "party",
+    "duration": "2:56",
+    "lengthSeconds": 176,
+    "plays": "8.8M",
+    "explicit": false,
+    "saved": false,
+    "popular": 98,
+    "energy": 86,
+    "danceability": 43,
+    "year": 2024,
+    "accent": "linear-gradient(135deg, #f97316 0%, #fb7185 45%, #2dd4bf 100%)"
+  },
+  {
+    "id": "track-89",
+    "title": "Starlight 89",
+    "artist": "Golden Relay",
+    "artists": [
+      "Golden Relay",
+      "Velvet Static"
+    ],
+    "album": "Jakarta Sessions",
+    "cover": "Pulse Archive",
+    "genre": "Ambient",
+    "mood": "sleep",
+    "duration": "3:13",
+    "lengthSeconds": 193,
+    "plays": "9.9M",
+    "explicit": false,
+    "saved": false,
+    "popular": 99,
+    "energy": 93,
+    "danceability": 54,
+    "year": 2025,
+    "accent": "linear-gradient(135deg, #22c55e 0%, #14b8a6 55%, #0f172a 100%)"
+  },
+  {
+    "id": "track-90",
+    "title": "Night Drive 90",
+    "artist": "Nova Atlas",
+    "artists": [
+      "Nova Atlas",
+      "Kairo Bloom"
+    ],
+    "album": "Tokyo Sessions",
+    "cover": "Velvet Archive",
+    "genre": "Synthwave",
+    "mood": "all",
+    "duration": "4:30",
+    "lengthSeconds": 270,
+    "plays": "1.0M",
+    "explicit": false,
+    "saved": true,
+    "popular": 55,
+    "energy": 30,
+    "danceability": 65,
+    "year": 2016,
+    "accent": "linear-gradient(135deg, #60a5fa 0%, #818cf8 40%, #f472b6 100%)"
+  },
+  {
+    "id": "track-91",
+    "title": "Pulse 91",
+    "artist": "Luna Harbor",
+    "artists": [
+      "Luna Harbor",
+      "Mira Echo"
+    ],
+    "album": "Berlin Sessions",
+    "cover": "Neon Archive",
+    "genre": "Alt Pop",
+    "mood": "focus",
+    "duration": "5:47",
+    "lengthSeconds": 347,
+    "plays": "2.1M",
+    "explicit": true,
+    "saved": false,
+    "popular": 56,
+    "energy": 37,
+    "danceability": 76,
+    "year": 2017,
+    "accent": "linear-gradient(135deg, #f59e0b 0%, #ef4444 60%, #7c3aed 100%)"
+  },
+  {
+    "id": "track-92",
+    "title": "Velvet 92",
+    "artist": "Velvet Static",
+    "artists": [
+      "Velvet Static",
+      "The Night Index"
+    ],
+    "album": "Seoul Sessions",
+    "cover": "Sunset Archive",
+    "genre": "House",
+    "mood": "workout",
+    "duration": "2:04",
+    "lengthSeconds": 124,
+    "plays": "3.2M",
+    "explicit": false,
+    "saved": false,
+    "popular": 57,
+    "energy": 44,
+    "danceability": 87,
+    "year": 2018,
+    "accent": "linear-gradient(135deg, #34d399 0%, #06b6d4 55%, #2563eb 100%)"
+  },
+  {
+    "id": "track-93",
+    "title": "Neon 93",
+    "artist": "Kairo Bloom",
+    "artists": [
+      "Kairo Bloom",
+      "Cobalt Hearts"
+    ],
+    "album": "Lagos Sessions",
+    "cover": "Aurora Archive",
+    "genre": "Indie Soul",
+    "mood": "chill",
+    "duration": "3:21",
+    "lengthSeconds": 201,
+    "plays": "4.3M",
+    "explicit": false,
+    "saved": true,
+    "popular": 58,
+    "energy": 51,
+    "danceability": 38,
+    "year": 2019,
+    "accent": "linear-gradient(135deg, #f43f5e 0%, #fb7185 40%, #facc15 100%)"
+  },
+  {
+    "id": "track-94",
+    "title": "Sunset 94",
+    "artist": "Mira Echo",
+    "artists": [
+      "Mira Echo",
+      "Aster Vale"
+    ],
+    "album": "London Sessions",
+    "cover": "Static Archive",
+    "genre": "Future Funk",
+    "mood": "party",
+    "duration": "4:38",
+    "lengthSeconds": 278,
+    "plays": "5.4M",
+    "explicit": false,
+    "saved": false,
+    "popular": 59,
+    "energy": 58,
+    "danceability": 49,
+    "year": 2020,
+    "accent": "linear-gradient(135deg, #a78bfa 0%, #38bdf8 50%, #4ade80 100%)"
+  },
+  {
+    "id": "track-95",
+    "title": "Aurora 95",
+    "artist": "The Night Index",
+    "artists": [
+      "The Night Index",
+      "Signal Youth"
+    ],
+    "album": "Sao Paulo Sessions",
+    "cover": "Afterglow Archive",
+    "genre": "Lo-fi",
+    "mood": "sleep",
+    "duration": "5:55",
+    "lengthSeconds": 355,
+    "plays": "6.5M",
+    "explicit": false,
+    "saved": false,
+    "popular": 60,
+    "energy": 65,
+    "danceability": 60,
+    "year": 2021,
+    "accent": "linear-gradient(135deg, #fb7185 0%, #c084fc 45%, #60a5fa 100%)"
+  },
+  {
+    "id": "track-96",
+    "title": "Static 96",
+    "artist": "Cobalt Hearts",
+    "artists": [
+      "Cobalt Hearts",
+      "Golden Relay"
+    ],
+    "album": "Stockholm Sessions",
+    "cover": "Mirage Archive",
+    "genre": "Electronica",
+    "mood": "all",
+    "duration": "2:12",
+    "lengthSeconds": 132,
+    "plays": "7.6M",
+    "explicit": false,
+    "saved": true,
+    "popular": 61,
+    "energy": 72,
+    "danceability": 71,
+    "year": 2022,
+    "accent": "linear-gradient(135deg, #f97316 0%, #fb7185 45%, #2dd4bf 100%)"
+  },
+  {
+    "id": "track-97",
+    "title": "Afterglow 97",
+    "artist": "Aster Vale",
+    "artists": [
+      "Aster Vale",
+      "Nova Atlas"
+    ],
+    "album": "Toronto Sessions",
+    "cover": "Starlight Archive",
+    "genre": "Afrobeats",
+    "mood": "focus",
+    "duration": "3:29",
+    "lengthSeconds": 209,
+    "plays": "8.7M",
+    "explicit": false,
+    "saved": false,
+    "popular": 62,
+    "energy": 79,
+    "danceability": 82,
+    "year": 2023,
+    "accent": "linear-gradient(135deg, #22c55e 0%, #14b8a6 55%, #0f172a 100%)"
+  },
+  {
+    "id": "track-98",
+    "title": "Mirage 98",
+    "artist": "Signal Youth",
+    "artists": [
+      "Signal Youth",
+      "Luna Harbor"
+    ],
+    "album": "Barcelona Sessions",
+    "cover": "Night Drive Archive",
+    "genre": "R&B",
+    "mood": "workout",
+    "duration": "4:46",
+    "lengthSeconds": 286,
+    "plays": "9.8M",
+    "explicit": true,
+    "saved": false,
+    "popular": 63,
+    "energy": 86,
+    "danceability": 93,
+    "year": 2024,
+    "accent": "linear-gradient(135deg, #60a5fa 0%, #818cf8 40%, #f472b6 100%)"
+  },
+  {
+    "id": "track-99",
+    "title": "Starlight 99",
+    "artist": "Golden Relay",
+    "artists": [
+      "Golden Relay",
+      "Velvet Static"
+    ],
+    "album": "Jakarta Sessions",
+    "cover": "Pulse Archive",
+    "genre": "Ambient",
+    "mood": "chill",
+    "duration": "5:03",
+    "lengthSeconds": 303,
+    "plays": "1.9M",
+    "explicit": false,
+    "saved": true,
+    "popular": 64,
+    "energy": 93,
+    "danceability": 44,
+    "year": 2025,
+    "accent": "linear-gradient(135deg, #f59e0b 0%, #ef4444 60%, #7c3aed 100%)"
+  },
+  {
+    "id": "track-100",
+    "title": "Night Drive 100",
+    "artist": "Nova Atlas",
+    "artists": [
+      "Nova Atlas",
+      "Kairo Bloom"
+    ],
+    "album": "Tokyo Sessions",
+    "cover": "Velvet Archive",
+    "genre": "Synthwave",
+    "mood": "party",
+    "duration": "2:20",
+    "lengthSeconds": 140,
+    "plays": "2.0M",
+    "explicit": false,
+    "saved": false,
+    "popular": 65,
+    "energy": 30,
+    "danceability": 55,
+    "year": 2016,
+    "accent": "linear-gradient(135deg, #34d399 0%, #06b6d4 55%, #2563eb 100%)"
+  },
+  {
+    "id": "track-101",
+    "title": "Pulse 101",
+    "artist": "Luna Harbor",
+    "artists": [
+      "Luna Harbor",
+      "Mira Echo"
+    ],
+    "album": "Berlin Sessions",
+    "cover": "Neon Archive",
+    "genre": "Alt Pop",
+    "mood": "sleep",
+    "duration": "3:37",
+    "lengthSeconds": 217,
+    "plays": "3.1M",
+    "explicit": false,
+    "saved": false,
+    "popular": 66,
+    "energy": 37,
+    "danceability": 66,
+    "year": 2017,
+    "accent": "linear-gradient(135deg, #f43f5e 0%, #fb7185 40%, #facc15 100%)"
+  },
+  {
+    "id": "track-102",
+    "title": "Velvet 102",
+    "artist": "Velvet Static",
+    "artists": [
+      "Velvet Static",
+      "The Night Index"
+    ],
+    "album": "Seoul Sessions",
+    "cover": "Sunset Archive",
+    "genre": "House",
+    "mood": "all",
+    "duration": "4:54",
+    "lengthSeconds": 294,
+    "plays": "4.2M",
+    "explicit": false,
+    "saved": true,
+    "popular": 67,
+    "energy": 44,
+    "danceability": 77,
+    "year": 2018,
+    "accent": "linear-gradient(135deg, #a78bfa 0%, #38bdf8 50%, #4ade80 100%)"
+  },
+  {
+    "id": "track-103",
+    "title": "Neon 103",
+    "artist": "Kairo Bloom",
+    "artists": [
+      "Kairo Bloom",
+      "Cobalt Hearts"
+    ],
+    "album": "Lagos Sessions",
+    "cover": "Aurora Archive",
+    "genre": "Indie Soul",
+    "mood": "focus",
+    "duration": "5:11",
+    "lengthSeconds": 311,
+    "plays": "5.3M",
+    "explicit": false,
+    "saved": false,
+    "popular": 68,
+    "energy": 51,
+    "danceability": 88,
+    "year": 2019,
+    "accent": "linear-gradient(135deg, #fb7185 0%, #c084fc 45%, #60a5fa 100%)"
+  },
+  {
+    "id": "track-104",
+    "title": "Sunset 104",
+    "artist": "Mira Echo",
+    "artists": [
+      "Mira Echo",
+      "Aster Vale"
+    ],
+    "album": "London Sessions",
+    "cover": "Static Archive",
+    "genre": "Future Funk",
+    "mood": "workout",
+    "duration": "2:28",
+    "lengthSeconds": 148,
+    "plays": "6.4M",
+    "explicit": false,
+    "saved": false,
+    "popular": 69,
+    "energy": 58,
+    "danceability": 39,
+    "year": 2020,
+    "accent": "linear-gradient(135deg, #f97316 0%, #fb7185 45%, #2dd4bf 100%)"
+  },
+  {
+    "id": "track-105",
+    "title": "Aurora 105",
+    "artist": "The Night Index",
+    "artists": [
+      "The Night Index",
+      "Signal Youth"
+    ],
+    "album": "Sao Paulo Sessions",
+    "cover": "Afterglow Archive",
+    "genre": "Lo-fi",
+    "mood": "chill",
+    "duration": "3:45",
+    "lengthSeconds": 225,
+    "plays": "7.5M",
+    "explicit": true,
+    "saved": true,
+    "popular": 70,
+    "energy": 65,
+    "danceability": 50,
+    "year": 2021,
+    "accent": "linear-gradient(135deg, #22c55e 0%, #14b8a6 55%, #0f172a 100%)"
+  },
+  {
+    "id": "track-106",
+    "title": "Static 106",
+    "artist": "Cobalt Hearts",
+    "artists": [
+      "Cobalt Hearts",
+      "Golden Relay"
+    ],
+    "album": "Stockholm Sessions",
+    "cover": "Mirage Archive",
+    "genre": "Electronica",
+    "mood": "party",
+    "duration": "4:02",
+    "lengthSeconds": 242,
+    "plays": "8.6M",
+    "explicit": false,
+    "saved": false,
+    "popular": 71,
+    "energy": 72,
+    "danceability": 61,
+    "year": 2022,
+    "accent": "linear-gradient(135deg, #60a5fa 0%, #818cf8 40%, #f472b6 100%)"
+  },
+  {
+    "id": "track-107",
+    "title": "Afterglow 107",
+    "artist": "Aster Vale",
+    "artists": [
+      "Aster Vale",
+      "Nova Atlas"
+    ],
+    "album": "Toronto Sessions",
+    "cover": "Starlight Archive",
+    "genre": "Afrobeats",
+    "mood": "sleep",
+    "duration": "5:19",
+    "lengthSeconds": 319,
+    "plays": "9.7M",
+    "explicit": false,
+    "saved": false,
+    "popular": 72,
+    "energy": 79,
+    "danceability": 72,
+    "year": 2023,
+    "accent": "linear-gradient(135deg, #f59e0b 0%, #ef4444 60%, #7c3aed 100%)"
+  },
+  {
+    "id": "track-108",
+    "title": "Mirage 108",
+    "artist": "Signal Youth",
+    "artists": [
+      "Signal Youth",
+      "Luna Harbor"
+    ],
+    "album": "Barcelona Sessions",
+    "cover": "Night Drive Archive",
+    "genre": "R&B",
+    "mood": "all",
+    "duration": "2:36",
+    "lengthSeconds": 156,
+    "plays": "1.8M",
+    "explicit": false,
+    "saved": true,
+    "popular": 73,
+    "energy": 86,
+    "danceability": 83,
+    "year": 2024,
+    "accent": "linear-gradient(135deg, #34d399 0%, #06b6d4 55%, #2563eb 100%)"
+  },
+  {
+    "id": "track-109",
+    "title": "Starlight 109",
+    "artist": "Golden Relay",
+    "artists": [
+      "Golden Relay",
+      "Velvet Static"
+    ],
+    "album": "Jakarta Sessions",
+    "cover": "Pulse Archive",
+    "genre": "Ambient",
+    "mood": "focus",
+    "duration": "3:53",
+    "lengthSeconds": 233,
+    "plays": "2.9M",
+    "explicit": false,
+    "saved": false,
+    "popular": 74,
+    "energy": 93,
+    "danceability": 94,
+    "year": 2025,
+    "accent": "linear-gradient(135deg, #f43f5e 0%, #fb7185 40%, #facc15 100%)"
+  },
+  {
+    "id": "track-110",
+    "title": "Night Drive 110",
+    "artist": "Nova Atlas",
+    "artists": [
+      "Nova Atlas",
+      "Kairo Bloom"
+    ],
+    "album": "Tokyo Sessions",
+    "cover": "Velvet Archive",
+    "genre": "Synthwave",
+    "mood": "workout",
+    "duration": "4:10",
+    "lengthSeconds": 250,
+    "plays": "3.0M",
+    "explicit": false,
+    "saved": false,
+    "popular": 75,
+    "energy": 30,
+    "danceability": 45,
+    "year": 2016,
+    "accent": "linear-gradient(135deg, #a78bfa 0%, #38bdf8 50%, #4ade80 100%)"
+  },
+  {
+    "id": "track-111",
+    "title": "Pulse 111",
+    "artist": "Luna Harbor",
+    "artists": [
+      "Luna Harbor",
+      "Mira Echo"
+    ],
+    "album": "Berlin Sessions",
+    "cover": "Neon Archive",
+    "genre": "Alt Pop",
+    "mood": "chill",
+    "duration": "5:27",
+    "lengthSeconds": 327,
+    "plays": "4.1M",
+    "explicit": false,
+    "saved": true,
+    "popular": 76,
+    "energy": 37,
+    "danceability": 56,
+    "year": 2017,
+    "accent": "linear-gradient(135deg, #fb7185 0%, #c084fc 45%, #60a5fa 100%)"
+  },
+  {
+    "id": "track-112",
+    "title": "Velvet 112",
+    "artist": "Velvet Static",
+    "artists": [
+      "Velvet Static",
+      "The Night Index"
+    ],
+    "album": "Seoul Sessions",
+    "cover": "Sunset Archive",
+    "genre": "House",
+    "mood": "party",
+    "duration": "2:44",
+    "lengthSeconds": 164,
+    "plays": "5.2M",
+    "explicit": true,
+    "saved": false,
+    "popular": 77,
+    "energy": 44,
+    "danceability": 67,
+    "year": 2018,
+    "accent": "linear-gradient(135deg, #f97316 0%, #fb7185 45%, #2dd4bf 100%)"
+  },
+  {
+    "id": "track-113",
+    "title": "Neon 113",
+    "artist": "Kairo Bloom",
+    "artists": [
+      "Kairo Bloom",
+      "Cobalt Hearts"
+    ],
+    "album": "Lagos Sessions",
+    "cover": "Aurora Archive",
+    "genre": "Indie Soul",
+    "mood": "sleep",
+    "duration": "3:01",
+    "lengthSeconds": 181,
+    "plays": "6.3M",
+    "explicit": false,
+    "saved": false,
+    "popular": 78,
+    "energy": 51,
+    "danceability": 78,
+    "year": 2019,
+    "accent": "linear-gradient(135deg, #22c55e 0%, #14b8a6 55%, #0f172a 100%)"
+  },
+  {
+    "id": "track-114",
+    "title": "Sunset 114",
+    "artist": "Mira Echo",
+    "artists": [
+      "Mira Echo",
+      "Aster Vale"
+    ],
+    "album": "London Sessions",
+    "cover": "Static Archive",
+    "genre": "Future Funk",
+    "mood": "all",
+    "duration": "4:18",
+    "lengthSeconds": 258,
+    "plays": "7.4M",
+    "explicit": false,
+    "saved": true,
+    "popular": 79,
+    "energy": 58,
+    "danceability": 89,
+    "year": 2020,
+    "accent": "linear-gradient(135deg, #60a5fa 0%, #818cf8 40%, #f472b6 100%)"
+  },
+  {
+    "id": "track-115",
+    "title": "Aurora 115",
+    "artist": "The Night Index",
+    "artists": [
+      "The Night Index",
+      "Signal Youth"
+    ],
+    "album": "Sao Paulo Sessions",
+    "cover": "Afterglow Archive",
+    "genre": "Lo-fi",
+    "mood": "focus",
+    "duration": "5:35",
+    "lengthSeconds": 335,
+    "plays": "8.5M",
+    "explicit": false,
+    "saved": false,
+    "popular": 80,
+    "energy": 65,
+    "danceability": 40,
+    "year": 2021,
+    "accent": "linear-gradient(135deg, #f59e0b 0%, #ef4444 60%, #7c3aed 100%)"
+  },
+  {
+    "id": "track-116",
+    "title": "Static 116",
+    "artist": "Cobalt Hearts",
+    "artists": [
+      "Cobalt Hearts",
+      "Golden Relay"
+    ],
+    "album": "Stockholm Sessions",
+    "cover": "Mirage Archive",
+    "genre": "Electronica",
+    "mood": "workout",
+    "duration": "2:52",
+    "lengthSeconds": 172,
+    "plays": "9.6M",
+    "explicit": false,
+    "saved": false,
+    "popular": 81,
+    "energy": 72,
+    "danceability": 51,
+    "year": 2022,
+    "accent": "linear-gradient(135deg, #34d399 0%, #06b6d4 55%, #2563eb 100%)"
+  },
+  {
+    "id": "track-117",
+    "title": "Afterglow 117",
+    "artist": "Aster Vale",
+    "artists": [
+      "Aster Vale",
+      "Nova Atlas"
+    ],
+    "album": "Toronto Sessions",
+    "cover": "Starlight Archive",
+    "genre": "Afrobeats",
+    "mood": "chill",
+    "duration": "3:09",
+    "lengthSeconds": 189,
+    "plays": "1.7M",
+    "explicit": false,
+    "saved": true,
+    "popular": 82,
+    "energy": 79,
+    "danceability": 62,
+    "year": 2023,
+    "accent": "linear-gradient(135deg, #f43f5e 0%, #fb7185 40%, #facc15 100%)"
+  },
+  {
+    "id": "track-118",
+    "title": "Mirage 118",
+    "artist": "Signal Youth",
+    "artists": [
+      "Signal Youth",
+      "Luna Harbor"
+    ],
+    "album": "Barcelona Sessions",
+    "cover": "Night Drive Archive",
+    "genre": "R&B",
+    "mood": "party",
+    "duration": "4:26",
+    "lengthSeconds": 266,
+    "plays": "2.8M",
+    "explicit": false,
+    "saved": false,
+    "popular": 83,
+    "energy": 86,
+    "danceability": 73,
+    "year": 2024,
+    "accent": "linear-gradient(135deg, #a78bfa 0%, #38bdf8 50%, #4ade80 100%)"
+  },
+  {
+    "id": "track-119",
+    "title": "Starlight 119",
+    "artist": "Golden Relay",
+    "artists": [
+      "Golden Relay",
+      "Velvet Static"
+    ],
+    "album": "Jakarta Sessions",
+    "cover": "Pulse Archive",
+    "genre": "Ambient",
+    "mood": "sleep",
+    "duration": "5:43",
+    "lengthSeconds": 343,
+    "plays": "3.9M",
+    "explicit": true,
+    "saved": false,
+    "popular": 84,
+    "energy": 93,
+    "danceability": 84,
+    "year": 2025,
+    "accent": "linear-gradient(135deg, #fb7185 0%, #c084fc 45%, #60a5fa 100%)"
+  },
+  {
+    "id": "track-120",
+    "title": "Night Drive 120",
+    "artist": "Nova Atlas",
+    "artists": [
+      "Nova Atlas",
+      "Kairo Bloom"
+    ],
+    "album": "Tokyo Sessions",
+    "cover": "Velvet Archive",
+    "genre": "Synthwave",
+    "mood": "all",
+    "duration": "2:00",
+    "lengthSeconds": 120,
+    "plays": "4.0M",
+    "explicit": false,
+    "saved": true,
+    "popular": 85,
+    "energy": 30,
+    "danceability": 35,
+    "year": 2016,
+    "accent": "linear-gradient(135deg, #f97316 0%, #fb7185 45%, #2dd4bf 100%)"
+  },
+  {
+    "id": "track-121",
+    "title": "Pulse 121",
+    "artist": "Luna Harbor",
+    "artists": [
+      "Luna Harbor",
+      "Mira Echo"
+    ],
+    "album": "Berlin Sessions",
+    "cover": "Neon Archive",
+    "genre": "Alt Pop",
+    "mood": "focus",
+    "duration": "3:17",
+    "lengthSeconds": 197,
+    "plays": "5.1M",
+    "explicit": false,
+    "saved": false,
+    "popular": 86,
+    "energy": 37,
+    "danceability": 46,
+    "year": 2017,
+    "accent": "linear-gradient(135deg, #22c55e 0%, #14b8a6 55%, #0f172a 100%)"
+  },
+  {
+    "id": "track-122",
+    "title": "Velvet 122",
+    "artist": "Velvet Static",
+    "artists": [
+      "Velvet Static",
+      "The Night Index"
+    ],
+    "album": "Seoul Sessions",
+    "cover": "Sunset Archive",
+    "genre": "House",
+    "mood": "workout",
+    "duration": "4:34",
+    "lengthSeconds": 274,
+    "plays": "6.2M",
+    "explicit": false,
+    "saved": false,
+    "popular": 87,
+    "energy": 44,
+    "danceability": 57,
+    "year": 2018,
+    "accent": "linear-gradient(135deg, #60a5fa 0%, #818cf8 40%, #f472b6 100%)"
+  },
+  {
+    "id": "track-123",
+    "title": "Neon 123",
+    "artist": "Kairo Bloom",
+    "artists": [
+      "Kairo Bloom",
+      "Cobalt Hearts"
+    ],
+    "album": "Lagos Sessions",
+    "cover": "Aurora Archive",
+    "genre": "Indie Soul",
+    "mood": "chill",
+    "duration": "5:51",
+    "lengthSeconds": 351,
+    "plays": "7.3M",
+    "explicit": false,
+    "saved": true,
+    "popular": 88,
+    "energy": 51,
+    "danceability": 68,
+    "year": 2019,
+    "accent": "linear-gradient(135deg, #f59e0b 0%, #ef4444 60%, #7c3aed 100%)"
+  },
+  {
+    "id": "track-124",
+    "title": "Sunset 124",
+    "artist": "Mira Echo",
+    "artists": [
+      "Mira Echo",
+      "Aster Vale"
+    ],
+    "album": "London Sessions",
+    "cover": "Static Archive",
+    "genre": "Future Funk",
+    "mood": "party",
+    "duration": "2:08",
+    "lengthSeconds": 128,
+    "plays": "8.4M",
+    "explicit": false,
+    "saved": false,
+    "popular": 89,
+    "energy": 58,
+    "danceability": 79,
+    "year": 2020,
+    "accent": "linear-gradient(135deg, #34d399 0%, #06b6d4 55%, #2563eb 100%)"
+  },
+  {
+    "id": "track-125",
+    "title": "Aurora 125",
+    "artist": "The Night Index",
+    "artists": [
+      "The Night Index",
+      "Signal Youth"
+    ],
+    "album": "Sao Paulo Sessions",
+    "cover": "Afterglow Archive",
+    "genre": "Lo-fi",
+    "mood": "sleep",
+    "duration": "3:25",
+    "lengthSeconds": 205,
+    "plays": "9.5M",
+    "explicit": false,
+    "saved": false,
+    "popular": 90,
+    "energy": 65,
+    "danceability": 90,
+    "year": 2021,
+    "accent": "linear-gradient(135deg, #f43f5e 0%, #fb7185 40%, #facc15 100%)"
+  },
+  {
+    "id": "track-126",
+    "title": "Static 126",
+    "artist": "Cobalt Hearts",
+    "artists": [
+      "Cobalt Hearts",
+      "Golden Relay"
+    ],
+    "album": "Stockholm Sessions",
+    "cover": "Mirage Archive",
+    "genre": "Electronica",
+    "mood": "all",
+    "duration": "4:42",
+    "lengthSeconds": 282,
+    "plays": "1.6M",
+    "explicit": true,
+    "saved": true,
+    "popular": 91,
+    "energy": 72,
+    "danceability": 41,
+    "year": 2022,
+    "accent": "linear-gradient(135deg, #a78bfa 0%, #38bdf8 50%, #4ade80 100%)"
+  },
+  {
+    "id": "track-127",
+    "title": "Afterglow 127",
+    "artist": "Aster Vale",
+    "artists": [
+      "Aster Vale",
+      "Nova Atlas"
+    ],
+    "album": "Toronto Sessions",
+    "cover": "Starlight Archive",
+    "genre": "Afrobeats",
+    "mood": "focus",
+    "duration": "5:59",
+    "lengthSeconds": 359,
+    "plays": "2.7M",
+    "explicit": false,
+    "saved": false,
+    "popular": 92,
+    "energy": 79,
+    "danceability": 52,
+    "year": 2023,
+    "accent": "linear-gradient(135deg, #fb7185 0%, #c084fc 45%, #60a5fa 100%)"
+  },
+  {
+    "id": "track-128",
+    "title": "Mirage 128",
+    "artist": "Signal Youth",
+    "artists": [
+      "Signal Youth",
+      "Luna Harbor"
+    ],
+    "album": "Barcelona Sessions",
+    "cover": "Night Drive Archive",
+    "genre": "R&B",
+    "mood": "workout",
+    "duration": "2:16",
+    "lengthSeconds": 136,
+    "plays": "3.8M",
+    "explicit": false,
+    "saved": false,
+    "popular": 93,
+    "energy": 86,
+    "danceability": 63,
+    "year": 2024,
+    "accent": "linear-gradient(135deg, #f97316 0%, #fb7185 45%, #2dd4bf 100%)"
+  },
+  {
+    "id": "track-129",
+    "title": "Starlight 129",
+    "artist": "Golden Relay",
+    "artists": [
+      "Golden Relay",
+      "Velvet Static"
+    ],
+    "album": "Jakarta Sessions",
+    "cover": "Pulse Archive",
+    "genre": "Ambient",
+    "mood": "chill",
+    "duration": "3:33",
+    "lengthSeconds": 213,
+    "plays": "4.9M",
+    "explicit": false,
+    "saved": true,
+    "popular": 94,
+    "energy": 93,
+    "danceability": 74,
+    "year": 2025,
+    "accent": "linear-gradient(135deg, #22c55e 0%, #14b8a6 55%, #0f172a 100%)"
+  },
+  {
+    "id": "track-130",
+    "title": "Night Drive 130",
+    "artist": "Nova Atlas",
+    "artists": [
+      "Nova Atlas",
+      "Kairo Bloom"
+    ],
+    "album": "Tokyo Sessions",
+    "cover": "Velvet Archive",
+    "genre": "Synthwave",
+    "mood": "party",
+    "duration": "4:50",
+    "lengthSeconds": 290,
+    "plays": "5.0M",
+    "explicit": false,
+    "saved": false,
+    "popular": 95,
+    "energy": 30,
+    "danceability": 85,
+    "year": 2016,
+    "accent": "linear-gradient(135deg, #60a5fa 0%, #818cf8 40%, #f472b6 100%)"
+  },
+  {
+    "id": "track-131",
+    "title": "Pulse 131",
+    "artist": "Luna Harbor",
+    "artists": [
+      "Luna Harbor",
+      "Mira Echo"
+    ],
+    "album": "Berlin Sessions",
+    "cover": "Neon Archive",
+    "genre": "Alt Pop",
+    "mood": "sleep",
+    "duration": "5:07",
+    "lengthSeconds": 307,
+    "plays": "6.1M",
+    "explicit": false,
+    "saved": false,
+    "popular": 96,
+    "energy": 37,
+    "danceability": 36,
+    "year": 2017,
+    "accent": "linear-gradient(135deg, #f59e0b 0%, #ef4444 60%, #7c3aed 100%)"
+  },
+  {
+    "id": "track-132",
+    "title": "Velvet 132",
+    "artist": "Velvet Static",
+    "artists": [
+      "Velvet Static",
+      "The Night Index"
+    ],
+    "album": "Seoul Sessions",
+    "cover": "Sunset Archive",
+    "genre": "House",
+    "mood": "all",
+    "duration": "2:24",
+    "lengthSeconds": 144,
+    "plays": "7.2M",
+    "explicit": false,
+    "saved": true,
+    "popular": 97,
+    "energy": 44,
+    "danceability": 47,
+    "year": 2018,
+    "accent": "linear-gradient(135deg, #34d399 0%, #06b6d4 55%, #2563eb 100%)"
+  },
+  {
+    "id": "track-133",
+    "title": "Neon 133",
+    "artist": "Kairo Bloom",
+    "artists": [
+      "Kairo Bloom",
+      "Cobalt Hearts"
+    ],
+    "album": "Lagos Sessions",
+    "cover": "Aurora Archive",
+    "genre": "Indie Soul",
+    "mood": "focus",
+    "duration": "3:41",
+    "lengthSeconds": 221,
+    "plays": "8.3M",
+    "explicit": true,
+    "saved": false,
+    "popular": 98,
+    "energy": 51,
+    "danceability": 58,
+    "year": 2019,
+    "accent": "linear-gradient(135deg, #f43f5e 0%, #fb7185 40%, #facc15 100%)"
+  },
+  {
+    "id": "track-134",
+    "title": "Sunset 134",
+    "artist": "Mira Echo",
+    "artists": [
+      "Mira Echo",
+      "Aster Vale"
+    ],
+    "album": "London Sessions",
+    "cover": "Static Archive",
+    "genre": "Future Funk",
+    "mood": "workout",
+    "duration": "4:58",
+    "lengthSeconds": 298,
+    "plays": "9.4M",
+    "explicit": false,
+    "saved": false,
+    "popular": 99,
+    "energy": 58,
+    "danceability": 69,
+    "year": 2020,
+    "accent": "linear-gradient(135deg, #a78bfa 0%, #38bdf8 50%, #4ade80 100%)"
+  },
+  {
+    "id": "track-135",
+    "title": "Aurora 135",
+    "artist": "The Night Index",
+    "artists": [
+      "The Night Index",
+      "Signal Youth"
+    ],
+    "album": "Sao Paulo Sessions",
+    "cover": "Afterglow Archive",
+    "genre": "Lo-fi",
+    "mood": "chill",
+    "duration": "5:15",
+    "lengthSeconds": 315,
+    "plays": "1.5M",
+    "explicit": false,
+    "saved": true,
+    "popular": 55,
+    "energy": 65,
+    "danceability": 80,
+    "year": 2021,
+    "accent": "linear-gradient(135deg, #fb7185 0%, #c084fc 45%, #60a5fa 100%)"
+  },
+  {
+    "id": "track-136",
+    "title": "Static 136",
+    "artist": "Cobalt Hearts",
+    "artists": [
+      "Cobalt Hearts",
+      "Golden Relay"
+    ],
+    "album": "Stockholm Sessions",
+    "cover": "Mirage Archive",
+    "genre": "Electronica",
+    "mood": "party",
+    "duration": "2:32",
+    "lengthSeconds": 152,
+    "plays": "2.6M",
+    "explicit": false,
+    "saved": false,
+    "popular": 56,
+    "energy": 72,
+    "danceability": 91,
+    "year": 2022,
+    "accent": "linear-gradient(135deg, #f97316 0%, #fb7185 45%, #2dd4bf 100%)"
+  },
+  {
+    "id": "track-137",
+    "title": "Afterglow 137",
+    "artist": "Aster Vale",
+    "artists": [
+      "Aster Vale",
+      "Nova Atlas"
+    ],
+    "album": "Toronto Sessions",
+    "cover": "Starlight Archive",
+    "genre": "Afrobeats",
+    "mood": "sleep",
+    "duration": "3:49",
+    "lengthSeconds": 229,
+    "plays": "3.7M",
+    "explicit": false,
+    "saved": false,
+    "popular": 57,
+    "energy": 79,
+    "danceability": 42,
+    "year": 2023,
+    "accent": "linear-gradient(135deg, #22c55e 0%, #14b8a6 55%, #0f172a 100%)"
+  },
+  {
+    "id": "track-138",
+    "title": "Mirage 138",
+    "artist": "Signal Youth",
+    "artists": [
+      "Signal Youth",
+      "Luna Harbor"
+    ],
+    "album": "Barcelona Sessions",
+    "cover": "Night Drive Archive",
+    "genre": "R&B",
+    "mood": "all",
+    "duration": "4:06",
+    "lengthSeconds": 246,
+    "plays": "4.8M",
+    "explicit": false,
+    "saved": true,
+    "popular": 58,
+    "energy": 86,
+    "danceability": 53,
+    "year": 2024,
+    "accent": "linear-gradient(135deg, #60a5fa 0%, #818cf8 40%, #f472b6 100%)"
+  },
+  {
+    "id": "track-139",
+    "title": "Starlight 139",
+    "artist": "Golden Relay",
+    "artists": [
+      "Golden Relay",
+      "Velvet Static"
+    ],
+    "album": "Jakarta Sessions",
+    "cover": "Pulse Archive",
+    "genre": "Ambient",
+    "mood": "focus",
+    "duration": "5:23",
+    "lengthSeconds": 323,
+    "plays": "5.9M",
+    "explicit": false,
+    "saved": false,
+    "popular": 59,
+    "energy": 93,
+    "danceability": 64,
+    "year": 2025,
+    "accent": "linear-gradient(135deg, #f59e0b 0%, #ef4444 60%, #7c3aed 100%)"
+  },
+  {
+    "id": "track-140",
+    "title": "Night Drive 140",
+    "artist": "Nova Atlas",
+    "artists": [
+      "Nova Atlas",
+      "Kairo Bloom"
+    ],
+    "album": "Tokyo Sessions",
+    "cover": "Velvet Archive",
+    "genre": "Synthwave",
+    "mood": "workout",
+    "duration": "2:40",
+    "lengthSeconds": 160,
+    "plays": "6.0M",
+    "explicit": true,
+    "saved": false,
+    "popular": 60,
+    "energy": 30,
+    "danceability": 75,
+    "year": 2016,
+    "accent": "linear-gradient(135deg, #34d399 0%, #06b6d4 55%, #2563eb 100%)"
+  },
+  {
+    "id": "track-141",
+    "title": "Pulse 141",
+    "artist": "Luna Harbor",
+    "artists": [
+      "Luna Harbor",
+      "Mira Echo"
+    ],
+    "album": "Berlin Sessions",
+    "cover": "Neon Archive",
+    "genre": "Alt Pop",
+    "mood": "chill",
+    "duration": "3:57",
+    "lengthSeconds": 237,
+    "plays": "7.1M",
+    "explicit": false,
+    "saved": true,
+    "popular": 61,
+    "energy": 37,
+    "danceability": 86,
+    "year": 2017,
+    "accent": "linear-gradient(135deg, #f43f5e 0%, #fb7185 40%, #facc15 100%)"
+  },
+  {
+    "id": "track-142",
+    "title": "Velvet 142",
+    "artist": "Velvet Static",
+    "artists": [
+      "Velvet Static",
+      "The Night Index"
+    ],
+    "album": "Seoul Sessions",
+    "cover": "Sunset Archive",
+    "genre": "House",
+    "mood": "party",
+    "duration": "4:14",
+    "lengthSeconds": 254,
+    "plays": "8.2M",
+    "explicit": false,
+    "saved": false,
+    "popular": 62,
+    "energy": 44,
+    "danceability": 37,
+    "year": 2018,
+    "accent": "linear-gradient(135deg, #a78bfa 0%, #38bdf8 50%, #4ade80 100%)"
+  },
+  {
+    "id": "track-143",
+    "title": "Neon 143",
+    "artist": "Kairo Bloom",
+    "artists": [
+      "Kairo Bloom",
+      "Cobalt Hearts"
+    ],
+    "album": "Lagos Sessions",
+    "cover": "Aurora Archive",
+    "genre": "Indie Soul",
+    "mood": "sleep",
+    "duration": "5:31",
+    "lengthSeconds": 331,
+    "plays": "9.3M",
+    "explicit": false,
+    "saved": false,
+    "popular": 63,
+    "energy": 51,
+    "danceability": 48,
+    "year": 2019,
+    "accent": "linear-gradient(135deg, #fb7185 0%, #c084fc 45%, #60a5fa 100%)"
+  },
+  {
+    "id": "track-144",
+    "title": "Sunset 144",
+    "artist": "Mira Echo",
+    "artists": [
+      "Mira Echo",
+      "Aster Vale"
+    ],
+    "album": "London Sessions",
+    "cover": "Static Archive",
+    "genre": "Future Funk",
+    "mood": "all",
+    "duration": "2:48",
+    "lengthSeconds": 168,
+    "plays": "1.4M",
+    "explicit": false,
+    "saved": true,
+    "popular": 64,
+    "energy": 58,
+    "danceability": 59,
+    "year": 2020,
+    "accent": "linear-gradient(135deg, #f97316 0%, #fb7185 45%, #2dd4bf 100%)"
+  },
+  {
+    "id": "track-145",
+    "title": "Aurora 145",
+    "artist": "The Night Index",
+    "artists": [
+      "The Night Index",
+      "Signal Youth"
+    ],
+    "album": "Sao Paulo Sessions",
+    "cover": "Afterglow Archive",
+    "genre": "Lo-fi",
+    "mood": "focus",
+    "duration": "3:05",
+    "lengthSeconds": 185,
+    "plays": "2.5M",
+    "explicit": false,
+    "saved": false,
+    "popular": 65,
+    "energy": 65,
+    "danceability": 70,
+    "year": 2021,
+    "accent": "linear-gradient(135deg, #22c55e 0%, #14b8a6 55%, #0f172a 100%)"
+  },
+  {
+    "id": "track-146",
+    "title": "Static 146",
+    "artist": "Cobalt Hearts",
+    "artists": [
+      "Cobalt Hearts",
+      "Golden Relay"
+    ],
+    "album": "Stockholm Sessions",
+    "cover": "Mirage Archive",
+    "genre": "Electronica",
+    "mood": "workout",
+    "duration": "4:22",
+    "lengthSeconds": 262,
+    "plays": "3.6M",
+    "explicit": false,
+    "saved": false,
+    "popular": 66,
+    "energy": 72,
+    "danceability": 81,
+    "year": 2022,
+    "accent": "linear-gradient(135deg, #60a5fa 0%, #818cf8 40%, #f472b6 100%)"
+  },
+  {
+    "id": "track-147",
+    "title": "Afterglow 147",
+    "artist": "Aster Vale",
+    "artists": [
+      "Aster Vale",
+      "Nova Atlas"
+    ],
+    "album": "Toronto Sessions",
+    "cover": "Starlight Archive",
+    "genre": "Afrobeats",
+    "mood": "chill",
+    "duration": "5:39",
+    "lengthSeconds": 339,
+    "plays": "4.7M",
+    "explicit": true,
+    "saved": true,
+    "popular": 67,
+    "energy": 79,
+    "danceability": 92,
+    "year": 2023,
+    "accent": "linear-gradient(135deg, #f59e0b 0%, #ef4444 60%, #7c3aed 100%)"
+  },
+  {
+    "id": "track-148",
+    "title": "Mirage 148",
+    "artist": "Signal Youth",
+    "artists": [
+      "Signal Youth",
+      "Luna Harbor"
+    ],
+    "album": "Barcelona Sessions",
+    "cover": "Night Drive Archive",
+    "genre": "R&B",
+    "mood": "party",
+    "duration": "2:56",
+    "lengthSeconds": 176,
+    "plays": "5.8M",
+    "explicit": false,
+    "saved": false,
+    "popular": 68,
+    "energy": 86,
+    "danceability": 43,
+    "year": 2024,
+    "accent": "linear-gradient(135deg, #34d399 0%, #06b6d4 55%, #2563eb 100%)"
+  },
+  {
+    "id": "track-149",
+    "title": "Starlight 149",
+    "artist": "Golden Relay",
+    "artists": [
+      "Golden Relay",
+      "Velvet Static"
+    ],
+    "album": "Jakarta Sessions",
+    "cover": "Pulse Archive",
+    "genre": "Ambient",
+    "mood": "sleep",
+    "duration": "3:13",
+    "lengthSeconds": 193,
+    "plays": "6.9M",
+    "explicit": false,
+    "saved": false,
+    "popular": 69,
+    "energy": 93,
+    "danceability": 54,
+    "year": 2025,
+    "accent": "linear-gradient(135deg, #f43f5e 0%, #fb7185 40%, #facc15 100%)"
+  },
+  {
+    "id": "track-150",
+    "title": "Night Drive 150",
+    "artist": "Nova Atlas",
+    "artists": [
+      "Nova Atlas",
+      "Kairo Bloom"
+    ],
+    "album": "Tokyo Sessions",
+    "cover": "Velvet Archive",
+    "genre": "Synthwave",
+    "mood": "all",
+    "duration": "4:30",
+    "lengthSeconds": 270,
+    "plays": "7.0M",
+    "explicit": false,
+    "saved": true,
+    "popular": 70,
+    "energy": 30,
+    "danceability": 65,
+    "year": 2016,
+    "accent": "linear-gradient(135deg, #a78bfa 0%, #38bdf8 50%, #4ade80 100%)"
+  },
+  {
+    "id": "track-151",
+    "title": "Pulse 151",
+    "artist": "Luna Harbor",
+    "artists": [
+      "Luna Harbor",
+      "Mira Echo"
+    ],
+    "album": "Berlin Sessions",
+    "cover": "Neon Archive",
+    "genre": "Alt Pop",
+    "mood": "focus",
+    "duration": "5:47",
+    "lengthSeconds": 347,
+    "plays": "8.1M",
+    "explicit": false,
+    "saved": false,
+    "popular": 71,
+    "energy": 37,
+    "danceability": 76,
+    "year": 2017,
+    "accent": "linear-gradient(135deg, #fb7185 0%, #c084fc 45%, #60a5fa 100%)"
+  },
+  {
+    "id": "track-152",
+    "title": "Velvet 152",
+    "artist": "Velvet Static",
+    "artists": [
+      "Velvet Static",
+      "The Night Index"
+    ],
+    "album": "Seoul Sessions",
+    "cover": "Sunset Archive",
+    "genre": "House",
+    "mood": "workout",
+    "duration": "2:04",
+    "lengthSeconds": 124,
+    "plays": "9.2M",
+    "explicit": false,
+    "saved": false,
+    "popular": 72,
+    "energy": 44,
+    "danceability": 87,
+    "year": 2018,
+    "accent": "linear-gradient(135deg, #f97316 0%, #fb7185 45%, #2dd4bf 100%)"
+  },
+  {
+    "id": "track-153",
+    "title": "Neon 153",
+    "artist": "Kairo Bloom",
+    "artists": [
+      "Kairo Bloom",
+      "Cobalt Hearts"
+    ],
+    "album": "Lagos Sessions",
+    "cover": "Aurora Archive",
+    "genre": "Indie Soul",
+    "mood": "chill",
+    "duration": "3:21",
+    "lengthSeconds": 201,
+    "plays": "1.3M",
+    "explicit": false,
+    "saved": true,
+    "popular": 73,
+    "energy": 51,
+    "danceability": 38,
+    "year": 2019,
+    "accent": "linear-gradient(135deg, #22c55e 0%, #14b8a6 55%, #0f172a 100%)"
+  },
+  {
+    "id": "track-154",
+    "title": "Sunset 154",
+    "artist": "Mira Echo",
+    "artists": [
+      "Mira Echo",
+      "Aster Vale"
+    ],
+    "album": "London Sessions",
+    "cover": "Static Archive",
+    "genre": "Future Funk",
+    "mood": "party",
+    "duration": "4:38",
+    "lengthSeconds": 278,
+    "plays": "2.4M",
+    "explicit": true,
+    "saved": false,
+    "popular": 74,
+    "energy": 58,
+    "danceability": 49,
+    "year": 2020,
+    "accent": "linear-gradient(135deg, #60a5fa 0%, #818cf8 40%, #f472b6 100%)"
+  },
+  {
+    "id": "track-155",
+    "title": "Aurora 155",
+    "artist": "The Night Index",
+    "artists": [
+      "The Night Index",
+      "Signal Youth"
+    ],
+    "album": "Sao Paulo Sessions",
+    "cover": "Afterglow Archive",
+    "genre": "Lo-fi",
+    "mood": "sleep",
+    "duration": "5:55",
+    "lengthSeconds": 355,
+    "plays": "3.5M",
+    "explicit": false,
+    "saved": false,
+    "popular": 75,
+    "energy": 65,
+    "danceability": 60,
+    "year": 2021,
+    "accent": "linear-gradient(135deg, #f59e0b 0%, #ef4444 60%, #7c3aed 100%)"
+  },
+  {
+    "id": "track-156",
+    "title": "Static 156",
+    "artist": "Cobalt Hearts",
+    "artists": [
+      "Cobalt Hearts",
+      "Golden Relay"
+    ],
+    "album": "Stockholm Sessions",
+    "cover": "Mirage Archive",
+    "genre": "Electronica",
+    "mood": "all",
+    "duration": "2:12",
+    "lengthSeconds": 132,
+    "plays": "4.6M",
+    "explicit": false,
+    "saved": true,
+    "popular": 76,
+    "energy": 72,
+    "danceability": 71,
+    "year": 2022,
+    "accent": "linear-gradient(135deg, #34d399 0%, #06b6d4 55%, #2563eb 100%)"
+  },
+  {
+    "id": "track-157",
+    "title": "Afterglow 157",
+    "artist": "Aster Vale",
+    "artists": [
+      "Aster Vale",
+      "Nova Atlas"
+    ],
+    "album": "Toronto Sessions",
+    "cover": "Starlight Archive",
+    "genre": "Afrobeats",
+    "mood": "focus",
+    "duration": "3:29",
+    "lengthSeconds": 209,
+    "plays": "5.7M",
+    "explicit": false,
+    "saved": false,
+    "popular": 77,
+    "energy": 79,
+    "danceability": 82,
+    "year": 2023,
+    "accent": "linear-gradient(135deg, #f43f5e 0%, #fb7185 40%, #facc15 100%)"
+  },
+  {
+    "id": "track-158",
+    "title": "Mirage 158",
+    "artist": "Signal Youth",
+    "artists": [
+      "Signal Youth",
+      "Luna Harbor"
+    ],
+    "album": "Barcelona Sessions",
+    "cover": "Night Drive Archive",
+    "genre": "R&B",
+    "mood": "workout",
+    "duration": "4:46",
+    "lengthSeconds": 286,
+    "plays": "6.8M",
+    "explicit": false,
+    "saved": false,
+    "popular": 78,
+    "energy": 86,
+    "danceability": 93,
+    "year": 2024,
+    "accent": "linear-gradient(135deg, #a78bfa 0%, #38bdf8 50%, #4ade80 100%)"
+  },
+  {
+    "id": "track-159",
+    "title": "Starlight 159",
+    "artist": "Golden Relay",
+    "artists": [
+      "Golden Relay",
+      "Velvet Static"
+    ],
+    "album": "Jakarta Sessions",
+    "cover": "Pulse Archive",
+    "genre": "Ambient",
+    "mood": "chill",
+    "duration": "5:03",
+    "lengthSeconds": 303,
+    "plays": "7.9M",
+    "explicit": false,
+    "saved": true,
+    "popular": 79,
+    "energy": 93,
+    "danceability": 44,
+    "year": 2025,
+    "accent": "linear-gradient(135deg, #fb7185 0%, #c084fc 45%, #60a5fa 100%)"
+  },
+  {
+    "id": "track-160",
+    "title": "Night Drive 160",
+    "artist": "Nova Atlas",
+    "artists": [
+      "Nova Atlas",
+      "Kairo Bloom"
+    ],
+    "album": "Tokyo Sessions",
+    "cover": "Velvet Archive",
+    "genre": "Synthwave",
+    "mood": "party",
+    "duration": "2:20",
+    "lengthSeconds": 140,
+    "plays": "8.0M",
+    "explicit": false,
+    "saved": false,
+    "popular": 80,
+    "energy": 30,
+    "danceability": 55,
+    "year": 2016,
+    "accent": "linear-gradient(135deg, #f97316 0%, #fb7185 45%, #2dd4bf 100%)"
+  },
+  {
+    "id": "track-161",
+    "title": "Pulse 161",
+    "artist": "Luna Harbor",
+    "artists": [
+      "Luna Harbor",
+      "Mira Echo"
+    ],
+    "album": "Berlin Sessions",
+    "cover": "Neon Archive",
+    "genre": "Alt Pop",
+    "mood": "sleep",
+    "duration": "3:37",
+    "lengthSeconds": 217,
+    "plays": "9.1M",
+    "explicit": true,
+    "saved": false,
+    "popular": 81,
+    "energy": 37,
+    "danceability": 66,
+    "year": 2017,
+    "accent": "linear-gradient(135deg, #22c55e 0%, #14b8a6 55%, #0f172a 100%)"
+  },
+  {
+    "id": "track-162",
+    "title": "Velvet 162",
+    "artist": "Velvet Static",
+    "artists": [
+      "Velvet Static",
+      "The Night Index"
+    ],
+    "album": "Seoul Sessions",
+    "cover": "Sunset Archive",
+    "genre": "House",
+    "mood": "all",
+    "duration": "4:54",
+    "lengthSeconds": 294,
+    "plays": "1.2M",
+    "explicit": false,
+    "saved": true,
+    "popular": 82,
+    "energy": 44,
+    "danceability": 77,
+    "year": 2018,
+    "accent": "linear-gradient(135deg, #60a5fa 0%, #818cf8 40%, #f472b6 100%)"
+  },
+  {
+    "id": "track-163",
+    "title": "Neon 163",
+    "artist": "Kairo Bloom",
+    "artists": [
+      "Kairo Bloom",
+      "Cobalt Hearts"
+    ],
+    "album": "Lagos Sessions",
+    "cover": "Aurora Archive",
+    "genre": "Indie Soul",
+    "mood": "focus",
+    "duration": "5:11",
+    "lengthSeconds": 311,
+    "plays": "2.3M",
+    "explicit": false,
+    "saved": false,
+    "popular": 83,
+    "energy": 51,
+    "danceability": 88,
+    "year": 2019,
+    "accent": "linear-gradient(135deg, #f59e0b 0%, #ef4444 60%, #7c3aed 100%)"
+  },
+  {
+    "id": "track-164",
+    "title": "Sunset 164",
+    "artist": "Mira Echo",
+    "artists": [
+      "Mira Echo",
+      "Aster Vale"
+    ],
+    "album": "London Sessions",
+    "cover": "Static Archive",
+    "genre": "Future Funk",
+    "mood": "workout",
+    "duration": "2:28",
+    "lengthSeconds": 148,
+    "plays": "3.4M",
+    "explicit": false,
+    "saved": false,
+    "popular": 84,
+    "energy": 58,
+    "danceability": 39,
+    "year": 2020,
+    "accent": "linear-gradient(135deg, #34d399 0%, #06b6d4 55%, #2563eb 100%)"
+  },
+  {
+    "id": "track-165",
+    "title": "Aurora 165",
+    "artist": "The Night Index",
+    "artists": [
+      "The Night Index",
+      "Signal Youth"
+    ],
+    "album": "Sao Paulo Sessions",
+    "cover": "Afterglow Archive",
+    "genre": "Lo-fi",
+    "mood": "chill",
+    "duration": "3:45",
+    "lengthSeconds": 225,
+    "plays": "4.5M",
+    "explicit": false,
+    "saved": true,
+    "popular": 85,
+    "energy": 65,
+    "danceability": 50,
+    "year": 2021,
+    "accent": "linear-gradient(135deg, #f43f5e 0%, #fb7185 40%, #facc15 100%)"
+  },
+  {
+    "id": "track-166",
+    "title": "Static 166",
+    "artist": "Cobalt Hearts",
+    "artists": [
+      "Cobalt Hearts",
+      "Golden Relay"
+    ],
+    "album": "Stockholm Sessions",
+    "cover": "Mirage Archive",
+    "genre": "Electronica",
+    "mood": "party",
+    "duration": "4:02",
+    "lengthSeconds": 242,
+    "plays": "5.6M",
+    "explicit": false,
+    "saved": false,
+    "popular": 86,
+    "energy": 72,
+    "danceability": 61,
+    "year": 2022,
+    "accent": "linear-gradient(135deg, #a78bfa 0%, #38bdf8 50%, #4ade80 100%)"
+  },
+  {
+    "id": "track-167",
+    "title": "Afterglow 167",
+    "artist": "Aster Vale",
+    "artists": [
+      "Aster Vale",
+      "Nova Atlas"
+    ],
+    "album": "Toronto Sessions",
+    "cover": "Starlight Archive",
+    "genre": "Afrobeats",
+    "mood": "sleep",
+    "duration": "5:19",
+    "lengthSeconds": 319,
+    "plays": "6.7M",
+    "explicit": false,
+    "saved": false,
+    "popular": 87,
+    "energy": 79,
+    "danceability": 72,
+    "year": 2023,
+    "accent": "linear-gradient(135deg, #fb7185 0%, #c084fc 45%, #60a5fa 100%)"
+  },
+  {
+    "id": "track-168",
+    "title": "Mirage 168",
+    "artist": "Signal Youth",
+    "artists": [
+      "Signal Youth",
+      "Luna Harbor"
+    ],
+    "album": "Barcelona Sessions",
+    "cover": "Night Drive Archive",
+    "genre": "R&B",
+    "mood": "all",
+    "duration": "2:36",
+    "lengthSeconds": 156,
+    "plays": "7.8M",
+    "explicit": true,
+    "saved": true,
+    "popular": 88,
+    "energy": 86,
+    "danceability": 83,
+    "year": 2024,
+    "accent": "linear-gradient(135deg, #f97316 0%, #fb7185 45%, #2dd4bf 100%)"
+  },
+  {
+    "id": "track-169",
+    "title": "Starlight 169",
+    "artist": "Golden Relay",
+    "artists": [
+      "Golden Relay",
+      "Velvet Static"
+    ],
+    "album": "Jakarta Sessions",
+    "cover": "Pulse Archive",
+    "genre": "Ambient",
+    "mood": "focus",
+    "duration": "3:53",
+    "lengthSeconds": 233,
+    "plays": "8.9M",
+    "explicit": false,
+    "saved": false,
+    "popular": 89,
+    "energy": 93,
+    "danceability": 94,
+    "year": 2025,
+    "accent": "linear-gradient(135deg, #22c55e 0%, #14b8a6 55%, #0f172a 100%)"
+  },
+  {
+    "id": "track-170",
+    "title": "Night Drive 170",
+    "artist": "Nova Atlas",
+    "artists": [
+      "Nova Atlas",
+      "Kairo Bloom"
+    ],
+    "album": "Tokyo Sessions",
+    "cover": "Velvet Archive",
+    "genre": "Synthwave",
+    "mood": "workout",
+    "duration": "4:10",
+    "lengthSeconds": 250,
+    "plays": "9.0M",
+    "explicit": false,
+    "saved": false,
+    "popular": 90,
+    "energy": 30,
+    "danceability": 45,
+    "year": 2016,
+    "accent": "linear-gradient(135deg, #60a5fa 0%, #818cf8 40%, #f472b6 100%)"
+  },
+  {
+    "id": "track-171",
+    "title": "Pulse 171",
+    "artist": "Luna Harbor",
+    "artists": [
+      "Luna Harbor",
+      "Mira Echo"
+    ],
+    "album": "Berlin Sessions",
+    "cover": "Neon Archive",
+    "genre": "Alt Pop",
+    "mood": "chill",
+    "duration": "5:27",
+    "lengthSeconds": 327,
+    "plays": "1.1M",
+    "explicit": false,
+    "saved": true,
+    "popular": 91,
+    "energy": 37,
+    "danceability": 56,
+    "year": 2017,
+    "accent": "linear-gradient(135deg, #f59e0b 0%, #ef4444 60%, #7c3aed 100%)"
+  },
+  {
+    "id": "track-172",
+    "title": "Velvet 172",
+    "artist": "Velvet Static",
+    "artists": [
+      "Velvet Static",
+      "The Night Index"
+    ],
+    "album": "Seoul Sessions",
+    "cover": "Sunset Archive",
+    "genre": "House",
+    "mood": "party",
+    "duration": "2:44",
+    "lengthSeconds": 164,
+    "plays": "2.2M",
+    "explicit": false,
+    "saved": false,
+    "popular": 92,
+    "energy": 44,
+    "danceability": 67,
+    "year": 2018,
+    "accent": "linear-gradient(135deg, #34d399 0%, #06b6d4 55%, #2563eb 100%)"
+  },
+  {
+    "id": "track-173",
+    "title": "Neon 173",
+    "artist": "Kairo Bloom",
+    "artists": [
+      "Kairo Bloom",
+      "Cobalt Hearts"
+    ],
+    "album": "Lagos Sessions",
+    "cover": "Aurora Archive",
+    "genre": "Indie Soul",
+    "mood": "sleep",
+    "duration": "3:01",
+    "lengthSeconds": 181,
+    "plays": "3.3M",
+    "explicit": false,
+    "saved": false,
+    "popular": 93,
+    "energy": 51,
+    "danceability": 78,
+    "year": 2019,
+    "accent": "linear-gradient(135deg, #f43f5e 0%, #fb7185 40%, #facc15 100%)"
+  },
+  {
+    "id": "track-174",
+    "title": "Sunset 174",
+    "artist": "Mira Echo",
+    "artists": [
+      "Mira Echo",
+      "Aster Vale"
+    ],
+    "album": "London Sessions",
+    "cover": "Static Archive",
+    "genre": "Future Funk",
+    "mood": "all",
+    "duration": "4:18",
+    "lengthSeconds": 258,
+    "plays": "4.4M",
+    "explicit": false,
+    "saved": true,
+    "popular": 94,
+    "energy": 58,
+    "danceability": 89,
+    "year": 2020,
+    "accent": "linear-gradient(135deg, #a78bfa 0%, #38bdf8 50%, #4ade80 100%)"
+  },
+  {
+    "id": "track-175",
+    "title": "Aurora 175",
+    "artist": "The Night Index",
+    "artists": [
+      "The Night Index",
+      "Signal Youth"
+    ],
+    "album": "Sao Paulo Sessions",
+    "cover": "Afterglow Archive",
+    "genre": "Lo-fi",
+    "mood": "focus",
+    "duration": "5:35",
+    "lengthSeconds": 335,
+    "plays": "5.5M",
+    "explicit": true,
+    "saved": false,
+    "popular": 95,
+    "energy": 65,
+    "danceability": 40,
+    "year": 2021,
+    "accent": "linear-gradient(135deg, #fb7185 0%, #c084fc 45%, #60a5fa 100%)"
+  },
+  {
+    "id": "track-176",
+    "title": "Static 176",
+    "artist": "Cobalt Hearts",
+    "artists": [
+      "Cobalt Hearts",
+      "Golden Relay"
+    ],
+    "album": "Stockholm Sessions",
+    "cover": "Mirage Archive",
+    "genre": "Electronica",
+    "mood": "workout",
+    "duration": "2:52",
+    "lengthSeconds": 172,
+    "plays": "6.6M",
+    "explicit": false,
+    "saved": false,
+    "popular": 96,
+    "energy": 72,
+    "danceability": 51,
+    "year": 2022,
+    "accent": "linear-gradient(135deg, #f97316 0%, #fb7185 45%, #2dd4bf 100%)"
+  },
+  {
+    "id": "track-177",
+    "title": "Afterglow 177",
+    "artist": "Aster Vale",
+    "artists": [
+      "Aster Vale",
+      "Nova Atlas"
+    ],
+    "album": "Toronto Sessions",
+    "cover": "Starlight Archive",
+    "genre": "Afrobeats",
+    "mood": "chill",
+    "duration": "3:09",
+    "lengthSeconds": 189,
+    "plays": "7.7M",
+    "explicit": false,
+    "saved": true,
+    "popular": 97,
+    "energy": 79,
+    "danceability": 62,
+    "year": 2023,
+    "accent": "linear-gradient(135deg, #22c55e 0%, #14b8a6 55%, #0f172a 100%)"
+  },
+  {
+    "id": "track-178",
+    "title": "Mirage 178",
+    "artist": "Signal Youth",
+    "artists": [
+      "Signal Youth",
+      "Luna Harbor"
+    ],
+    "album": "Barcelona Sessions",
+    "cover": "Night Drive Archive",
+    "genre": "R&B",
+    "mood": "party",
+    "duration": "4:26",
+    "lengthSeconds": 266,
+    "plays": "8.8M",
+    "explicit": false,
+    "saved": false,
+    "popular": 98,
+    "energy": 86,
+    "danceability": 73,
+    "year": 2024,
+    "accent": "linear-gradient(135deg, #60a5fa 0%, #818cf8 40%, #f472b6 100%)"
+  },
+  {
+    "id": "track-179",
+    "title": "Starlight 179",
+    "artist": "Golden Relay",
+    "artists": [
+      "Golden Relay",
+      "Velvet Static"
+    ],
+    "album": "Jakarta Sessions",
+    "cover": "Pulse Archive",
+    "genre": "Ambient",
+    "mood": "sleep",
+    "duration": "5:43",
+    "lengthSeconds": 343,
+    "plays": "9.9M",
+    "explicit": false,
+    "saved": false,
+    "popular": 99,
+    "energy": 93,
+    "danceability": 84,
+    "year": 2025,
+    "accent": "linear-gradient(135deg, #f59e0b 0%, #ef4444 60%, #7c3aed 100%)"
+  },
+  {
+    "id": "track-180",
+    "title": "Night Drive 180",
+    "artist": "Nova Atlas",
+    "artists": [
+      "Nova Atlas",
+      "Kairo Bloom"
+    ],
+    "album": "Tokyo Sessions",
+    "cover": "Velvet Archive",
+    "genre": "Synthwave",
+    "mood": "all",
+    "duration": "2:00",
+    "lengthSeconds": 120,
+    "plays": "1.0M",
+    "explicit": false,
+    "saved": true,
+    "popular": 55,
+    "energy": 30,
+    "danceability": 35,
+    "year": 2016,
+    "accent": "linear-gradient(135deg, #34d399 0%, #06b6d4 55%, #2563eb 100%)"
+  }
+]
+
+const playlists: Playlist[] = [
+  {
+    "id": "playlist-1",
+    "name": "Pulse Mix 1",
+    "subtitle": "Alt Pop for Berlin nights",
+    "description": "A polished blend of alt pop cuts, melodic transitions, and modern rhythm picks tuned for Lagos.",
+    "mood": "focus",
+    "cover": "Berlin Glow",
+    "accent": "linear-gradient(135deg, #f59e0b 0%, #ef4444 60%, #7c3aed 100%)",
+    "saves": "57K",
+    "curator": "Editorial Lab",
+    "duration": "2 hr 11 min",
+    "trackIds": [
+      "track-1",
+      "track-2",
+      "track-3",
+      "track-4",
+      "track-5",
+      "track-6",
+      "track-7",
+      "track-8"
+    ]
+  },
+  {
+    "id": "playlist-2",
+    "name": "Velvet Mix 2",
+    "subtitle": "House for Seoul nights",
+    "description": "A polished blend of house cuts, melodic transitions, and modern rhythm picks tuned for London.",
+    "mood": "workout",
+    "cover": "Seoul Glow",
+    "accent": "linear-gradient(135deg, #34d399 0%, #06b6d4 55%, #2563eb 100%)",
+    "saves": "64K",
+    "curator": "Musicfy Studio",
+    "duration": "3 hr 12 min",
+    "trackIds": [
+      "track-6",
+      "track-7",
+      "track-8",
+      "track-9",
+      "track-10",
+      "track-11",
+      "track-12",
+      "track-13"
+    ]
+  },
+  {
+    "id": "playlist-3",
+    "name": "Neon Mix 3",
+    "subtitle": "Indie Soul for Lagos nights",
+    "description": "A polished blend of indie soul cuts, melodic transitions, and modern rhythm picks tuned for Sao Paulo.",
+    "mood": "chill",
+    "cover": "Lagos Glow",
+    "accent": "linear-gradient(135deg, #f43f5e 0%, #fb7185 40%, #facc15 100%)",
+    "saves": "71K",
+    "curator": "Editorial Lab",
+    "duration": "4 hr 13 min",
+    "trackIds": [
+      "track-11",
+      "track-12",
+      "track-13",
+      "track-14",
+      "track-15",
+      "track-16",
+      "track-17",
+      "track-18"
+    ]
+  },
+  {
+    "id": "playlist-4",
+    "name": "Sunset Mix 4",
+    "subtitle": "Future Funk for London nights",
+    "description": "A polished blend of future funk cuts, melodic transitions, and modern rhythm picks tuned for Stockholm.",
+    "mood": "party",
+    "cover": "London Glow",
+    "accent": "linear-gradient(135deg, #a78bfa 0%, #38bdf8 50%, #4ade80 100%)",
+    "saves": "78K",
+    "curator": "Musicfy Studio",
+    "duration": "1 hr 14 min",
+    "trackIds": [
+      "track-16",
+      "track-17",
+      "track-18",
+      "track-19",
+      "track-20",
+      "track-21",
+      "track-22",
+      "track-23"
+    ]
+  },
+  {
+    "id": "playlist-5",
+    "name": "Aurora Mix 5",
+    "subtitle": "Lo-fi for Sao Paulo nights",
+    "description": "A polished blend of lo-fi cuts, melodic transitions, and modern rhythm picks tuned for Toronto.",
+    "mood": "sleep",
+    "cover": "Sao Paulo Glow",
+    "accent": "linear-gradient(135deg, #fb7185 0%, #c084fc 45%, #60a5fa 100%)",
+    "saves": "85K",
+    "curator": "Editorial Lab",
+    "duration": "2 hr 15 min",
+    "trackIds": [
+      "track-21",
+      "track-22",
+      "track-23",
+      "track-24",
+      "track-25",
+      "track-26",
+      "track-27",
+      "track-28"
+    ]
+  },
+  {
+    "id": "playlist-6",
+    "name": "Static Mix 6",
+    "subtitle": "Electronica for Stockholm nights",
+    "description": "A polished blend of electronica cuts, melodic transitions, and modern rhythm picks tuned for Barcelona.",
+    "mood": "all",
+    "cover": "Stockholm Glow",
+    "accent": "linear-gradient(135deg, #f97316 0%, #fb7185 45%, #2dd4bf 100%)",
+    "saves": "92K",
+    "curator": "Musicfy Studio",
+    "duration": "3 hr 16 min",
+    "trackIds": [
+      "track-26",
+      "track-27",
+      "track-28",
+      "track-29",
+      "track-30",
+      "track-31",
+      "track-32",
+      "track-33"
+    ]
+  },
+  {
+    "id": "playlist-7",
+    "name": "Afterglow Mix 7",
+    "subtitle": "Afrobeats for Toronto nights",
+    "description": "A polished blend of afrobeats cuts, melodic transitions, and modern rhythm picks tuned for Jakarta.",
+    "mood": "focus",
+    "cover": "Toronto Glow",
+    "accent": "linear-gradient(135deg, #22c55e 0%, #14b8a6 55%, #0f172a 100%)",
+    "saves": "99K",
+    "curator": "Editorial Lab",
+    "duration": "4 hr 17 min",
+    "trackIds": [
+      "track-31",
+      "track-32",
+      "track-33",
+      "track-34",
+      "track-35",
+      "track-36",
+      "track-37",
+      "track-38"
+    ]
+  },
+  {
+    "id": "playlist-8",
+    "name": "Mirage Mix 8",
+    "subtitle": "R&B for Barcelona nights",
+    "description": "A polished blend of r&b cuts, melodic transitions, and modern rhythm picks tuned for Tokyo.",
+    "mood": "workout",
+    "cover": "Barcelona Glow",
+    "accent": "linear-gradient(135deg, #60a5fa 0%, #818cf8 40%, #f472b6 100%)",
+    "saves": "106K",
+    "curator": "Musicfy Studio",
+    "duration": "1 hr 18 min",
+    "trackIds": [
+      "track-36",
+      "track-37",
+      "track-38",
+      "track-39",
+      "track-40",
+      "track-41",
+      "track-42",
+      "track-43"
+    ]
+  },
+  {
+    "id": "playlist-9",
+    "name": "Starlight Mix 9",
+    "subtitle": "Ambient for Jakarta nights",
+    "description": "A polished blend of ambient cuts, melodic transitions, and modern rhythm picks tuned for Berlin.",
+    "mood": "chill",
+    "cover": "Jakarta Glow",
+    "accent": "linear-gradient(135deg, #f59e0b 0%, #ef4444 60%, #7c3aed 100%)",
+    "saves": "113K",
+    "curator": "Editorial Lab",
+    "duration": "2 hr 19 min",
+    "trackIds": [
+      "track-41",
+      "track-42",
+      "track-43",
+      "track-44",
+      "track-45",
+      "track-46",
+      "track-47",
+      "track-48"
+    ]
+  },
+  {
+    "id": "playlist-10",
+    "name": "Night Drive Mix 10",
+    "subtitle": "Synthwave for Tokyo nights",
+    "description": "A polished blend of synthwave cuts, melodic transitions, and modern rhythm picks tuned for Seoul.",
+    "mood": "party",
+    "cover": "Tokyo Glow",
+    "accent": "linear-gradient(135deg, #34d399 0%, #06b6d4 55%, #2563eb 100%)",
+    "saves": "120K",
+    "curator": "Musicfy Studio",
+    "duration": "3 hr 20 min",
+    "trackIds": [
+      "track-46",
+      "track-47",
+      "track-48",
+      "track-49",
+      "track-50",
+      "track-51",
+      "track-52",
+      "track-53"
+    ]
+  },
+  {
+    "id": "playlist-11",
+    "name": "Pulse Mix 11",
+    "subtitle": "Alt Pop for Berlin nights",
+    "description": "A polished blend of alt pop cuts, melodic transitions, and modern rhythm picks tuned for Lagos.",
+    "mood": "sleep",
+    "cover": "Berlin Glow",
+    "accent": "linear-gradient(135deg, #f43f5e 0%, #fb7185 40%, #facc15 100%)",
+    "saves": "127K",
+    "curator": "Editorial Lab",
+    "duration": "4 hr 21 min",
+    "trackIds": [
+      "track-51",
+      "track-52",
+      "track-53",
+      "track-54",
+      "track-55",
+      "track-56",
+      "track-57",
+      "track-58"
+    ]
+  },
+  {
+    "id": "playlist-12",
+    "name": "Velvet Mix 12",
+    "subtitle": "House for Seoul nights",
+    "description": "A polished blend of house cuts, melodic transitions, and modern rhythm picks tuned for London.",
+    "mood": "all",
+    "cover": "Seoul Glow",
+    "accent": "linear-gradient(135deg, #a78bfa 0%, #38bdf8 50%, #4ade80 100%)",
+    "saves": "134K",
+    "curator": "Musicfy Studio",
+    "duration": "1 hr 22 min",
+    "trackIds": [
+      "track-56",
+      "track-57",
+      "track-58",
+      "track-59",
+      "track-60",
+      "track-61",
+      "track-62",
+      "track-63"
+    ]
+  },
+  {
+    "id": "playlist-13",
+    "name": "Neon Mix 13",
+    "subtitle": "Indie Soul for Lagos nights",
+    "description": "A polished blend of indie soul cuts, melodic transitions, and modern rhythm picks tuned for Sao Paulo.",
+    "mood": "focus",
+    "cover": "Lagos Glow",
+    "accent": "linear-gradient(135deg, #fb7185 0%, #c084fc 45%, #60a5fa 100%)",
+    "saves": "141K",
+    "curator": "Editorial Lab",
+    "duration": "2 hr 23 min",
+    "trackIds": [
+      "track-61",
+      "track-62",
+      "track-63",
+      "track-64",
+      "track-65",
+      "track-66",
+      "track-67",
+      "track-68"
+    ]
+  },
+  {
+    "id": "playlist-14",
+    "name": "Sunset Mix 14",
+    "subtitle": "Future Funk for London nights",
+    "description": "A polished blend of future funk cuts, melodic transitions, and modern rhythm picks tuned for Stockholm.",
+    "mood": "workout",
+    "cover": "London Glow",
+    "accent": "linear-gradient(135deg, #f97316 0%, #fb7185 45%, #2dd4bf 100%)",
+    "saves": "148K",
+    "curator": "Musicfy Studio",
+    "duration": "3 hr 24 min",
+    "trackIds": [
+      "track-66",
+      "track-67",
+      "track-68",
+      "track-69",
+      "track-70",
+      "track-71",
+      "track-72",
+      "track-73"
+    ]
+  },
+  {
+    "id": "playlist-15",
+    "name": "Aurora Mix 15",
+    "subtitle": "Lo-fi for Sao Paulo nights",
+    "description": "A polished blend of lo-fi cuts, melodic transitions, and modern rhythm picks tuned for Toronto.",
+    "mood": "chill",
+    "cover": "Sao Paulo Glow",
+    "accent": "linear-gradient(135deg, #22c55e 0%, #14b8a6 55%, #0f172a 100%)",
+    "saves": "155K",
+    "curator": "Editorial Lab",
+    "duration": "4 hr 25 min",
+    "trackIds": [
+      "track-71",
+      "track-72",
+      "track-73",
+      "track-74",
+      "track-75",
+      "track-76",
+      "track-77",
+      "track-78"
+    ]
+  },
+  {
+    "id": "playlist-16",
+    "name": "Static Mix 16",
+    "subtitle": "Electronica for Stockholm nights",
+    "description": "A polished blend of electronica cuts, melodic transitions, and modern rhythm picks tuned for Barcelona.",
+    "mood": "party",
+    "cover": "Stockholm Glow",
+    "accent": "linear-gradient(135deg, #60a5fa 0%, #818cf8 40%, #f472b6 100%)",
+    "saves": "162K",
+    "curator": "Musicfy Studio",
+    "duration": "1 hr 26 min",
+    "trackIds": [
+      "track-76",
+      "track-77",
+      "track-78",
+      "track-79",
+      "track-80",
+      "track-81",
+      "track-82",
+      "track-83"
+    ]
+  },
+  {
+    "id": "playlist-17",
+    "name": "Afterglow Mix 17",
+    "subtitle": "Afrobeats for Toronto nights",
+    "description": "A polished blend of afrobeats cuts, melodic transitions, and modern rhythm picks tuned for Jakarta.",
+    "mood": "sleep",
+    "cover": "Toronto Glow",
+    "accent": "linear-gradient(135deg, #f59e0b 0%, #ef4444 60%, #7c3aed 100%)",
+    "saves": "169K",
+    "curator": "Editorial Lab",
+    "duration": "2 hr 27 min",
+    "trackIds": [
+      "track-81",
+      "track-82",
+      "track-83",
+      "track-84",
+      "track-85",
+      "track-86",
+      "track-87",
+      "track-88"
+    ]
+  },
+  {
+    "id": "playlist-18",
+    "name": "Mirage Mix 18",
+    "subtitle": "R&B for Barcelona nights",
+    "description": "A polished blend of r&b cuts, melodic transitions, and modern rhythm picks tuned for Tokyo.",
+    "mood": "all",
+    "cover": "Barcelona Glow",
+    "accent": "linear-gradient(135deg, #34d399 0%, #06b6d4 55%, #2563eb 100%)",
+    "saves": "176K",
+    "curator": "Musicfy Studio",
+    "duration": "3 hr 28 min",
+    "trackIds": [
+      "track-86",
+      "track-87",
+      "track-88",
+      "track-89",
+      "track-90",
+      "track-91",
+      "track-92",
+      "track-93"
+    ]
+  },
+  {
+    "id": "playlist-19",
+    "name": "Starlight Mix 19",
+    "subtitle": "Ambient for Jakarta nights",
+    "description": "A polished blend of ambient cuts, melodic transitions, and modern rhythm picks tuned for Berlin.",
+    "mood": "focus",
+    "cover": "Jakarta Glow",
+    "accent": "linear-gradient(135deg, #f43f5e 0%, #fb7185 40%, #facc15 100%)",
+    "saves": "183K",
+    "curator": "Editorial Lab",
+    "duration": "4 hr 29 min",
+    "trackIds": [
+      "track-91",
+      "track-92",
+      "track-93",
+      "track-94",
+      "track-95",
+      "track-96",
+      "track-97",
+      "track-98"
+    ]
+  },
+  {
+    "id": "playlist-20",
+    "name": "Night Drive Mix 20",
+    "subtitle": "Synthwave for Tokyo nights",
+    "description": "A polished blend of synthwave cuts, melodic transitions, and modern rhythm picks tuned for Seoul.",
+    "mood": "workout",
+    "cover": "Tokyo Glow",
+    "accent": "linear-gradient(135deg, #a78bfa 0%, #38bdf8 50%, #4ade80 100%)",
+    "saves": "190K",
+    "curator": "Musicfy Studio",
+    "duration": "1 hr 30 min",
+    "trackIds": [
+      "track-96",
+      "track-97",
+      "track-98",
+      "track-99",
+      "track-100",
+      "track-101",
+      "track-102",
+      "track-103"
+    ]
+  },
+  {
+    "id": "playlist-21",
+    "name": "Pulse Mix 21",
+    "subtitle": "Alt Pop for Berlin nights",
+    "description": "A polished blend of alt pop cuts, melodic transitions, and modern rhythm picks tuned for Lagos.",
+    "mood": "chill",
+    "cover": "Berlin Glow",
+    "accent": "linear-gradient(135deg, #fb7185 0%, #c084fc 45%, #60a5fa 100%)",
+    "saves": "197K",
+    "curator": "Editorial Lab",
+    "duration": "2 hr 31 min",
+    "trackIds": [
+      "track-101",
+      "track-102",
+      "track-103",
+      "track-104",
+      "track-105",
+      "track-106",
+      "track-107",
+      "track-108"
+    ]
+  },
+  {
+    "id": "playlist-22",
+    "name": "Velvet Mix 22",
+    "subtitle": "House for Seoul nights",
+    "description": "A polished blend of house cuts, melodic transitions, and modern rhythm picks tuned for London.",
+    "mood": "party",
+    "cover": "Seoul Glow",
+    "accent": "linear-gradient(135deg, #f97316 0%, #fb7185 45%, #2dd4bf 100%)",
+    "saves": "204K",
+    "curator": "Musicfy Studio",
+    "duration": "3 hr 32 min",
+    "trackIds": [
+      "track-106",
+      "track-107",
+      "track-108",
+      "track-109",
+      "track-110",
+      "track-111",
+      "track-112",
+      "track-113"
+    ]
+  },
+  {
+    "id": "playlist-23",
+    "name": "Neon Mix 23",
+    "subtitle": "Indie Soul for Lagos nights",
+    "description": "A polished blend of indie soul cuts, melodic transitions, and modern rhythm picks tuned for Sao Paulo.",
+    "mood": "sleep",
+    "cover": "Lagos Glow",
+    "accent": "linear-gradient(135deg, #22c55e 0%, #14b8a6 55%, #0f172a 100%)",
+    "saves": "211K",
+    "curator": "Editorial Lab",
+    "duration": "4 hr 33 min",
+    "trackIds": [
+      "track-111",
+      "track-112",
+      "track-113",
+      "track-114",
+      "track-115",
+      "track-116",
+      "track-117",
+      "track-118"
+    ]
+  },
+  {
+    "id": "playlist-24",
+    "name": "Sunset Mix 24",
+    "subtitle": "Future Funk for London nights",
+    "description": "A polished blend of future funk cuts, melodic transitions, and modern rhythm picks tuned for Stockholm.",
+    "mood": "all",
+    "cover": "London Glow",
+    "accent": "linear-gradient(135deg, #60a5fa 0%, #818cf8 40%, #f472b6 100%)",
+    "saves": "218K",
+    "curator": "Musicfy Studio",
+    "duration": "1 hr 34 min",
+    "trackIds": [
+      "track-116",
+      "track-117",
+      "track-118",
+      "track-119",
+      "track-120",
+      "track-121",
+      "track-122",
+      "track-123"
+    ]
+  },
+  {
+    "id": "playlist-25",
+    "name": "Aurora Mix 25",
+    "subtitle": "Lo-fi for Sao Paulo nights",
+    "description": "A polished blend of lo-fi cuts, melodic transitions, and modern rhythm picks tuned for Toronto.",
+    "mood": "focus",
+    "cover": "Sao Paulo Glow",
+    "accent": "linear-gradient(135deg, #f59e0b 0%, #ef4444 60%, #7c3aed 100%)",
+    "saves": "225K",
+    "curator": "Editorial Lab",
+    "duration": "2 hr 35 min",
+    "trackIds": [
+      "track-121",
+      "track-122",
+      "track-123",
+      "track-124",
+      "track-125",
+      "track-126",
+      "track-127",
+      "track-128"
+    ]
+  },
+  {
+    "id": "playlist-26",
+    "name": "Static Mix 26",
+    "subtitle": "Electronica for Stockholm nights",
+    "description": "A polished blend of electronica cuts, melodic transitions, and modern rhythm picks tuned for Barcelona.",
+    "mood": "workout",
+    "cover": "Stockholm Glow",
+    "accent": "linear-gradient(135deg, #34d399 0%, #06b6d4 55%, #2563eb 100%)",
+    "saves": "232K",
+    "curator": "Musicfy Studio",
+    "duration": "3 hr 36 min",
+    "trackIds": [
+      "track-126",
+      "track-127",
+      "track-128",
+      "track-129",
+      "track-130",
+      "track-131",
+      "track-132",
+      "track-133"
+    ]
+  },
+  {
+    "id": "playlist-27",
+    "name": "Afterglow Mix 27",
+    "subtitle": "Afrobeats for Toronto nights",
+    "description": "A polished blend of afrobeats cuts, melodic transitions, and modern rhythm picks tuned for Jakarta.",
+    "mood": "chill",
+    "cover": "Toronto Glow",
+    "accent": "linear-gradient(135deg, #f43f5e 0%, #fb7185 40%, #facc15 100%)",
+    "saves": "239K",
+    "curator": "Editorial Lab",
+    "duration": "4 hr 37 min",
+    "trackIds": [
+      "track-131",
+      "track-132",
+      "track-133",
+      "track-134",
+      "track-135",
+      "track-136",
+      "track-137",
+      "track-138"
+    ]
+  },
+  {
+    "id": "playlist-28",
+    "name": "Mirage Mix 28",
+    "subtitle": "R&B for Barcelona nights",
+    "description": "A polished blend of r&b cuts, melodic transitions, and modern rhythm picks tuned for Tokyo.",
+    "mood": "party",
+    "cover": "Barcelona Glow",
+    "accent": "linear-gradient(135deg, #a78bfa 0%, #38bdf8 50%, #4ade80 100%)",
+    "saves": "246K",
+    "curator": "Musicfy Studio",
+    "duration": "1 hr 38 min",
+    "trackIds": [
+      "track-136",
+      "track-137",
+      "track-138",
+      "track-139",
+      "track-140",
+      "track-141",
+      "track-142",
+      "track-143"
+    ]
+  },
+  {
+    "id": "playlist-29",
+    "name": "Starlight Mix 29",
+    "subtitle": "Ambient for Jakarta nights",
+    "description": "A polished blend of ambient cuts, melodic transitions, and modern rhythm picks tuned for Berlin.",
+    "mood": "sleep",
+    "cover": "Jakarta Glow",
+    "accent": "linear-gradient(135deg, #fb7185 0%, #c084fc 45%, #60a5fa 100%)",
+    "saves": "253K",
+    "curator": "Editorial Lab",
+    "duration": "2 hr 39 min",
+    "trackIds": [
+      "track-141",
+      "track-142",
+      "track-143",
+      "track-144",
+      "track-145",
+      "track-146",
+      "track-147",
+      "track-148"
+    ]
+  },
+  {
+    "id": "playlist-30",
+    "name": "Night Drive Mix 30",
+    "subtitle": "Synthwave for Tokyo nights",
+    "description": "A polished blend of synthwave cuts, melodic transitions, and modern rhythm picks tuned for Seoul.",
+    "mood": "all",
+    "cover": "Tokyo Glow",
+    "accent": "linear-gradient(135deg, #f97316 0%, #fb7185 45%, #2dd4bf 100%)",
+    "saves": "260K",
+    "curator": "Musicfy Studio",
+    "duration": "3 hr 40 min",
+    "trackIds": [
+      "track-146",
+      "track-147",
+      "track-148",
+      "track-149",
+      "track-150",
+      "track-151",
+      "track-152",
+      "track-153"
+    ]
+  },
+  {
+    "id": "playlist-31",
+    "name": "Pulse Mix 31",
+    "subtitle": "Alt Pop for Berlin nights",
+    "description": "A polished blend of alt pop cuts, melodic transitions, and modern rhythm picks tuned for Lagos.",
+    "mood": "focus",
+    "cover": "Berlin Glow",
+    "accent": "linear-gradient(135deg, #22c55e 0%, #14b8a6 55%, #0f172a 100%)",
+    "saves": "267K",
+    "curator": "Editorial Lab",
+    "duration": "4 hr 41 min",
+    "trackIds": [
+      "track-151",
+      "track-152",
+      "track-153",
+      "track-154",
+      "track-155",
+      "track-156",
+      "track-157",
+      "track-158"
+    ]
+  },
+  {
+    "id": "playlist-32",
+    "name": "Velvet Mix 32",
+    "subtitle": "House for Seoul nights",
+    "description": "A polished blend of house cuts, melodic transitions, and modern rhythm picks tuned for London.",
+    "mood": "workout",
+    "cover": "Seoul Glow",
+    "accent": "linear-gradient(135deg, #60a5fa 0%, #818cf8 40%, #f472b6 100%)",
+    "saves": "274K",
+    "curator": "Musicfy Studio",
+    "duration": "1 hr 42 min",
+    "trackIds": [
+      "track-156",
+      "track-157",
+      "track-158",
+      "track-159",
+      "track-160",
+      "track-161",
+      "track-162",
+      "track-163"
+    ]
+  },
+  {
+    "id": "playlist-33",
+    "name": "Neon Mix 33",
+    "subtitle": "Indie Soul for Lagos nights",
+    "description": "A polished blend of indie soul cuts, melodic transitions, and modern rhythm picks tuned for Sao Paulo.",
+    "mood": "chill",
+    "cover": "Lagos Glow",
+    "accent": "linear-gradient(135deg, #f59e0b 0%, #ef4444 60%, #7c3aed 100%)",
+    "saves": "281K",
+    "curator": "Editorial Lab",
+    "duration": "2 hr 43 min",
+    "trackIds": [
+      "track-161",
+      "track-162",
+      "track-163",
+      "track-164",
+      "track-165",
+      "track-166",
+      "track-167",
+      "track-168"
+    ]
+  },
+  {
+    "id": "playlist-34",
+    "name": "Sunset Mix 34",
+    "subtitle": "Future Funk for London nights",
+    "description": "A polished blend of future funk cuts, melodic transitions, and modern rhythm picks tuned for Stockholm.",
+    "mood": "party",
+    "cover": "London Glow",
+    "accent": "linear-gradient(135deg, #34d399 0%, #06b6d4 55%, #2563eb 100%)",
+    "saves": "288K",
+    "curator": "Musicfy Studio",
+    "duration": "3 hr 44 min",
+    "trackIds": [
+      "track-166",
+      "track-167",
+      "track-168",
+      "track-169",
+      "track-170",
+      "track-171",
+      "track-172",
+      "track-173"
+    ]
+  },
+  {
+    "id": "playlist-35",
+    "name": "Aurora Mix 35",
+    "subtitle": "Lo-fi for Sao Paulo nights",
+    "description": "A polished blend of lo-fi cuts, melodic transitions, and modern rhythm picks tuned for Toronto.",
+    "mood": "sleep",
+    "cover": "Sao Paulo Glow",
+    "accent": "linear-gradient(135deg, #f43f5e 0%, #fb7185 40%, #facc15 100%)",
+    "saves": "295K",
+    "curator": "Editorial Lab",
+    "duration": "4 hr 45 min",
+    "trackIds": [
+      "track-171",
+      "track-172",
+      "track-173",
+      "track-174",
+      "track-175",
+      "track-176",
+      "track-177",
+      "track-178"
+    ]
+  },
+  {
+    "id": "playlist-36",
+    "name": "Static Mix 36",
+    "subtitle": "Electronica for Stockholm nights",
+    "description": "A polished blend of electronica cuts, melodic transitions, and modern rhythm picks tuned for Barcelona.",
+    "mood": "all",
+    "cover": "Stockholm Glow",
+    "accent": "linear-gradient(135deg, #a78bfa 0%, #38bdf8 50%, #4ade80 100%)",
+    "saves": "302K",
+    "curator": "Musicfy Studio",
+    "duration": "1 hr 46 min",
+    "trackIds": [
+      "track-176",
+      "track-177",
+      "track-178",
+      "track-179",
+      "track-180",
+      "track-1",
+      "track-2",
+      "track-3"
+    ]
+  }
+]
+
+const episodes: Episode[] = [
+  {
+    "id": "episode-1",
+    "title": "Berlin Sound Notes 1",
+    "show": "Late Checkout",
+    "host": "Luna Harbor",
+    "length": "21 min",
+    "topic": "Alt Pop production, artist process, and release strategy",
+    "cover": "Aurora Talk",
+    "accent": "linear-gradient(135deg, #f43f5e 0%, #fb7185 40%, #facc15 100%)"
+  },
+  {
+    "id": "episode-2",
+    "title": "Seoul Sound Notes 2",
+    "show": "Signal Theory",
+    "host": "Velvet Static",
+    "length": "22 min",
+    "topic": "House production, artist process, and release strategy",
+    "cover": "Static Talk",
+    "accent": "linear-gradient(135deg, #a78bfa 0%, #38bdf8 50%, #4ade80 100%)"
+  },
+  {
+    "id": "episode-3",
+    "title": "Lagos Sound Notes 3",
+    "show": "Late Checkout",
+    "host": "Kairo Bloom",
+    "length": "23 min",
+    "topic": "Indie Soul production, artist process, and release strategy",
+    "cover": "Afterglow Talk",
+    "accent": "linear-gradient(135deg, #fb7185 0%, #c084fc 45%, #60a5fa 100%)"
+  },
+  {
+    "id": "episode-4",
+    "title": "London Sound Notes 4",
+    "show": "Signal Theory",
+    "host": "Mira Echo",
+    "length": "24 min",
+    "topic": "Future Funk production, artist process, and release strategy",
+    "cover": "Mirage Talk",
+    "accent": "linear-gradient(135deg, #f97316 0%, #fb7185 45%, #2dd4bf 100%)"
+  },
+  {
+    "id": "episode-5",
+    "title": "Sao Paulo Sound Notes 5",
+    "show": "Late Checkout",
+    "host": "The Night Index",
+    "length": "25 min",
+    "topic": "Lo-fi production, artist process, and release strategy",
+    "cover": "Starlight Talk",
+    "accent": "linear-gradient(135deg, #22c55e 0%, #14b8a6 55%, #0f172a 100%)"
+  },
+  {
+    "id": "episode-6",
+    "title": "Stockholm Sound Notes 6",
+    "show": "Signal Theory",
+    "host": "Cobalt Hearts",
+    "length": "26 min",
+    "topic": "Electronica production, artist process, and release strategy",
+    "cover": "Night Drive Talk",
+    "accent": "linear-gradient(135deg, #60a5fa 0%, #818cf8 40%, #f472b6 100%)"
+  },
+  {
+    "id": "episode-7",
+    "title": "Toronto Sound Notes 7",
+    "show": "Late Checkout",
+    "host": "Aster Vale",
+    "length": "27 min",
+    "topic": "Afrobeats production, artist process, and release strategy",
+    "cover": "Pulse Talk",
+    "accent": "linear-gradient(135deg, #f59e0b 0%, #ef4444 60%, #7c3aed 100%)"
+  },
+  {
+    "id": "episode-8",
+    "title": "Barcelona Sound Notes 8",
+    "show": "Signal Theory",
+    "host": "Signal Youth",
+    "length": "28 min",
+    "topic": "R&B production, artist process, and release strategy",
+    "cover": "Velvet Talk",
+    "accent": "linear-gradient(135deg, #34d399 0%, #06b6d4 55%, #2563eb 100%)"
+  },
+  {
+    "id": "episode-9",
+    "title": "Jakarta Sound Notes 9",
+    "show": "Late Checkout",
+    "host": "Golden Relay",
+    "length": "29 min",
+    "topic": "Ambient production, artist process, and release strategy",
+    "cover": "Neon Talk",
+    "accent": "linear-gradient(135deg, #f43f5e 0%, #fb7185 40%, #facc15 100%)"
+  },
+  {
+    "id": "episode-10",
+    "title": "Tokyo Sound Notes 10",
+    "show": "Signal Theory",
+    "host": "Nova Atlas",
+    "length": "30 min",
+    "topic": "Synthwave production, artist process, and release strategy",
+    "cover": "Sunset Talk",
+    "accent": "linear-gradient(135deg, #a78bfa 0%, #38bdf8 50%, #4ade80 100%)"
+  },
+  {
+    "id": "episode-11",
+    "title": "Berlin Sound Notes 11",
+    "show": "Late Checkout",
+    "host": "Luna Harbor",
+    "length": "31 min",
+    "topic": "Alt Pop production, artist process, and release strategy",
+    "cover": "Aurora Talk",
+    "accent": "linear-gradient(135deg, #fb7185 0%, #c084fc 45%, #60a5fa 100%)"
+  },
+  {
+    "id": "episode-12",
+    "title": "Seoul Sound Notes 12",
+    "show": "Signal Theory",
+    "host": "Velvet Static",
+    "length": "32 min",
+    "topic": "House production, artist process, and release strategy",
+    "cover": "Static Talk",
+    "accent": "linear-gradient(135deg, #f97316 0%, #fb7185 45%, #2dd4bf 100%)"
+  },
+  {
+    "id": "episode-13",
+    "title": "Lagos Sound Notes 13",
+    "show": "Late Checkout",
+    "host": "Kairo Bloom",
+    "length": "33 min",
+    "topic": "Indie Soul production, artist process, and release strategy",
+    "cover": "Afterglow Talk",
+    "accent": "linear-gradient(135deg, #22c55e 0%, #14b8a6 55%, #0f172a 100%)"
+  },
+  {
+    "id": "episode-14",
+    "title": "London Sound Notes 14",
+    "show": "Signal Theory",
+    "host": "Mira Echo",
+    "length": "34 min",
+    "topic": "Future Funk production, artist process, and release strategy",
+    "cover": "Mirage Talk",
+    "accent": "linear-gradient(135deg, #60a5fa 0%, #818cf8 40%, #f472b6 100%)"
+  },
+  {
+    "id": "episode-15",
+    "title": "Sao Paulo Sound Notes 15",
+    "show": "Late Checkout",
+    "host": "The Night Index",
+    "length": "35 min",
+    "topic": "Lo-fi production, artist process, and release strategy",
+    "cover": "Starlight Talk",
+    "accent": "linear-gradient(135deg, #f59e0b 0%, #ef4444 60%, #7c3aed 100%)"
+  },
+  {
+    "id": "episode-16",
+    "title": "Stockholm Sound Notes 16",
+    "show": "Signal Theory",
+    "host": "Cobalt Hearts",
+    "length": "36 min",
+    "topic": "Electronica production, artist process, and release strategy",
+    "cover": "Night Drive Talk",
+    "accent": "linear-gradient(135deg, #34d399 0%, #06b6d4 55%, #2563eb 100%)"
+  },
+  {
+    "id": "episode-17",
+    "title": "Toronto Sound Notes 17",
+    "show": "Late Checkout",
+    "host": "Aster Vale",
+    "length": "37 min",
+    "topic": "Afrobeats production, artist process, and release strategy",
+    "cover": "Pulse Talk",
+    "accent": "linear-gradient(135deg, #f43f5e 0%, #fb7185 40%, #facc15 100%)"
+  },
+  {
+    "id": "episode-18",
+    "title": "Barcelona Sound Notes 18",
+    "show": "Signal Theory",
+    "host": "Signal Youth",
+    "length": "38 min",
+    "topic": "R&B production, artist process, and release strategy",
+    "cover": "Velvet Talk",
+    "accent": "linear-gradient(135deg, #a78bfa 0%, #38bdf8 50%, #4ade80 100%)"
+  },
+  {
+    "id": "episode-19",
+    "title": "Jakarta Sound Notes 19",
+    "show": "Late Checkout",
+    "host": "Golden Relay",
+    "length": "39 min",
+    "topic": "Ambient production, artist process, and release strategy",
+    "cover": "Neon Talk",
+    "accent": "linear-gradient(135deg, #fb7185 0%, #c084fc 45%, #60a5fa 100%)"
+  },
+  {
+    "id": "episode-20",
+    "title": "Tokyo Sound Notes 20",
+    "show": "Signal Theory",
+    "host": "Nova Atlas",
+    "length": "40 min",
+    "topic": "Synthwave production, artist process, and release strategy",
+    "cover": "Sunset Talk",
+    "accent": "linear-gradient(135deg, #f97316 0%, #fb7185 45%, #2dd4bf 100%)"
+  },
+  {
+    "id": "episode-21",
+    "title": "Berlin Sound Notes 21",
+    "show": "Late Checkout",
+    "host": "Luna Harbor",
+    "length": "41 min",
+    "topic": "Alt Pop production, artist process, and release strategy",
+    "cover": "Aurora Talk",
+    "accent": "linear-gradient(135deg, #22c55e 0%, #14b8a6 55%, #0f172a 100%)"
+  },
+  {
+    "id": "episode-22",
+    "title": "Seoul Sound Notes 22",
+    "show": "Signal Theory",
+    "host": "Velvet Static",
+    "length": "42 min",
+    "topic": "House production, artist process, and release strategy",
+    "cover": "Static Talk",
+    "accent": "linear-gradient(135deg, #60a5fa 0%, #818cf8 40%, #f472b6 100%)"
+  },
+  {
+    "id": "episode-23",
+    "title": "Lagos Sound Notes 23",
+    "show": "Late Checkout",
+    "host": "Kairo Bloom",
+    "length": "43 min",
+    "topic": "Indie Soul production, artist process, and release strategy",
+    "cover": "Afterglow Talk",
+    "accent": "linear-gradient(135deg, #f59e0b 0%, #ef4444 60%, #7c3aed 100%)"
+  },
+  {
+    "id": "episode-24",
+    "title": "London Sound Notes 24",
+    "show": "Signal Theory",
+    "host": "Mira Echo",
+    "length": "44 min",
+    "topic": "Future Funk production, artist process, and release strategy",
+    "cover": "Mirage Talk",
+    "accent": "linear-gradient(135deg, #34d399 0%, #06b6d4 55%, #2563eb 100%)"
+  }
+]
+
+const concerts: Concert[] = [
+  {
+    "id": "concert-1",
+    "city": "Berlin",
+    "venue": "Hall 11",
+    "date": "Mar 11, 2026",
+    "artist": "Velvet Static",
+    "price": "$28",
+    "accent": "linear-gradient(135deg, #a78bfa 0%, #38bdf8 50%, #4ade80 100%)"
+  },
+  {
+    "id": "concert-2",
+    "city": "Seoul",
+    "venue": "Arena 12",
+    "date": "Mar 12, 2026",
+    "artist": "Kairo Bloom",
+    "price": "$31",
+    "accent": "linear-gradient(135deg, #fb7185 0%, #c084fc 45%, #60a5fa 100%)"
+  },
+  {
+    "id": "concert-3",
+    "city": "Lagos",
+    "venue": "Club 13",
+    "date": "Mar 13, 2026",
+    "artist": "Mira Echo",
+    "price": "$34",
+    "accent": "linear-gradient(135deg, #f97316 0%, #fb7185 45%, #2dd4bf 100%)"
+  },
+  {
+    "id": "concert-4",
+    "city": "London",
+    "venue": "Warehouse 14",
+    "date": "Mar 14, 2026",
+    "artist": "The Night Index",
+    "price": "$37",
+    "accent": "linear-gradient(135deg, #22c55e 0%, #14b8a6 55%, #0f172a 100%)"
+  },
+  {
+    "id": "concert-5",
+    "city": "Sao Paulo",
+    "venue": "Forum 15",
+    "date": "Mar 15, 2026",
+    "artist": "Cobalt Hearts",
+    "price": "$40",
+    "accent": "linear-gradient(135deg, #60a5fa 0%, #818cf8 40%, #f472b6 100%)"
+  },
+  {
+    "id": "concert-6",
+    "city": "Stockholm",
+    "venue": "Hall 16",
+    "date": "Mar 16, 2026",
+    "artist": "Aster Vale",
+    "price": "$43",
+    "accent": "linear-gradient(135deg, #f59e0b 0%, #ef4444 60%, #7c3aed 100%)"
+  },
+  {
+    "id": "concert-7",
+    "city": "Toronto",
+    "venue": "Arena 17",
+    "date": "Mar 17, 2026",
+    "artist": "Signal Youth",
+    "price": "$46",
+    "accent": "linear-gradient(135deg, #34d399 0%, #06b6d4 55%, #2563eb 100%)"
+  },
+  {
+    "id": "concert-8",
+    "city": "Barcelona",
+    "venue": "Club 18",
+    "date": "Mar 18, 2026",
+    "artist": "Golden Relay",
+    "price": "$49",
+    "accent": "linear-gradient(135deg, #f43f5e 0%, #fb7185 40%, #facc15 100%)"
+  },
+  {
+    "id": "concert-9",
+    "city": "Jakarta",
+    "venue": "Warehouse 19",
+    "date": "Mar 19, 2026",
+    "artist": "Nova Atlas",
+    "price": "$52",
+    "accent": "linear-gradient(135deg, #a78bfa 0%, #38bdf8 50%, #4ade80 100%)"
+  },
+  {
+    "id": "concert-10",
+    "city": "Tokyo",
+    "venue": "Forum 20",
+    "date": "Mar 20, 2026",
+    "artist": "Luna Harbor",
+    "price": "$55",
+    "accent": "linear-gradient(135deg, #fb7185 0%, #c084fc 45%, #60a5fa 100%)"
+  },
+  {
+    "id": "concert-11",
+    "city": "Berlin",
+    "venue": "Hall 21",
+    "date": "Mar 21, 2026",
+    "artist": "Velvet Static",
+    "price": "$58",
+    "accent": "linear-gradient(135deg, #f97316 0%, #fb7185 45%, #2dd4bf 100%)"
+  },
+  {
+    "id": "concert-12",
+    "city": "Seoul",
+    "venue": "Arena 22",
+    "date": "Mar 22, 2026",
+    "artist": "Kairo Bloom",
+    "price": "$61",
+    "accent": "linear-gradient(135deg, #22c55e 0%, #14b8a6 55%, #0f172a 100%)"
+  },
+  {
+    "id": "concert-13",
+    "city": "Lagos",
+    "venue": "Club 23",
+    "date": "Mar 23, 2026",
+    "artist": "Mira Echo",
+    "price": "$64",
+    "accent": "linear-gradient(135deg, #60a5fa 0%, #818cf8 40%, #f472b6 100%)"
+  },
+  {
+    "id": "concert-14",
+    "city": "London",
+    "venue": "Warehouse 24",
+    "date": "Mar 24, 2026",
+    "artist": "The Night Index",
+    "price": "$67",
+    "accent": "linear-gradient(135deg, #f59e0b 0%, #ef4444 60%, #7c3aed 100%)"
+  },
+  {
+    "id": "concert-15",
+    "city": "Sao Paulo",
+    "venue": "Forum 25",
+    "date": "Mar 25, 2026",
+    "artist": "Cobalt Hearts",
+    "price": "$70",
+    "accent": "linear-gradient(135deg, #34d399 0%, #06b6d4 55%, #2563eb 100%)"
+  },
+  {
+    "id": "concert-16",
+    "city": "Stockholm",
+    "venue": "Hall 26",
+    "date": "Mar 26, 2026",
+    "artist": "Aster Vale",
+    "price": "$73",
+    "accent": "linear-gradient(135deg, #f43f5e 0%, #fb7185 40%, #facc15 100%)"
+  },
+  {
+    "id": "concert-17",
+    "city": "Toronto",
+    "venue": "Arena 27",
+    "date": "Mar 27, 2026",
+    "artist": "Signal Youth",
+    "price": "$76",
+    "accent": "linear-gradient(135deg, #a78bfa 0%, #38bdf8 50%, #4ade80 100%)"
+  },
+  {
+    "id": "concert-18",
+    "city": "Barcelona",
+    "venue": "Club 28",
+    "date": "Mar 28, 2026",
+    "artist": "Golden Relay",
+    "price": "$79",
+    "accent": "linear-gradient(135deg, #fb7185 0%, #c084fc 45%, #60a5fa 100%)"
+  },
+  {
+    "id": "concert-19",
+    "city": "Jakarta",
+    "venue": "Warehouse 29",
+    "date": "Mar 29, 2026",
+    "artist": "Nova Atlas",
+    "price": "$82",
+    "accent": "linear-gradient(135deg, #f97316 0%, #fb7185 45%, #2dd4bf 100%)"
+  },
+  {
+    "id": "concert-20",
+    "city": "Tokyo",
+    "venue": "Forum 30",
+    "date": "Mar 30, 2026",
+    "artist": "Luna Harbor",
+    "price": "$85",
+    "accent": "linear-gradient(135deg, #22c55e 0%, #14b8a6 55%, #0f172a 100%)"
+  }
+]
+
+const friendActivity: Activity[] = [
+  {
+    "id": "activity-1",
+    "label": "Luna Harbor updated Velvet Mix 2",
+    "detail": "3 fresh tracks, alt pop leaning, pushed by editorial signals.",
+    "time": "1h ago"
+  },
+  {
+    "id": "activity-2",
+    "label": "Velvet Static updated Neon Mix 3",
+    "detail": "4 fresh tracks, house leaning, pushed by editorial signals.",
+    "time": "2h ago"
+  },
+  {
+    "id": "activity-3",
+    "label": "Kairo Bloom updated Sunset Mix 4",
+    "detail": "5 fresh tracks, indie soul leaning, pushed by editorial signals.",
+    "time": "3h ago"
+  },
+  {
+    "id": "activity-4",
+    "label": "Mira Echo updated Aurora Mix 5",
+    "detail": "6 fresh tracks, future funk leaning, pushed by editorial signals.",
+    "time": "4h ago"
+  },
+  {
+    "id": "activity-5",
+    "label": "The Night Index updated Static Mix 6",
+    "detail": "7 fresh tracks, lo-fi leaning, pushed by editorial signals.",
+    "time": "5h ago"
+  },
+  {
+    "id": "activity-6",
+    "label": "Cobalt Hearts updated Afterglow Mix 7",
+    "detail": "2 fresh tracks, electronica leaning, pushed by editorial signals.",
+    "time": "6h ago"
+  },
+  {
+    "id": "activity-7",
+    "label": "Aster Vale updated Mirage Mix 8",
+    "detail": "3 fresh tracks, afrobeats leaning, pushed by editorial signals.",
+    "time": "7h ago"
+  },
+  {
+    "id": "activity-8",
+    "label": "Signal Youth updated Starlight Mix 9",
+    "detail": "4 fresh tracks, r&b leaning, pushed by editorial signals.",
+    "time": "8h ago"
+  },
+  {
+    "id": "activity-9",
+    "label": "Golden Relay updated Night Drive Mix 10",
+    "detail": "5 fresh tracks, ambient leaning, pushed by editorial signals.",
+    "time": "9h ago"
+  },
+  {
+    "id": "activity-10",
+    "label": "Nova Atlas updated Pulse Mix 11",
+    "detail": "6 fresh tracks, synthwave leaning, pushed by editorial signals.",
+    "time": "10h ago"
+  },
+  {
+    "id": "activity-11",
+    "label": "Luna Harbor updated Velvet Mix 12",
+    "detail": "7 fresh tracks, alt pop leaning, pushed by editorial signals.",
+    "time": "11h ago"
+  },
+  {
+    "id": "activity-12",
+    "label": "Velvet Static updated Neon Mix 13",
+    "detail": "2 fresh tracks, house leaning, pushed by editorial signals.",
+    "time": "12h ago"
+  },
+  {
+    "id": "activity-13",
+    "label": "Kairo Bloom updated Sunset Mix 14",
+    "detail": "3 fresh tracks, indie soul leaning, pushed by editorial signals.",
+    "time": "13h ago"
+  },
+  {
+    "id": "activity-14",
+    "label": "Mira Echo updated Aurora Mix 15",
+    "detail": "4 fresh tracks, future funk leaning, pushed by editorial signals.",
+    "time": "14h ago"
+  },
+  {
+    "id": "activity-15",
+    "label": "The Night Index updated Static Mix 16",
+    "detail": "5 fresh tracks, lo-fi leaning, pushed by editorial signals.",
+    "time": "15h ago"
+  },
+  {
+    "id": "activity-16",
+    "label": "Cobalt Hearts updated Afterglow Mix 17",
+    "detail": "6 fresh tracks, electronica leaning, pushed by editorial signals.",
+    "time": "16h ago"
+  },
+  {
+    "id": "activity-17",
+    "label": "Aster Vale updated Mirage Mix 18",
+    "detail": "7 fresh tracks, afrobeats leaning, pushed by editorial signals.",
+    "time": "17h ago"
+  },
+  {
+    "id": "activity-18",
+    "label": "Signal Youth updated Starlight Mix 19",
+    "detail": "2 fresh tracks, r&b leaning, pushed by editorial signals.",
+    "time": "18h ago"
+  }
+]
+
+const listeningMoments = [
+  "Pulse brief 1: Alt Pop textures for Berlin after hours.",
+  "Velvet brief 2: House textures for Seoul after hours.",
+  "Neon brief 3: Indie Soul textures for Lagos after hours.",
+  "Sunset brief 4: Future Funk textures for London after hours.",
+  "Aurora brief 5: Lo-fi textures for Sao Paulo after hours.",
+  "Static brief 6: Electronica textures for Stockholm after hours.",
+  "Afterglow brief 7: Afrobeats textures for Toronto after hours.",
+  "Mirage brief 8: R&B textures for Barcelona after hours.",
+  "Starlight brief 9: Ambient textures for Jakarta after hours.",
+  "Night Drive brief 10: Synthwave textures for Tokyo after hours.",
+  "Pulse brief 11: Alt Pop textures for Berlin after hours.",
+  "Velvet brief 12: House textures for Seoul after hours.",
+  "Neon brief 13: Indie Soul textures for Lagos after hours.",
+  "Sunset brief 14: Future Funk textures for London after hours.",
+  "Aurora brief 15: Lo-fi textures for Sao Paulo after hours.",
+  "Static brief 16: Electronica textures for Stockholm after hours.",
+  "Afterglow brief 17: Afrobeats textures for Toronto after hours.",
+  "Mirage brief 18: R&B textures for Barcelona after hours.",
+  "Starlight brief 19: Ambient textures for Jakarta after hours.",
+  "Night Drive brief 20: Synthwave textures for Tokyo after hours.",
+  "Pulse brief 21: Alt Pop textures for Berlin after hours.",
+  "Velvet brief 22: House textures for Seoul after hours.",
+  "Neon brief 23: Indie Soul textures for Lagos after hours.",
+  "Sunset brief 24: Future Funk textures for London after hours.",
+  "Aurora brief 25: Lo-fi textures for Sao Paulo after hours.",
+  "Static brief 26: Electronica textures for Stockholm after hours.",
+  "Afterglow brief 27: Afrobeats textures for Toronto after hours.",
+  "Mirage brief 28: R&B textures for Barcelona after hours.",
+  "Starlight brief 29: Ambient textures for Jakarta after hours.",
+  "Night Drive brief 30: Synthwave textures for Tokyo after hours.",
+  "Pulse brief 31: Alt Pop textures for Berlin after hours.",
+  "Velvet brief 32: House textures for Seoul after hours.",
+  "Neon brief 33: Indie Soul textures for Lagos after hours.",
+  "Sunset brief 34: Future Funk textures for London after hours.",
+  "Aurora brief 35: Lo-fi textures for Sao Paulo after hours.",
+  "Static brief 36: Electronica textures for Stockholm after hours.",
+  "Afterglow brief 37: Afrobeats textures for Toronto after hours.",
+  "Mirage brief 38: R&B textures for Barcelona after hours.",
+  "Starlight brief 39: Ambient textures for Jakarta after hours.",
+  "Night Drive brief 40: Synthwave textures for Tokyo after hours.",
+  "Pulse brief 41: Alt Pop textures for Berlin after hours.",
+  "Velvet brief 42: House textures for Seoul after hours.",
+  "Neon brief 43: Indie Soul textures for Lagos after hours.",
+  "Sunset brief 44: Future Funk textures for London after hours.",
+  "Aurora brief 45: Lo-fi textures for Sao Paulo after hours.",
+  "Static brief 46: Electronica textures for Stockholm after hours.",
+  "Afterglow brief 47: Afrobeats textures for Toronto after hours.",
+  "Mirage brief 48: R&B textures for Barcelona after hours.",
+  "Starlight brief 49: Ambient textures for Jakarta after hours.",
+  "Night Drive brief 50: Synthwave textures for Tokyo after hours.",
+  "Pulse brief 51: Alt Pop textures for Berlin after hours.",
+  "Velvet brief 52: House textures for Seoul after hours.",
+  "Neon brief 53: Indie Soul textures for Lagos after hours.",
+  "Sunset brief 54: Future Funk textures for London after hours.",
+  "Aurora brief 55: Lo-fi textures for Sao Paulo after hours.",
+  "Static brief 56: Electronica textures for Stockholm after hours.",
+  "Afterglow brief 57: Afrobeats textures for Toronto after hours.",
+  "Mirage brief 58: R&B textures for Barcelona after hours.",
+  "Starlight brief 59: Ambient textures for Jakarta after hours.",
+  "Night Drive brief 60: Synthwave textures for Tokyo after hours.",
+  "Pulse brief 61: Alt Pop textures for Berlin after hours.",
+  "Velvet brief 62: House textures for Seoul after hours.",
+  "Neon brief 63: Indie Soul textures for Lagos after hours.",
+  "Sunset brief 64: Future Funk textures for London after hours.",
+  "Aurora brief 65: Lo-fi textures for Sao Paulo after hours.",
+  "Static brief 66: Electronica textures for Stockholm after hours.",
+  "Afterglow brief 67: Afrobeats textures for Toronto after hours.",
+  "Mirage brief 68: R&B textures for Barcelona after hours.",
+  "Starlight brief 69: Ambient textures for Jakarta after hours.",
+  "Night Drive brief 70: Synthwave textures for Tokyo after hours.",
+  "Pulse brief 71: Alt Pop textures for Berlin after hours.",
+  "Velvet brief 72: House textures for Seoul after hours.",
+  "Neon brief 73: Indie Soul textures for Lagos after hours.",
+  "Sunset brief 74: Future Funk textures for London after hours.",
+  "Aurora brief 75: Lo-fi textures for Sao Paulo after hours.",
+  "Static brief 76: Electronica textures for Stockholm after hours.",
+  "Afterglow brief 77: Afrobeats textures for Toronto after hours.",
+  "Mirage brief 78: R&B textures for Barcelona after hours.",
+  "Starlight brief 79: Ambient textures for Jakarta after hours.",
+  "Night Drive brief 80: Synthwave textures for Tokyo after hours.",
+  "Pulse brief 81: Alt Pop textures for Berlin after hours.",
+  "Velvet brief 82: House textures for Seoul after hours.",
+  "Neon brief 83: Indie Soul textures for Lagos after hours.",
+  "Sunset brief 84: Future Funk textures for London after hours.",
+  "Aurora brief 85: Lo-fi textures for Sao Paulo after hours.",
+  "Static brief 86: Electronica textures for Stockholm after hours.",
+  "Afterglow brief 87: Afrobeats textures for Toronto after hours.",
+  "Mirage brief 88: R&B textures for Barcelona after hours.",
+  "Starlight brief 89: Ambient textures for Jakarta after hours.",
+  "Night Drive brief 90: Synthwave textures for Tokyo after hours.",
+  "Pulse brief 91: Alt Pop textures for Berlin after hours.",
+  "Velvet brief 92: House textures for Seoul after hours.",
+  "Neon brief 93: Indie Soul textures for Lagos after hours.",
+  "Sunset brief 94: Future Funk textures for London after hours.",
+  "Aurora brief 95: Lo-fi textures for Sao Paulo after hours.",
+  "Static brief 96: Electronica textures for Stockholm after hours.",
+  "Afterglow brief 97: Afrobeats textures for Toronto after hours.",
+  "Mirage brief 98: R&B textures for Barcelona after hours.",
+  "Starlight brief 99: Ambient textures for Jakarta after hours.",
+  "Night Drive brief 100: Synthwave textures for Tokyo after hours.",
+  "Pulse brief 101: Alt Pop textures for Berlin after hours.",
+  "Velvet brief 102: House textures for Seoul after hours.",
+  "Neon brief 103: Indie Soul textures for Lagos after hours.",
+  "Sunset brief 104: Future Funk textures for London after hours.",
+  "Aurora brief 105: Lo-fi textures for Sao Paulo after hours.",
+  "Static brief 106: Electronica textures for Stockholm after hours.",
+  "Afterglow brief 107: Afrobeats textures for Toronto after hours.",
+  "Mirage brief 108: R&B textures for Barcelona after hours.",
+  "Starlight brief 109: Ambient textures for Jakarta after hours.",
+  "Night Drive brief 110: Synthwave textures for Tokyo after hours.",
+  "Pulse brief 111: Alt Pop textures for Berlin after hours.",
+  "Velvet brief 112: House textures for Seoul after hours.",
+  "Neon brief 113: Indie Soul textures for Lagos after hours.",
+  "Sunset brief 114: Future Funk textures for London after hours.",
+  "Aurora brief 115: Lo-fi textures for Sao Paulo after hours.",
+  "Static brief 116: Electronica textures for Stockholm after hours.",
+  "Afterglow brief 117: Afrobeats textures for Toronto after hours.",
+  "Mirage brief 118: R&B textures for Barcelona after hours.",
+  "Starlight brief 119: Ambient textures for Jakarta after hours.",
+  "Night Drive brief 120: Synthwave textures for Tokyo after hours.",
+  "Pulse brief 121: Alt Pop textures for Berlin after hours.",
+  "Velvet brief 122: House textures for Seoul after hours.",
+  "Neon brief 123: Indie Soul textures for Lagos after hours.",
+  "Sunset brief 124: Future Funk textures for London after hours.",
+  "Aurora brief 125: Lo-fi textures for Sao Paulo after hours.",
+  "Static brief 126: Electronica textures for Stockholm after hours.",
+  "Afterglow brief 127: Afrobeats textures for Toronto after hours.",
+  "Mirage brief 128: R&B textures for Barcelona after hours.",
+  "Starlight brief 129: Ambient textures for Jakarta after hours.",
+  "Night Drive brief 130: Synthwave textures for Tokyo after hours.",
+  "Pulse brief 131: Alt Pop textures for Berlin after hours.",
+  "Velvet brief 132: House textures for Seoul after hours.",
+  "Neon brief 133: Indie Soul textures for Lagos after hours.",
+  "Sunset brief 134: Future Funk textures for London after hours.",
+  "Aurora brief 135: Lo-fi textures for Sao Paulo after hours.",
+  "Static brief 136: Electronica textures for Stockholm after hours.",
+  "Afterglow brief 137: Afrobeats textures for Toronto after hours.",
+  "Mirage brief 138: R&B textures for Barcelona after hours.",
+  "Starlight brief 139: Ambient textures for Jakarta after hours.",
+  "Night Drive brief 140: Synthwave textures for Tokyo after hours.",
+  "Pulse brief 141: Alt Pop textures for Berlin after hours.",
+  "Velvet brief 142: House textures for Seoul after hours.",
+  "Neon brief 143: Indie Soul textures for Lagos after hours.",
+  "Sunset brief 144: Future Funk textures for London after hours.",
+  "Aurora brief 145: Lo-fi textures for Sao Paulo after hours.",
+  "Static brief 146: Electronica textures for Stockholm after hours.",
+  "Afterglow brief 147: Afrobeats textures for Toronto after hours.",
+  "Mirage brief 148: R&B textures for Barcelona after hours.",
+  "Starlight brief 149: Ambient textures for Jakarta after hours.",
+  "Night Drive brief 150: Synthwave textures for Tokyo after hours.",
+  "Pulse brief 151: Alt Pop textures for Berlin after hours.",
+  "Velvet brief 152: House textures for Seoul after hours.",
+  "Neon brief 153: Indie Soul textures for Lagos after hours.",
+  "Sunset brief 154: Future Funk textures for London after hours.",
+  "Aurora brief 155: Lo-fi textures for Sao Paulo after hours.",
+  "Static brief 156: Electronica textures for Stockholm after hours.",
+  "Afterglow brief 157: Afrobeats textures for Toronto after hours.",
+  "Mirage brief 158: R&B textures for Barcelona after hours.",
+  "Starlight brief 159: Ambient textures for Jakarta after hours.",
+  "Night Drive brief 160: Synthwave textures for Tokyo after hours.",
+  "Pulse brief 161: Alt Pop textures for Berlin after hours.",
+  "Velvet brief 162: House textures for Seoul after hours.",
+  "Neon brief 163: Indie Soul textures for Lagos after hours.",
+  "Sunset brief 164: Future Funk textures for London after hours.",
+  "Aurora brief 165: Lo-fi textures for Sao Paulo after hours.",
+  "Static brief 166: Electronica textures for Stockholm after hours.",
+  "Afterglow brief 167: Afrobeats textures for Toronto after hours.",
+  "Mirage brief 168: R&B textures for Barcelona after hours.",
+  "Starlight brief 169: Ambient textures for Jakarta after hours.",
+  "Night Drive brief 170: Synthwave textures for Tokyo after hours.",
+  "Pulse brief 171: Alt Pop textures for Berlin after hours.",
+  "Velvet brief 172: House textures for Seoul after hours.",
+  "Neon brief 173: Indie Soul textures for Lagos after hours.",
+  "Sunset brief 174: Future Funk textures for London after hours.",
+  "Aurora brief 175: Lo-fi textures for Sao Paulo after hours.",
+  "Static brief 176: Electronica textures for Stockholm after hours.",
+  "Afterglow brief 177: Afrobeats textures for Toronto after hours.",
+  "Mirage brief 178: R&B textures for Barcelona after hours.",
+  "Starlight brief 179: Ambient textures for Jakarta after hours.",
+  "Night Drive brief 180: Synthwave textures for Tokyo after hours.",
+  "Pulse brief 181: Alt Pop textures for Berlin after hours.",
+  "Velvet brief 182: House textures for Seoul after hours.",
+  "Neon brief 183: Indie Soul textures for Lagos after hours.",
+  "Sunset brief 184: Future Funk textures for London after hours.",
+  "Aurora brief 185: Lo-fi textures for Sao Paulo after hours.",
+  "Static brief 186: Electronica textures for Stockholm after hours.",
+  "Afterglow brief 187: Afrobeats textures for Toronto after hours.",
+  "Mirage brief 188: R&B textures for Barcelona after hours.",
+  "Starlight brief 189: Ambient textures for Jakarta after hours.",
+  "Night Drive brief 190: Synthwave textures for Tokyo after hours.",
+  "Pulse brief 191: Alt Pop textures for Berlin after hours.",
+  "Velvet brief 192: House textures for Seoul after hours.",
+  "Neon brief 193: Indie Soul textures for Lagos after hours.",
+  "Sunset brief 194: Future Funk textures for London after hours.",
+  "Aurora brief 195: Lo-fi textures for Sao Paulo after hours.",
+  "Static brief 196: Electronica textures for Stockholm after hours.",
+  "Afterglow brief 197: Afrobeats textures for Toronto after hours.",
+  "Mirage brief 198: R&B textures for Barcelona after hours.",
+  "Starlight brief 199: Ambient textures for Jakarta after hours.",
+  "Night Drive brief 200: Synthwave textures for Tokyo after hours.",
+  "Pulse brief 201: Alt Pop textures for Berlin after hours.",
+  "Velvet brief 202: House textures for Seoul after hours.",
+  "Neon brief 203: Indie Soul textures for Lagos after hours.",
+  "Sunset brief 204: Future Funk textures for London after hours.",
+  "Aurora brief 205: Lo-fi textures for Sao Paulo after hours.",
+  "Static brief 206: Electronica textures for Stockholm after hours.",
+  "Afterglow brief 207: Afrobeats textures for Toronto after hours.",
+  "Mirage brief 208: R&B textures for Barcelona after hours.",
+  "Starlight brief 209: Ambient textures for Jakarta after hours.",
+  "Night Drive brief 210: Synthwave textures for Tokyo after hours.",
+  "Pulse brief 211: Alt Pop textures for Berlin after hours.",
+  "Velvet brief 212: House textures for Seoul after hours.",
+  "Neon brief 213: Indie Soul textures for Lagos after hours.",
+  "Sunset brief 214: Future Funk textures for London after hours.",
+  "Aurora brief 215: Lo-fi textures for Sao Paulo after hours.",
+  "Static brief 216: Electronica textures for Stockholm after hours.",
+  "Afterglow brief 217: Afrobeats textures for Toronto after hours.",
+  "Mirage brief 218: R&B textures for Barcelona after hours.",
+  "Starlight brief 219: Ambient textures for Jakarta after hours.",
+  "Night Drive brief 220: Synthwave textures for Tokyo after hours.",
+  "Pulse brief 221: Alt Pop textures for Berlin after hours.",
+  "Velvet brief 222: House textures for Seoul after hours.",
+  "Neon brief 223: Indie Soul textures for Lagos after hours.",
+  "Sunset brief 224: Future Funk textures for London after hours.",
+  "Aurora brief 225: Lo-fi textures for Sao Paulo after hours.",
+  "Static brief 226: Electronica textures for Stockholm after hours.",
+  "Afterglow brief 227: Afrobeats textures for Toronto after hours.",
+  "Mirage brief 228: R&B textures for Barcelona after hours.",
+  "Starlight brief 229: Ambient textures for Jakarta after hours.",
+  "Night Drive brief 230: Synthwave textures for Tokyo after hours.",
+  "Pulse brief 231: Alt Pop textures for Berlin after hours.",
+  "Velvet brief 232: House textures for Seoul after hours.",
+  "Neon brief 233: Indie Soul textures for Lagos after hours.",
+  "Sunset brief 234: Future Funk textures for London after hours.",
+  "Aurora brief 235: Lo-fi textures for Sao Paulo after hours.",
+  "Static brief 236: Electronica textures for Stockholm after hours.",
+  "Afterglow brief 237: Afrobeats textures for Toronto after hours.",
+  "Mirage brief 238: R&B textures for Barcelona after hours.",
+  "Starlight brief 239: Ambient textures for Jakarta after hours.",
+  "Night Drive brief 240: Synthwave textures for Tokyo after hours.",
+  "Pulse brief 241: Alt Pop textures for Berlin after hours.",
+  "Velvet brief 242: House textures for Seoul after hours.",
+  "Neon brief 243: Indie Soul textures for Lagos after hours.",
+  "Sunset brief 244: Future Funk textures for London after hours.",
+  "Aurora brief 245: Lo-fi textures for Sao Paulo after hours.",
+  "Static brief 246: Electronica textures for Stockholm after hours.",
+  "Afterglow brief 247: Afrobeats textures for Toronto after hours.",
+  "Mirage brief 248: R&B textures for Barcelona after hours.",
+  "Starlight brief 249: Ambient textures for Jakarta after hours.",
+  "Night Drive brief 250: Synthwave textures for Tokyo after hours.",
+  "Pulse brief 251: Alt Pop textures for Berlin after hours.",
+  "Velvet brief 252: House textures for Seoul after hours.",
+  "Neon brief 253: Indie Soul textures for Lagos after hours.",
+  "Sunset brief 254: Future Funk textures for London after hours.",
+  "Aurora brief 255: Lo-fi textures for Sao Paulo after hours.",
+  "Static brief 256: Electronica textures for Stockholm after hours.",
+  "Afterglow brief 257: Afrobeats textures for Toronto after hours.",
+  "Mirage brief 258: R&B textures for Barcelona after hours.",
+  "Starlight brief 259: Ambient textures for Jakarta after hours.",
+  "Night Drive brief 260: Synthwave textures for Tokyo after hours.",
+  "Pulse brief 261: Alt Pop textures for Berlin after hours.",
+  "Velvet brief 262: House textures for Seoul after hours.",
+  "Neon brief 263: Indie Soul textures for Lagos after hours.",
+  "Sunset brief 264: Future Funk textures for London after hours.",
+  "Aurora brief 265: Lo-fi textures for Sao Paulo after hours.",
+  "Static brief 266: Electronica textures for Stockholm after hours.",
+  "Afterglow brief 267: Afrobeats textures for Toronto after hours.",
+  "Mirage brief 268: R&B textures for Barcelona after hours.",
+  "Starlight brief 269: Ambient textures for Jakarta after hours.",
+  "Night Drive brief 270: Synthwave textures for Tokyo after hours.",
+  "Pulse brief 271: Alt Pop textures for Berlin after hours.",
+  "Velvet brief 272: House textures for Seoul after hours.",
+  "Neon brief 273: Indie Soul textures for Lagos after hours.",
+  "Sunset brief 274: Future Funk textures for London after hours.",
+  "Aurora brief 275: Lo-fi textures for Sao Paulo after hours.",
+  "Static brief 276: Electronica textures for Stockholm after hours.",
+  "Afterglow brief 277: Afrobeats textures for Toronto after hours.",
+  "Mirage brief 278: R&B textures for Barcelona after hours.",
+  "Starlight brief 279: Ambient textures for Jakarta after hours.",
+  "Night Drive brief 280: Synthwave textures for Tokyo after hours.",
+  "Pulse brief 281: Alt Pop textures for Berlin after hours.",
+  "Velvet brief 282: House textures for Seoul after hours.",
+  "Neon brief 283: Indie Soul textures for Lagos after hours.",
+  "Sunset brief 284: Future Funk textures for London after hours.",
+  "Aurora brief 285: Lo-fi textures for Sao Paulo after hours.",
+  "Static brief 286: Electronica textures for Stockholm after hours.",
+  "Afterglow brief 287: Afrobeats textures for Toronto after hours.",
+  "Mirage brief 288: R&B textures for Barcelona after hours.",
+  "Starlight brief 289: Ambient textures for Jakarta after hours.",
+  "Night Drive brief 290: Synthwave textures for Tokyo after hours.",
+  "Pulse brief 291: Alt Pop textures for Berlin after hours.",
+  "Velvet brief 292: House textures for Seoul after hours.",
+  "Neon brief 293: Indie Soul textures for Lagos after hours.",
+  "Sunset brief 294: Future Funk textures for London after hours.",
+  "Aurora brief 295: Lo-fi textures for Sao Paulo after hours.",
+  "Static brief 296: Electronica textures for Stockholm after hours.",
+  "Afterglow brief 297: Afrobeats textures for Toronto after hours.",
+  "Mirage brief 298: R&B textures for Barcelona after hours.",
+  "Starlight brief 299: Ambient textures for Jakarta after hours.",
+  "Night Drive brief 300: Synthwave textures for Tokyo after hours.",
+  "Pulse brief 301: Alt Pop textures for Berlin after hours.",
+  "Velvet brief 302: House textures for Seoul after hours.",
+  "Neon brief 303: Indie Soul textures for Lagos after hours.",
+  "Sunset brief 304: Future Funk textures for London after hours.",
+  "Aurora brief 305: Lo-fi textures for Sao Paulo after hours.",
+  "Static brief 306: Electronica textures for Stockholm after hours.",
+  "Afterglow brief 307: Afrobeats textures for Toronto after hours.",
+  "Mirage brief 308: R&B textures for Barcelona after hours.",
+  "Starlight brief 309: Ambient textures for Jakarta after hours.",
+  "Night Drive brief 310: Synthwave textures for Tokyo after hours.",
+  "Pulse brief 311: Alt Pop textures for Berlin after hours.",
+  "Velvet brief 312: House textures for Seoul after hours.",
+  "Neon brief 313: Indie Soul textures for Lagos after hours.",
+  "Sunset brief 314: Future Funk textures for London after hours.",
+  "Aurora brief 315: Lo-fi textures for Sao Paulo after hours.",
+  "Static brief 316: Electronica textures for Stockholm after hours.",
+  "Afterglow brief 317: Afrobeats textures for Toronto after hours.",
+  "Mirage brief 318: R&B textures for Barcelona after hours.",
+  "Starlight brief 319: Ambient textures for Jakarta after hours.",
+  "Night Drive brief 320: Synthwave textures for Tokyo after hours.",
+  "Pulse brief 321: Alt Pop textures for Berlin after hours.",
+  "Velvet brief 322: House textures for Seoul after hours.",
+  "Neon brief 323: Indie Soul textures for Lagos after hours.",
+  "Sunset brief 324: Future Funk textures for London after hours.",
+  "Aurora brief 325: Lo-fi textures for Sao Paulo after hours.",
+  "Static brief 326: Electronica textures for Stockholm after hours.",
+  "Afterglow brief 327: Afrobeats textures for Toronto after hours.",
+  "Mirage brief 328: R&B textures for Barcelona after hours.",
+  "Starlight brief 329: Ambient textures for Jakarta after hours.",
+  "Night Drive brief 330: Synthwave textures for Tokyo after hours.",
+  "Pulse brief 331: Alt Pop textures for Berlin after hours.",
+  "Velvet brief 332: House textures for Seoul after hours.",
+  "Neon brief 333: Indie Soul textures for Lagos after hours.",
+  "Sunset brief 334: Future Funk textures for London after hours.",
+  "Aurora brief 335: Lo-fi textures for Sao Paulo after hours.",
+  "Static brief 336: Electronica textures for Stockholm after hours.",
+  "Afterglow brief 337: Afrobeats textures for Toronto after hours.",
+  "Mirage brief 338: R&B textures for Barcelona after hours.",
+  "Starlight brief 339: Ambient textures for Jakarta after hours.",
+  "Night Drive brief 340: Synthwave textures for Tokyo after hours.",
+  "Pulse brief 341: Alt Pop textures for Berlin after hours.",
+  "Velvet brief 342: House textures for Seoul after hours.",
+  "Neon brief 343: Indie Soul textures for Lagos after hours.",
+  "Sunset brief 344: Future Funk textures for London after hours.",
+  "Aurora brief 345: Lo-fi textures for Sao Paulo after hours.",
+  "Static brief 346: Electronica textures for Stockholm after hours.",
+  "Afterglow brief 347: Afrobeats textures for Toronto after hours.",
+  "Mirage brief 348: R&B textures for Barcelona after hours.",
+  "Starlight brief 349: Ambient textures for Jakarta after hours.",
+  "Night Drive brief 350: Synthwave textures for Tokyo after hours.",
+  "Pulse brief 351: Alt Pop textures for Berlin after hours.",
+  "Velvet brief 352: House textures for Seoul after hours.",
+  "Neon brief 353: Indie Soul textures for Lagos after hours.",
+  "Sunset brief 354: Future Funk textures for London after hours.",
+  "Aurora brief 355: Lo-fi textures for Sao Paulo after hours.",
+  "Static brief 356: Electronica textures for Stockholm after hours.",
+  "Afterglow brief 357: Afrobeats textures for Toronto after hours.",
+  "Mirage brief 358: R&B textures for Barcelona after hours.",
+  "Starlight brief 359: Ambient textures for Jakarta after hours.",
+  "Night Drive brief 360: Synthwave textures for Tokyo after hours.",
+  "Pulse brief 361: Alt Pop textures for Berlin after hours.",
+  "Velvet brief 362: House textures for Seoul after hours.",
+  "Neon brief 363: Indie Soul textures for Lagos after hours.",
+  "Sunset brief 364: Future Funk textures for London after hours.",
+  "Aurora brief 365: Lo-fi textures for Sao Paulo after hours.",
+  "Static brief 366: Electronica textures for Stockholm after hours.",
+  "Afterglow brief 367: Afrobeats textures for Toronto after hours.",
+  "Mirage brief 368: R&B textures for Barcelona after hours.",
+  "Starlight brief 369: Ambient textures for Jakarta after hours.",
+  "Night Drive brief 370: Synthwave textures for Tokyo after hours.",
+  "Pulse brief 371: Alt Pop textures for Berlin after hours.",
+  "Velvet brief 372: House textures for Seoul after hours.",
+  "Neon brief 373: Indie Soul textures for Lagos after hours.",
+  "Sunset brief 374: Future Funk textures for London after hours.",
+  "Aurora brief 375: Lo-fi textures for Sao Paulo after hours.",
+  "Static brief 376: Electronica textures for Stockholm after hours.",
+  "Afterglow brief 377: Afrobeats textures for Toronto after hours.",
+  "Mirage brief 378: R&B textures for Barcelona after hours.",
+  "Starlight brief 379: Ambient textures for Jakarta after hours.",
+  "Night Drive brief 380: Synthwave textures for Tokyo after hours.",
+  "Pulse brief 381: Alt Pop textures for Berlin after hours.",
+  "Velvet brief 382: House textures for Seoul after hours.",
+  "Neon brief 383: Indie Soul textures for Lagos after hours.",
+  "Sunset brief 384: Future Funk textures for London after hours.",
+  "Aurora brief 385: Lo-fi textures for Sao Paulo after hours.",
+  "Static brief 386: Electronica textures for Stockholm after hours.",
+  "Afterglow brief 387: Afrobeats textures for Toronto after hours.",
+  "Mirage brief 388: R&B textures for Barcelona after hours.",
+  "Starlight brief 389: Ambient textures for Jakarta after hours.",
+  "Night Drive brief 390: Synthwave textures for Tokyo after hours.",
+  "Pulse brief 391: Alt Pop textures for Berlin after hours.",
+  "Velvet brief 392: House textures for Seoul after hours.",
+  "Neon brief 393: Indie Soul textures for Lagos after hours.",
+  "Sunset brief 394: Future Funk textures for London after hours.",
+  "Aurora brief 395: Lo-fi textures for Sao Paulo after hours.",
+  "Static brief 396: Electronica textures for Stockholm after hours.",
+  "Afterglow brief 397: Afrobeats textures for Toronto after hours.",
+  "Mirage brief 398: R&B textures for Barcelona after hours.",
+  "Starlight brief 399: Ambient textures for Jakarta after hours.",
+  "Night Drive brief 400: Synthwave textures for Tokyo after hours.",
+  "Pulse brief 401: Alt Pop textures for Berlin after hours.",
+  "Velvet brief 402: House textures for Seoul after hours.",
+  "Neon brief 403: Indie Soul textures for Lagos after hours.",
+  "Sunset brief 404: Future Funk textures for London after hours.",
+  "Aurora brief 405: Lo-fi textures for Sao Paulo after hours.",
+  "Static brief 406: Electronica textures for Stockholm after hours.",
+  "Afterglow brief 407: Afrobeats textures for Toronto after hours.",
+  "Mirage brief 408: R&B textures for Barcelona after hours.",
+  "Starlight brief 409: Ambient textures for Jakarta after hours.",
+  "Night Drive brief 410: Synthwave textures for Tokyo after hours.",
+  "Pulse brief 411: Alt Pop textures for Berlin after hours.",
+  "Velvet brief 412: House textures for Seoul after hours.",
+  "Neon brief 413: Indie Soul textures for Lagos after hours.",
+  "Sunset brief 414: Future Funk textures for London after hours.",
+  "Aurora brief 415: Lo-fi textures for Sao Paulo after hours.",
+  "Static brief 416: Electronica textures for Stockholm after hours.",
+  "Afterglow brief 417: Afrobeats textures for Toronto after hours.",
+  "Mirage brief 418: R&B textures for Barcelona after hours.",
+  "Starlight brief 419: Ambient textures for Jakarta after hours.",
+  "Night Drive brief 420: Synthwave textures for Tokyo after hours.",
+  "Pulse brief 421: Alt Pop textures for Berlin after hours.",
+  "Velvet brief 422: House textures for Seoul after hours.",
+  "Neon brief 423: Indie Soul textures for Lagos after hours.",
+  "Sunset brief 424: Future Funk textures for London after hours.",
+  "Aurora brief 425: Lo-fi textures for Sao Paulo after hours.",
+  "Static brief 426: Electronica textures for Stockholm after hours.",
+  "Afterglow brief 427: Afrobeats textures for Toronto after hours.",
+  "Mirage brief 428: R&B textures for Barcelona after hours.",
+  "Starlight brief 429: Ambient textures for Jakarta after hours.",
+  "Night Drive brief 430: Synthwave textures for Tokyo after hours.",
+  "Pulse brief 431: Alt Pop textures for Berlin after hours.",
+  "Velvet brief 432: House textures for Seoul after hours.",
+  "Neon brief 433: Indie Soul textures for Lagos after hours.",
+  "Sunset brief 434: Future Funk textures for London after hours.",
+  "Aurora brief 435: Lo-fi textures for Sao Paulo after hours.",
+  "Static brief 436: Electronica textures for Stockholm after hours.",
+  "Afterglow brief 437: Afrobeats textures for Toronto after hours.",
+  "Mirage brief 438: R&B textures for Barcelona after hours.",
+  "Starlight brief 439: Ambient textures for Jakarta after hours.",
+  "Night Drive brief 440: Synthwave textures for Tokyo after hours.",
+  "Pulse brief 441: Alt Pop textures for Berlin after hours.",
+  "Velvet brief 442: House textures for Seoul after hours.",
+  "Neon brief 443: Indie Soul textures for Lagos after hours.",
+  "Sunset brief 444: Future Funk textures for London after hours.",
+  "Aurora brief 445: Lo-fi textures for Sao Paulo after hours.",
+  "Static brief 446: Electronica textures for Stockholm after hours.",
+  "Afterglow brief 447: Afrobeats textures for Toronto after hours.",
+  "Mirage brief 448: R&B textures for Barcelona after hours.",
+  "Starlight brief 449: Ambient textures for Jakarta after hours.",
+  "Night Drive brief 450: Synthwave textures for Tokyo after hours.",
+  "Pulse brief 451: Alt Pop textures for Berlin after hours.",
+  "Velvet brief 452: House textures for Seoul after hours.",
+  "Neon brief 453: Indie Soul textures for Lagos after hours.",
+  "Sunset brief 454: Future Funk textures for London after hours.",
+  "Aurora brief 455: Lo-fi textures for Sao Paulo after hours.",
+  "Static brief 456: Electronica textures for Stockholm after hours.",
+  "Afterglow brief 457: Afrobeats textures for Toronto after hours.",
+  "Mirage brief 458: R&B textures for Barcelona after hours.",
+  "Starlight brief 459: Ambient textures for Jakarta after hours.",
+  "Night Drive brief 460: Synthwave textures for Tokyo after hours.",
+  "Pulse brief 461: Alt Pop textures for Berlin after hours.",
+  "Velvet brief 462: House textures for Seoul after hours.",
+  "Neon brief 463: Indie Soul textures for Lagos after hours.",
+  "Sunset brief 464: Future Funk textures for London after hours.",
+  "Aurora brief 465: Lo-fi textures for Sao Paulo after hours.",
+  "Static brief 466: Electronica textures for Stockholm after hours.",
+  "Afterglow brief 467: Afrobeats textures for Toronto after hours.",
+  "Mirage brief 468: R&B textures for Barcelona after hours.",
+  "Starlight brief 469: Ambient textures for Jakarta after hours.",
+  "Night Drive brief 470: Synthwave textures for Tokyo after hours.",
+  "Pulse brief 471: Alt Pop textures for Berlin after hours.",
+  "Velvet brief 472: House textures for Seoul after hours.",
+  "Neon brief 473: Indie Soul textures for Lagos after hours.",
+  "Sunset brief 474: Future Funk textures for London after hours.",
+  "Aurora brief 475: Lo-fi textures for Sao Paulo after hours.",
+  "Static brief 476: Electronica textures for Stockholm after hours.",
+  "Afterglow brief 477: Afrobeats textures for Toronto after hours.",
+  "Mirage brief 478: R&B textures for Barcelona after hours.",
+  "Starlight brief 479: Ambient textures for Jakarta after hours.",
+  "Night Drive brief 480: Synthwave textures for Tokyo after hours.",
+  "Pulse brief 481: Alt Pop textures for Berlin after hours.",
+  "Velvet brief 482: House textures for Seoul after hours.",
+  "Neon brief 483: Indie Soul textures for Lagos after hours.",
+  "Sunset brief 484: Future Funk textures for London after hours.",
+  "Aurora brief 485: Lo-fi textures for Sao Paulo after hours.",
+  "Static brief 486: Electronica textures for Stockholm after hours.",
+  "Afterglow brief 487: Afrobeats textures for Toronto after hours.",
+  "Mirage brief 488: R&B textures for Barcelona after hours.",
+  "Starlight brief 489: Ambient textures for Jakarta after hours.",
+  "Night Drive brief 490: Synthwave textures for Tokyo after hours.",
+  "Pulse brief 491: Alt Pop textures for Berlin after hours.",
+  "Velvet brief 492: House textures for Seoul after hours.",
+  "Neon brief 493: Indie Soul textures for Lagos after hours.",
+  "Sunset brief 494: Future Funk textures for London after hours.",
+  "Aurora brief 495: Lo-fi textures for Sao Paulo after hours.",
+  "Static brief 496: Electronica textures for Stockholm after hours.",
+  "Afterglow brief 497: Afrobeats textures for Toronto after hours.",
+  "Mirage brief 498: R&B textures for Barcelona after hours.",
+  "Starlight brief 499: Ambient textures for Jakarta after hours.",
+  "Night Drive brief 500: Synthwave textures for Tokyo after hours.",
+  "Pulse brief 501: Alt Pop textures for Berlin after hours.",
+  "Velvet brief 502: House textures for Seoul after hours.",
+  "Neon brief 503: Indie Soul textures for Lagos after hours.",
+  "Sunset brief 504: Future Funk textures for London after hours.",
+  "Aurora brief 505: Lo-fi textures for Sao Paulo after hours.",
+  "Static brief 506: Electronica textures for Stockholm after hours.",
+  "Afterglow brief 507: Afrobeats textures for Toronto after hours.",
+  "Mirage brief 508: R&B textures for Barcelona after hours.",
+  "Starlight brief 509: Ambient textures for Jakarta after hours.",
+  "Night Drive brief 510: Synthwave textures for Tokyo after hours.",
+  "Pulse brief 511: Alt Pop textures for Berlin after hours.",
+  "Velvet brief 512: House textures for Seoul after hours.",
+  "Neon brief 513: Indie Soul textures for Lagos after hours.",
+  "Sunset brief 514: Future Funk textures for London after hours.",
+  "Aurora brief 515: Lo-fi textures for Sao Paulo after hours.",
+  "Static brief 516: Electronica textures for Stockholm after hours.",
+  "Afterglow brief 517: Afrobeats textures for Toronto after hours.",
+  "Mirage brief 518: R&B textures for Barcelona after hours.",
+  "Starlight brief 519: Ambient textures for Jakarta after hours.",
+  "Night Drive brief 520: Synthwave textures for Tokyo after hours."
+] as const
+
+const tabs: Array<{ id: TabId; label: string }> = [
+  { id: 'home', label: 'Home' },
+  { id: 'discover', label: 'Discover' },
+  { id: 'library', label: 'Library' },
+  { id: 'radio', label: 'Radio' },
+]
+
+const pages: Array<{ id: PageId; label: string; description: string }> = [
+  { id: 'for-you', label: 'For You', description: 'Personalized sets, fresh saves, and daily station picks.' },
+  { id: 'charts', label: 'Charts', description: 'Current chart movement, breakout tracks, and momentum.' },
+  { id: 'podcasts', label: 'Podcasts', description: 'Editorial conversations, creative process, and scene updates.' },
+  { id: 'concerts', label: 'Concerts', description: 'Tour dates close to your listening profile and city picks.' },
+]
+
+const filters: Array<{ id: FilterId; label: string }> = [
+  { id: 'all', label: 'All' },
+  { id: 'focus', label: 'Focus' },
+  { id: 'workout', label: 'Workout' },
+  { id: 'chill', label: 'Chill' },
+  { id: 'party', label: 'Party' },
+  { id: 'sleep', label: 'Sleep' },
+]
+
+const formatCount = (value: number) => new Intl.NumberFormat('en-US').format(value)
+
+const getTrackById = (id: string) => tracks.find((track) => track.id === id) ?? tracks[0]
+
+function App() {
+  const searchId = useId()
+  const [activeTab, setActiveTab] = useState<TabId>('home')
+  const [activePage, setActivePage] = useState<PageId>('for-you')
+  const [activeFilter, setActiveFilter] = useState<FilterId>('all')
+  const [queueMode, setQueueMode] = useState<QueueMode>('smart')
+  const [search, setSearch] = useState('')
+  const deferredSearch = useDeferredValue(search)
+  const [liked, setLiked] = useState<Record<string, boolean>>(() => Object.fromEntries(tracks.map((track) => [track.id, track.saved])))
+  const [currentTrackId, setCurrentTrackId] = useState(tracks[6].id)
+  const [currentPlaylistId, setCurrentPlaylistId] = useState(playlists[3].id)
+  const [isPlaying, setIsPlaying] = useState(true)
+  const [progress, setProgress] = useState(112)
+  const [volume, setVolume] = useState(74)
+
+  useEffect(() => {
+    if (!isPlaying) {
+      return undefined
+    }
+
+    const timer = window.setInterval(() => {
+      setProgress((value) => {
+        const current = getTrackById(currentTrackId)
+        if (value >= current.lengthSeconds) {
+          return 0
+        }
+        return value + 1
+      })
+    }, 1000)
+
+    return () => window.clearInterval(timer)
+  }, [currentTrackId, isPlaying])
+
+  const filteredTracks = useMemo(() => {
+    const term = deferredSearch.trim().toLowerCase()
+    return tracks.filter((track) => {
+      const matchesFilter = activeFilter === 'all' || track.mood === activeFilter
+      const matchesTab = activeTab !== 'radio' || track.energy >= 60
+      const matchesSearch = term.length === 0 || `${track.title} ${track.artist} ${track.album} ${track.genre}`.toLowerCase().includes(term)
+      return matchesFilter && matchesTab && matchesSearch
+    })
+  }, [activeFilter, activeTab, deferredSearch])
+
+  const activePlaylist = useMemo(() => playlists.find((playlist) => playlist.id === currentPlaylistId) ?? playlists[0], [currentPlaylistId])
+
+  const playlistTracks = useMemo(() => activePlaylist.trackIds.map(getTrackById), [activePlaylist])
+
+  const currentTrack = useMemo(() => getTrackById(currentTrackId), [currentTrackId])
+
+  const smartQueue = useMemo(() => {
+    return filteredTracks
+      .filter((track) => track.id !== currentTrack.id)
+      .sort((left, right) => right.popular - left.popular)
+      .slice(0, 12)
+  }, [currentTrack.id, filteredTracks])
+
+  const manualQueue = useMemo(() => playlistTracks.filter((track) => track.id !== currentTrack.id), [currentTrack.id, playlistTracks])
+
+  const queue = queueMode === 'smart' ? smartQueue : manualQueue
+
+  const totals = useMemo(() => {
+    const totalMinutes = filteredTracks.reduce((sum, track) => sum + track.lengthSeconds, 0) / 60
+    const likedCount = filteredTracks.filter((track) => liked[track.id]).length
+    const avgEnergy = Math.round(filteredTracks.reduce((sum, track) => sum + track.energy, 0) / Math.max(filteredTracks.length, 1))
+    return {
+      totalTracks: filteredTracks.length,
+      totalHours: (totalMinutes / 60).toFixed(1),
+      likedCount,
+      avgEnergy,
+    }
+  }, [filteredTracks, liked])
+
+  const topArtists = useMemo(() => {
+    const counter = new Map<string, number>()
+    filteredTracks.forEach((track) => {
+      counter.set(track.artist, (counter.get(track.artist) ?? 0) + 1)
+    })
+    return [...counter.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+  }, [filteredTracks])
+
+  const toggleLiked = (trackId: string) => {
+    startTransition(() => {
+      setLiked((current) => ({ ...current, [trackId]: !current[trackId] }))
+    })
+  }
+
+  const playTrack = (trackId: string) => {
+    startTransition(() => {
+      setCurrentTrackId(trackId)
+      setIsPlaying(true)
+      setProgress(0)
+    })
+  }
+
+  const progressRatio = Math.min(progress / currentTrack.lengthSeconds, 1)
+
+  return (
+    <>
+      <style>{styles}</style>
+      <div className="musicfy-shell">
+        <aside className="sidebar">
+          <div className="brand-block">
+            <div className="brand-mark" />
+            <div>
+              <p className="eyebrow">Single-file React demo</p>
+              <h1>musicfy</h1>
+            </div>
+          </div>
+
+          <nav className="main-nav">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                className={tab.id === activeTab ? "nav-pill active" : "nav-pill"}
+                onClick={() => setActiveTab(tab.id)}
+                type="button"
+              >
+                <span>{tab.label}</span>
+              </button>
+            ))}
+          </nav>
+
+          <section className="sidebar-card">
+            <p className="section-kicker">Collection</p>
+            <div className="metric-stack">
+              <div>
+                <strong>{formatCount(totals.totalTracks)}</strong>
+                <span>tracks in active lens</span>
+              </div>
+              <div>
+                <strong>{totals.totalHours}h</strong>
+                <span>estimated listening time</span>
+              </div>
+              <div>
+                <strong>{totals.avgEnergy}%</strong>
+                <span>average energy</span>
+              </div>
+            </div>
+          </section>
+
+          <section className="sidebar-card activity-card">
+            <p className="section-kicker">Friend activity</p>
+            <div className="activity-list">
+              {friendActivity.slice(0, 6).map((item) => (
+                <article key={item.id} className="activity-item">
+                  <strong>{item.label}</strong>
+                  <p>{item.detail}</p>
+                  <span>{item.time}</span>
+                </article>
+              ))}
+            </div>
+          </section>
+        </aside>
+
+        <main className="content">
+          <header className="topbar">
+            <div>
+              <p className="eyebrow">Streaming interface</p>
+              <h2>Editorial depth, dense browsing, one file.</h2>
+            </div>
+            <label className="searchbox" htmlFor={searchId}>
+              <span>Search</span>
+              <input
+                id={searchId}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Albums, artists, moods, cities"
+                type="search"
+                value={search}
+              />
+            </label>
+          </header>
+
+          <section className="hero" style={{ backgroundImage: `${currentTrack.accent}, radial-gradient(circle at top left, rgba(255,255,255,0.28), transparent 42%)` }}>
+            <div className="hero-copy">
+              <p className="eyebrow">Now highlighted</p>
+              <h3>{activePlaylist.name}</h3>
+              <p>{activePlaylist.description}</p>
+              <div className="hero-meta">
+                <span>{activePlaylist.curator}</span>
+                <span>{activePlaylist.duration}</span>
+                <span>{activePlaylist.saves} saves</span>
+              </div>
+              <div className="hero-actions">
+                <button className="primary-action" onClick={() => playTrack(activePlaylist.trackIds[0])} type="button">
+                  Play mix
+                </button>
+                <button className="secondary-action" onClick={() => setQueueMode(queueMode === "smart" ? "manual" : "smart")} type="button">
+                  Queue: {queueMode}
+                </button>
+              </div>
+            </div>
+            <div className="hero-grid">
+              {pages.map((page) => (
+                <button
+                  key={page.id}
+                  className={page.id === activePage ? "page-card active" : "page-card"}
+                  onClick={() => setActivePage(page.id)}
+                  type="button"
+                >
+                  <strong>{page.label}</strong>
+                  <span>{page.description}</span>
+                </button>
+              ))}
+            </div>
+          </section>
+
+          <section className="filter-row">
+            <div className="chip-row">
+              {filters.map((filter) => (
+                <button
+                  key={filter.id}
+                  className={filter.id === activeFilter ? "chip active" : "chip"}
+                  onClick={() => setActiveFilter(filter.id)}
+                  type="button"
+                >
+                  {filter.label}
+                </button>
+              ))}
+            </div>
+            <div className="mini-stats">
+              <span>{totals.likedCount} liked in view</span>
+              <span>{topArtists[0]?.[0] ?? "No artist"} leading</span>
+            </div>
+          </section>
+
+          <div className="content-grid">
+            <section className="panel playlist-panel">
+              <div className="section-head">
+                <div>
+                  <p className="section-kicker">Playlists</p>
+                  <h3>Curated for the current mood</h3>
+                </div>
+                <span>{playlists.length} editorial sets</span>
+              </div>
+              <div className="playlist-grid">
+                {playlists.filter((playlist) => activeFilter === "all" || playlist.mood === activeFilter).slice(0, 8).map((playlist) => (
+                  <button
+                    key={playlist.id}
+                    className={playlist.id === currentPlaylistId ? "playlist-card active" : "playlist-card"}
+                    onClick={() => setCurrentPlaylistId(playlist.id)}
+                    style={{ backgroundImage: `${playlist.accent}, linear-gradient(180deg, rgba(15, 23, 42, 0.4), rgba(15, 23, 42, 0.92))` }}
+                    type="button"
+                  >
+                    <div className="cover-tile">{playlist.cover}</div>
+                    <strong>{playlist.name}</strong>
+                    <span>{playlist.subtitle}</span>
+                  </button>
+                ))}
+              </div>
+            </section>
+
+            <section className="panel tracks-panel">
+              <div className="section-head">
+                <div>
+                  <p className="section-kicker">Tracklist</p>
+                  <h3>{activePage === "charts" ? "Momentum chart" : activePage === "podcasts" ? "Music-forward picks" : activePage === "concerts" ? "Prep before the show" : "Recommended next listens"}</h3>
+                </div>
+                <span>{filteredTracks.length} results</span>
+              </div>
+              <div className="track-list">
+                {filteredTracks.slice(0, 14).map((track, index) => (
+                  <article key={track.id} className={track.id === currentTrack.id ? "track-row active" : "track-row"}>
+                    <button className="row-play" onClick={() => playTrack(track.id)} type="button">
+                      {String(index + 1).padStart(2, "0")}
+                    </button>
+                    <div className="row-main">
+                      <strong>{track.title}</strong>
+                      <span>{track.artist} · {track.album}</span>
+                    </div>
+                    <div className="row-tags">
+                      <span>{track.genre}</span>
+                      {track.explicit ? <span>E</span> : null}
+                    </div>
+                    <div className="row-bars">
+                      <span>Energy {track.energy}</span>
+                      <div className="bar"><i style={{ width: `${track.energy}%`, backgroundImage: track.accent }} /></div>
+                    </div>
+                    <span className="row-duration">{track.duration}</span>
+                    <button className={liked[track.id] ? "like-button active" : "like-button"} onClick={() => toggleLiked(track.id)} type="button">
+                      {liked[track.id] ? "Saved" : "Save"}
+                    </button>
+                  </article>
+                ))}
+              </div>
+            </section>
+
+            <section className="panel insights-panel">
+              <div className="section-head">
+                <div>
+                  <p className="section-kicker">Insights</p>
+                  <h3>Why this session fits</h3>
+                </div>
+              </div>
+              <div className="insight-stack">
+                <article className="insight-card emphasis">
+                  <strong>{currentTrack.title}</strong>
+                  <p>{currentTrack.artist} aligns with your {activeFilter === "all" ? "broad" : activeFilter} pattern and sits in the top {100 - currentTrack.popular}% popularity band for this lens.</p>
+                </article>
+                <article className="insight-card">
+                  <strong>Top artists</strong>
+                  <div className="artist-stack">
+                    {topArtists.map(([artist, count]) => (
+                      <div key={artist} className="artist-row">
+                        <span>{artist}</span>
+                        <b>{count} tracks</b>
+                      </div>
+                    ))}
+                  </div>
+                </article>
+                <article className="insight-card">
+                  <strong>Listening notes</strong>
+                  <p>{listeningMoments[(filteredTracks.length * 3) % listeningMoments.length]}</p>
+                </article>
+              </div>
+            </section>
+
+            <section className="panel queue-panel">
+              <div className="section-head">
+                <div>
+                  <p className="section-kicker">Queue</p>
+                  <h3>{queueMode === "smart" ? "Adaptive next up" : "Playlist order"}</h3>
+                </div>
+                <button className="ghost-button" onClick={() => setQueueMode(queueMode === "smart" ? "manual" : "smart")} type="button">
+                  Switch mode
+                </button>
+              </div>
+              <div className="queue-list">
+                {queue.slice(0, 8).map((track) => (
+                  <button key={track.id} className="queue-item" onClick={() => playTrack(track.id)} type="button">
+                    <div>
+                      <strong>{track.title}</strong>
+                      <span>{track.artist}</span>
+                    </div>
+                    <span>{track.duration}</span>
+                  </button>
+                ))}
+              </div>
+            </section>
+
+            <section className="panel lower-panel">
+              <div className="two-column">
+                <div>
+                  <div className="section-head compact">
+                    <div>
+                      <p className="section-kicker">Podcasts</p>
+                      <h3>Creative scene briefings</h3>
+                    </div>
+                  </div>
+                  <div className="episode-list">
+                    {episodes.slice(0, 5).map((episode) => (
+                      <article key={episode.id} className="episode-card">
+                        <div className="mini-cover" style={{ backgroundImage: episode.accent }}>{episode.cover}</div>
+                        <div>
+                          <strong>{episode.title}</strong>
+                          <p>{episode.show} · {episode.host}</p>
+                          <span>{episode.length} · {episode.topic}</span>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <div className="section-head compact">
+                    <div>
+                      <p className="section-kicker">Concerts</p>
+                      <h3>Nearby live dates</h3>
+                    </div>
+                  </div>
+                  <div className="concert-list">
+                    {concerts.slice(0, 5).map((concert) => (
+                      <article key={concert.id} className="concert-card">
+                        <div className="concert-band" style={{ backgroundImage: concert.accent }} />
+                        <div>
+                          <strong>{concert.artist}</strong>
+                          <p>{concert.city} · {concert.venue}</p>
+                          <span>{concert.date} · from {concert.price}</span>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+        </main>
+
+        <aside className="player">
+          <div className="player-art" style={{ backgroundImage: currentTrack.accent }}>
+            <span>{currentTrack.cover}</span>
+          </div>
+          <div className="player-copy">
+            <p className="section-kicker">Now playing</p>
+            <h3>{currentTrack.title}</h3>
+            <p>{currentTrack.artists.join(" · ")}</p>
+            <div className="player-progress">
+              <div className="bar large"><i style={{ width: `${progressRatio * 100}%`, backgroundImage: currentTrack.accent }} /></div>
+              <div className="progress-meta">
+                <span>{Math.floor(progress / 60)}:{String(progress % 60).padStart(2, "0")}</span>
+                <span>{currentTrack.duration}</span>
+              </div>
+            </div>
+            <div className="player-controls">
+              <button className="ghost-button" onClick={() => setProgress(0)} type="button">Restart</button>
+              <button className="primary-action" onClick={() => setIsPlaying((value) => !value)} type="button">{isPlaying ? "Pause" : "Play"}</button>
+              <button className="ghost-button" onClick={() => playTrack(queue[0]?.id ?? currentTrack.id)} type="button">Next</button>
+            </div>
+            <label className="volume-control">
+              <span>Volume {volume}%</span>
+              <input max="100" min="0" onChange={(event) => setVolume(Number(event.target.value))} type="range" value={volume} />
+            </label>
+          </div>
+        </aside>
+      </div>
+    </>
+  )
+}
+
+const styles = `
+:root {
+  color-scheme: dark;
+  font-family: "Sora", "Segoe UI", sans-serif;
+  background: #050816;
+  color: #f8fafc;
+}
+* { box-sizing: border-box; }
+html, body, #root { margin: 0; min-height: 100%; }
+body {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top left, rgba(59, 130, 246, 0.24), transparent 25%),
+    radial-gradient(circle at right 20%, rgba(244, 114, 182, 0.18), transparent 24%),
+    linear-gradient(180deg, #030712 0%, #0b1120 100%);
+}
+button, input { font: inherit; }
+.musicfy-shell {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr) 340px;
+  gap: 24px;
+  min-height: 100vh;
+  padding: 24px;
+}
+.sidebar, .player, .panel, .hero, .topbar, .filter-row {
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  background: rgba(15, 23, 42, 0.72);
+  backdrop-filter: blur(18px);
+  box-shadow: 0 20px 60px rgba(2, 6, 23, 0.35);
+}
+.sidebar, .player {
+  border-radius: 30px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.content { display: flex; flex-direction: column; gap: 20px; }
+.brand-block { display: flex; gap: 14px; align-items: center; }
+.brand-mark { width: 52px; height: 52px; border-radius: 18px; background: linear-gradient(135deg, #22c55e, #06b6d4); }
+.eyebrow, .section-kicker { margin: 0 0 6px; text-transform: uppercase; letter-spacing: 0.18em; font-size: 11px; color: #94a3b8; }
+h1, h2, h3, p { margin: 0; }
+.main-nav, .metric-stack, .activity-list, .hero-copy, .hero-grid, .track-list, .queue-list, .episode-list, .concert-list, .insight-stack { display: flex; flex-direction: column; gap: 12px; }
+.nav-pill, .chip, .page-card, .playlist-card, .queue-item, .row-play, .like-button, .ghost-button, .secondary-action {
+  border: 0;
+  cursor: pointer;
+  transition: transform 180ms ease, background 180ms ease, border-color 180ms ease;
+}
+.nav-pill { border-radius: 18px; background: rgba(30, 41, 59, 0.65); color: #cbd5e1; padding: 14px 16px; text-align: left; }
+.nav-pill.active { background: linear-gradient(135deg, rgba(34, 197, 94, 0.24), rgba(14, 165, 233, 0.18)); color: white; }
+.sidebar-card { border-radius: 24px; background: rgba(15, 23, 42, 0.66); padding: 16px; }
+.metric-stack strong { display: block; font-size: 28px; }
+.metric-stack span { color: #94a3b8; font-size: 13px; }
+.activity-item { border-top: 1px solid rgba(148, 163, 184, 0.14); padding-top: 12px; }
+.activity-item:first-child { border-top: 0; padding-top: 0; }
+.activity-item p, .activity-item span { color: #94a3b8; font-size: 13px; margin-top: 4px; }
+.topbar { border-radius: 28px; padding: 20px 24px; display: flex; justify-content: space-between; align-items: center; gap: 20px; }
+.topbar h2 { font-size: clamp(28px, 3vw, 40px); max-width: 12ch; }
+.searchbox { min-width: 280px; display: grid; gap: 8px; color: #94a3b8; }
+.searchbox input { border-radius: 18px; border: 1px solid rgba(148, 163, 184, 0.16); background: rgba(2, 6, 23, 0.48); color: white; padding: 14px 16px; }
+.hero { border-radius: 34px; padding: 28px; display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr); gap: 18px; overflow: hidden; background-size: cover; }
+.hero-copy h3 { font-size: clamp(34px, 5vw, 54px); max-width: 10ch; }
+.hero-copy p:last-of-type { max-width: 60ch; color: rgba(255,255,255,0.82); }
+.hero-meta, .hero-actions, .mini-stats, .progress-meta { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.hero-meta span, .mini-stats span, .progress-meta span { padding: 8px 12px; border-radius: 999px; background: rgba(15,23,42,0.34); color: #e2e8f0; font-size: 13px; }
+.primary-action, .secondary-action, .ghost-button { border-radius: 999px; padding: 12px 18px; }
+.primary-action { border: 0; background: #f8fafc; color: #020617; font-weight: 700; cursor: pointer; }
+.secondary-action, .ghost-button { background: rgba(15, 23, 42, 0.44); color: white; border: 1px solid rgba(148, 163, 184, 0.18); }
+.hero-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-content: start; }
+.page-card { border-radius: 24px; padding: 18px; background: rgba(15, 23, 42, 0.32); color: white; text-align: left; min-height: 126px; }
+.page-card.active { background: rgba(248, 250, 252, 0.16); transform: translateY(-2px); }
+.page-card span { display: block; margin-top: 8px; color: #cbd5e1; font-size: 13px; line-height: 1.5; }
+.filter-row { border-radius: 24px; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; gap: 18px; }
+.chip-row { display: flex; gap: 10px; flex-wrap: wrap; }
+.chip { padding: 10px 14px; border-radius: 999px; background: rgba(30, 41, 59, 0.7); color: #cbd5e1; }
+.chip.active { background: #f8fafc; color: #020617; }
+.content-grid { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(300px, 0.8fr); gap: 20px; }
+.panel { border-radius: 30px; padding: 22px; }
+.playlist-panel, .tracks-panel, .lower-panel { grid-column: 1 / 2; }
+.insights-panel, .queue-panel { grid-column: 2 / 3; }
+.lower-panel { grid-column: 1 / 3; }
+.section-head { display: flex; justify-content: space-between; align-items: end; gap: 16px; margin-bottom: 16px; }
+.section-head.compact { margin-bottom: 14px; }
+.section-head h3 { font-size: 24px; }
+.section-head span { color: #94a3b8; font-size: 13px; }
+.playlist-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+.playlist-card { border-radius: 26px; padding: 16px; background-size: cover; color: white; display: flex; flex-direction: column; gap: 10px; text-align: left; min-height: 220px; }
+.playlist-card.active { transform: translateY(-4px); box-shadow: 0 16px 50px rgba(2, 6, 23, 0.28); }
+.cover-tile { margin-top: auto; width: 82px; height: 82px; border-radius: 20px; background: rgba(248,250,252,0.18); display: grid; place-items: center; font-weight: 700; }
+.track-list { gap: 10px; }
+.track-row { display: grid; grid-template-columns: 56px minmax(0, 1.2fr) 120px 160px 60px 72px; gap: 12px; align-items: center; border-radius: 20px; padding: 10px; background: rgba(2, 6, 23, 0.35); }
+.track-row.active { outline: 1px solid rgba(74, 222, 128, 0.5); background: rgba(15, 23, 42, 0.92); }
+.row-play { border-radius: 16px; height: 44px; background: rgba(30, 41, 59, 0.85); color: white; }
+.row-main strong { display: block; }
+.row-main span, .row-duration { color: #94a3b8; font-size: 13px; }
+.row-tags { display: flex; gap: 8px; flex-wrap: wrap; }
+.row-tags span { border-radius: 999px; background: rgba(30, 41, 59, 0.84); padding: 6px 10px; color: #cbd5e1; font-size: 12px; }
+.row-bars { display: grid; gap: 6px; }
+.row-bars span { color: #cbd5e1; font-size: 12px; }
+.bar { height: 7px; border-radius: 999px; background: rgba(30, 41, 59, 0.82); overflow: hidden; }
+.bar.large { height: 10px; }
+.bar i { display: block; height: 100%; border-radius: inherit; }
+.like-button { border-radius: 999px; padding: 10px 12px; background: rgba(30, 41, 59, 0.82); color: white; }
+.like-button.active { background: rgba(34, 197, 94, 0.18); color: #86efac; }
+.insight-card, .episode-card, .concert-card, .queue-item { border-radius: 22px; background: rgba(2, 6, 23, 0.4); padding: 16px; }
+.insight-card.emphasis { background: linear-gradient(135deg, rgba(34,197,94,0.22), rgba(14,165,233,0.16)); }
+.insight-card p { margin-top: 8px; color: #cbd5e1; line-height: 1.6; }
+.artist-stack { display: grid; gap: 10px; margin-top: 12px; }
+.artist-row { display: flex; justify-content: space-between; gap: 12px; color: #cbd5e1; }
+.queue-item { display: flex; align-items: center; justify-content: space-between; gap: 16px; text-align: left; color: white; }
+.queue-item span { color: #94a3b8; font-size: 13px; }
+.two-column { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+.episode-card, .concert-card { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 14px; align-items: center; }
+.mini-cover { width: 72px; height: 72px; border-radius: 18px; display: grid; place-items: center; font-weight: 700; }
+.concert-band { width: 10px; border-radius: 999px; min-height: 72px; }
+.episode-card p, .concert-card p { margin: 6px 0 4px; color: #cbd5e1; }
+.episode-card span, .concert-card span { color: #94a3b8; font-size: 13px; line-height: 1.5; }
+.player-art { aspect-ratio: 1; border-radius: 28px; display: grid; place-items: end start; padding: 20px; font-size: 26px; font-weight: 700; }
+.player-copy { display: flex; flex-direction: column; gap: 16px; }
+.player-copy h3 { font-size: 32px; }
+.player-copy p { color: #cbd5e1; }
+.player-controls { display: flex; gap: 10px; }
+.volume-control { display: grid; gap: 8px; color: #cbd5e1; }
+.volume-control input { width: 100%; }
+.nav-pill:hover, .chip:hover, .page-card:hover, .playlist-card:hover, .queue-item:hover, .row-play:hover, .like-button:hover, .ghost-button:hover, .secondary-action:hover { transform: translateY(-2px); }
+@media (max-width: 1380px) {
+  .musicfy-shell { grid-template-columns: 240px minmax(0, 1fr); }
+  .player { grid-column: 1 / 3; flex-direction: row; align-items: center; }
+  .player-art { width: 220px; aspect-ratio: 1; }
+}
+@media (max-width: 1080px) {
+  .musicfy-shell { grid-template-columns: 1fr; }
+  .sidebar, .player { order: 2; }
+  .content { order: 1; }
+  .content-grid { grid-template-columns: 1fr; }
+  .playlist-panel, .tracks-panel, .lower-panel, .insights-panel, .queue-panel { grid-column: auto; }
+  .playlist-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .hero { grid-template-columns: 1fr; }
+  .topbar, .filter-row { flex-direction: column; align-items: stretch; }
+}
+@media (max-width: 760px) {
+  .musicfy-shell { padding: 14px; gap: 14px; }
+  .topbar h2 { max-width: none; }
+  .playlist-grid, .hero-grid, .two-column { grid-template-columns: 1fr; }
+  .track-row { grid-template-columns: 48px minmax(0, 1fr); }
+  .row-tags, .row-bars, .row-duration, .like-button { grid-column: 2 / 3; }
+  .player { flex-direction: column; }
+  .player-art { width: 100%; }
+}
+`
+
+createRoot(document.getElementById('root')!).render(
+  <StrictMode>
+    <App />
+  </StrictMode>,
+)
