@@ -1,5648 +1,4404 @@
-import { StrictMode, useDeferredValue, useEffect, useId, useMemo, useState, startTransition } from 'react'
-import { createRoot } from 'react-dom/client'
+import { StrictMode, useDeferredValue, useEffect, useId, useMemo, useState, startTransition } from "react";
+import { createRoot } from "react-dom/client";
 
-type ThemeMode = 'light' | 'dark'
-type ColumnId = 'today' | 'upcoming' | 'blocked' | 'done'
-type Priority = 'low' | 'medium' | 'high' | 'critical'
-type FilterId = 'all' | 'mine' | 'urgent' | 'due-soon' | 'completed'
-type DashboardId = 'overview' | 'board' | 'calendar' | 'focus'
+type ThemeMode = "light" | "dark";
+type ColumnId = "today" | "upcoming" | "blocked" | "done";
+type Priority = "low" | "medium" | "high" | "critical";
+type FilterId = "all" | "mine" | "urgent" | "due-soon" | "completed";
+type DashboardId = "overview" | "board" | "calendar" | "focus";
 
 type Task = {
-  id: string
-  title: string
-  detail: string
-  column: ColumnId
-  priority: Priority
-  progress: number
-  due: string
-  assignee: string
-  team: string[]
-  estimate: string
-  tag: string
-  accent: string
-  createdAt: string
-  completed: boolean
-}
+  id: string;
+  title: string;
+  detail: string;
+  column: ColumnId;
+  priority: Priority;
+  progress: number;
+  due: string;
+  assignee: string;
+  team: string[];
+  estimate: string;
+  tag: string;
+  accent: string;
+  createdAt: string;
+  completed: boolean;
+};
 
 type Sprint = {
-  id: string
-  name: string
-  detail: string
-  completion: number
-  tasks: string[]
-}
+  id: string;
+  name: string;
+  detail: string;
+  completion: number;
+  tasks: string[];
+};
 
 type Activity = {
-  id: string
-  title: string
-  detail: string
-  time: string
-}
+  id: string;
+  title: string;
+  detail: string;
+  time: string;
+};
 
 type Habit = {
-  id: string
-  label: string
-  streak: number
-  rate: number
-}
+  id: string;
+  label: string;
+  streak: number;
+  rate: number;
+};
 
-const columns: ColumnId[] = ['today', 'upcoming', 'blocked', 'done']
+const columns: ColumnId[] = ["today", "upcoming", "blocked", "done"];
 
-const priorities: Priority[] = ['low', 'medium', 'high', 'critical']
+const priorities: Priority[] = ["low", "medium", "high", "critical"];
 
-const accents = ['#111827', '#0f766e', '#1d4ed8', '#be123c', '#92400e', '#4338ca', '#047857', '#7c2d12'] as const
+const accents = ["#111827", "#0f766e", "#1d4ed8", "#be123c", "#92400e", "#4338ca", "#047857", "#7c2d12"] as const;
 
 const tasks: Task[] = [
   {
-    "id": "task-1",
-    "title": "Draft onboarding 1",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for API.",
-    "column": "upcoming",
-    "priority": "medium",
-    "progress": 29,
-    "due": "Mar 1, 2026",
-    "assignee": "Maya",
-    "team": [
-      "Maya",
-      "Ava",
-      "Iris"
-    ],
-    "estimate": "2h",
-    "tag": "frontend",
-    "accent": "#0f766e",
-    "createdAt": "2026-03-01",
-    "completed": false
-  },
-  {
-    "id": "task-2",
-    "title": "Align campaign 2",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for theme.",
-    "column": "blocked",
-    "priority": "high",
-    "progress": 42,
-    "due": "Mar 2, 2026",
-    "assignee": "Leo",
-    "team": [
-      "Leo",
-      "Noah",
-      "Milan"
-    ],
-    "estimate": "3h",
-    "tag": "backend",
-    "accent": "#1d4ed8",
-    "createdAt": "2026-03-02",
-    "completed": false
-  },
-  {
-    "id": "task-3",
-    "title": "Review API 3",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for checklist.",
-    "column": "done",
-    "priority": "critical",
-    "progress": 100,
-    "due": "Mar 3, 2026",
-    "assignee": "Ava",
-    "team": [
-      "Ava",
-      "Iris",
-      "Sara"
-    ],
-    "estimate": "4h",
-    "tag": "ops",
-    "accent": "#be123c",
-    "createdAt": "2026-03-03",
-    "completed": true
-  },
-  {
-    "id": "task-4",
-    "title": "Ship theme 4",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for profile.",
-    "column": "today",
-    "priority": "low",
-    "progress": 56,
-    "due": "Mar 4, 2026",
-    "assignee": "Noah",
-    "team": [
-      "Noah",
-      "Milan",
-      "Nika"
-    ],
-    "estimate": "5h",
-    "tag": "research",
-    "accent": "#92400e",
-    "createdAt": "2026-03-04",
-    "completed": false
-  },
-  {
-    "id": "task-5",
-    "title": "Map checklist 5",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for timeline.",
-    "column": "upcoming",
-    "priority": "medium",
-    "progress": 65,
-    "due": "Mar 5, 2026",
-    "assignee": "Iris",
-    "team": [
-      "Iris",
-      "Sara",
-      "Maya"
-    ],
-    "estimate": "6h",
-    "tag": "content",
-    "accent": "#4338ca",
-    "createdAt": "2026-03-05",
-    "completed": false
-  },
-  {
-    "id": "task-6",
-    "title": "Test profile 6",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for report.",
-    "column": "blocked",
-    "priority": "high",
-    "progress": 42,
-    "due": "Mar 6, 2026",
-    "assignee": "Milan",
-    "team": [
-      "Milan",
-      "Nika",
-      "Leo"
-    ],
-    "estimate": "1h",
-    "tag": "review",
-    "accent": "#047857",
-    "createdAt": "2026-03-06",
-    "completed": false
-  },
-  {
-    "id": "task-7",
-    "title": "Polish timeline 7",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for workflow.",
-    "column": "done",
-    "priority": "critical",
-    "progress": 100,
-    "due": "Mar 7, 2026",
-    "assignee": "Sara",
-    "team": [
-      "Sara",
-      "Maya",
-      "Ava"
-    ],
-    "estimate": "2h",
-    "tag": "meeting",
-    "accent": "#7c2d12",
-    "createdAt": "2026-03-07",
-    "completed": true
-  },
-  {
-    "id": "task-8",
-    "title": "Write report 8",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for dashboard.",
-    "column": "today",
-    "priority": "low",
-    "progress": 22,
-    "due": "Mar 8, 2026",
-    "assignee": "Nika",
-    "team": [
-      "Nika",
-      "Leo",
-      "Noah"
-    ],
-    "estimate": "3h",
-    "tag": "design",
-    "accent": "#111827",
-    "createdAt": "2026-03-08",
-    "completed": false
-  },
-  {
-    "id": "task-9",
-    "title": "Audit workflow 9",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for onboarding.",
-    "column": "upcoming",
-    "priority": "medium",
-    "progress": 31,
-    "due": "Mar 9, 2026",
-    "assignee": "Maya",
-    "team": [
-      "Maya",
-      "Ava",
-      "Iris"
-    ],
-    "estimate": "4h",
-    "tag": "frontend",
-    "accent": "#0f766e",
-    "createdAt": "2026-03-09",
-    "completed": false
-  },
-  {
-    "id": "task-10",
-    "title": "Refine dashboard 10",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for campaign.",
-    "column": "blocked",
-    "priority": "high",
-    "progress": 42,
-    "due": "Mar 10, 2026",
-    "assignee": "Leo",
-    "team": [
-      "Leo",
-      "Noah",
-      "Milan"
-    ],
-    "estimate": "5h",
-    "tag": "backend",
-    "accent": "#1d4ed8",
-    "createdAt": "2026-03-01",
-    "completed": false
-  },
-  {
-    "id": "task-11",
-    "title": "Draft onboarding 11",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for API.",
-    "column": "done",
-    "priority": "critical",
-    "progress": 100,
-    "due": "Mar 11, 2026",
-    "assignee": "Ava",
-    "team": [
-      "Ava",
-      "Iris",
-      "Sara"
-    ],
-    "estimate": "6h",
-    "tag": "ops",
-    "accent": "#be123c",
-    "createdAt": "2026-03-02",
-    "completed": true
-  },
-  {
-    "id": "task-12",
-    "title": "Align campaign 12",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for theme.",
-    "column": "today",
-    "priority": "low",
-    "progress": 58,
-    "due": "Mar 12, 2026",
-    "assignee": "Noah",
-    "team": [
-      "Noah",
-      "Milan",
-      "Nika"
-    ],
-    "estimate": "1h",
-    "tag": "research",
-    "accent": "#92400e",
-    "createdAt": "2026-03-03",
-    "completed": false
-  },
-  {
-    "id": "task-13",
-    "title": "Review API 13",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for checklist.",
-    "column": "upcoming",
-    "priority": "medium",
-    "progress": 67,
-    "due": "Mar 13, 2026",
-    "assignee": "Iris",
-    "team": [
-      "Iris",
-      "Sara",
-      "Maya"
-    ],
-    "estimate": "2h",
-    "tag": "content",
-    "accent": "#4338ca",
-    "createdAt": "2026-03-04",
-    "completed": false
-  },
-  {
-    "id": "task-14",
-    "title": "Ship theme 14",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for profile.",
-    "column": "blocked",
-    "priority": "high",
-    "progress": 42,
-    "due": "Mar 14, 2026",
-    "assignee": "Milan",
-    "team": [
-      "Milan",
-      "Nika",
-      "Leo"
-    ],
-    "estimate": "3h",
-    "tag": "review",
-    "accent": "#047857",
-    "createdAt": "2026-03-05",
-    "completed": false
-  },
-  {
-    "id": "task-15",
-    "title": "Map checklist 15",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for timeline.",
-    "column": "done",
-    "priority": "critical",
-    "progress": 100,
-    "due": "Mar 15, 2026",
-    "assignee": "Sara",
-    "team": [
-      "Sara",
-      "Maya",
-      "Ava"
-    ],
-    "estimate": "4h",
-    "tag": "meeting",
-    "accent": "#7c2d12",
-    "createdAt": "2026-03-06",
-    "completed": true
-  },
-  {
-    "id": "task-16",
-    "title": "Test profile 16",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for report.",
-    "column": "today",
-    "priority": "low",
-    "progress": 24,
-    "due": "Mar 16, 2026",
-    "assignee": "Nika",
-    "team": [
-      "Nika",
-      "Leo",
-      "Noah"
-    ],
-    "estimate": "5h",
-    "tag": "design",
-    "accent": "#111827",
-    "createdAt": "2026-03-07",
-    "completed": false
-  },
-  {
-    "id": "task-17",
-    "title": "Polish timeline 17",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for workflow.",
-    "column": "upcoming",
-    "priority": "medium",
-    "progress": 33,
-    "due": "Mar 17, 2026",
-    "assignee": "Maya",
-    "team": [
-      "Maya",
-      "Ava",
-      "Iris"
-    ],
-    "estimate": "6h",
-    "tag": "frontend",
-    "accent": "#0f766e",
-    "createdAt": "2026-03-08",
-    "completed": false
-  },
-  {
-    "id": "task-18",
-    "title": "Write report 18",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for dashboard.",
-    "column": "blocked",
-    "priority": "high",
-    "progress": 42,
-    "due": "Mar 18, 2026",
-    "assignee": "Leo",
-    "team": [
-      "Leo",
-      "Noah",
-      "Milan"
-    ],
-    "estimate": "1h",
-    "tag": "backend",
-    "accent": "#1d4ed8",
-    "createdAt": "2026-03-09",
-    "completed": false
-  },
-  {
-    "id": "task-19",
-    "title": "Audit workflow 19",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for onboarding.",
-    "column": "done",
-    "priority": "critical",
-    "progress": 100,
-    "due": "Mar 19, 2026",
-    "assignee": "Ava",
-    "team": [
-      "Ava",
-      "Iris",
-      "Sara"
-    ],
-    "estimate": "2h",
-    "tag": "ops",
-    "accent": "#be123c",
-    "createdAt": "2026-03-01",
-    "completed": true
-  },
-  {
-    "id": "task-20",
-    "title": "Refine dashboard 20",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for campaign.",
-    "column": "today",
-    "priority": "low",
-    "progress": 60,
-    "due": "Mar 20, 2026",
-    "assignee": "Noah",
-    "team": [
-      "Noah",
-      "Milan",
-      "Nika"
-    ],
-    "estimate": "3h",
-    "tag": "research",
-    "accent": "#92400e",
-    "createdAt": "2026-03-02",
-    "completed": false
-  },
-  {
-    "id": "task-21",
-    "title": "Draft onboarding 21",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for API.",
-    "column": "upcoming",
-    "priority": "medium",
-    "progress": 69,
-    "due": "Mar 21, 2026",
-    "assignee": "Iris",
-    "team": [
-      "Iris",
-      "Sara",
-      "Maya"
-    ],
-    "estimate": "4h",
-    "tag": "content",
-    "accent": "#4338ca",
-    "createdAt": "2026-03-03",
-    "completed": false
-  },
-  {
-    "id": "task-22",
-    "title": "Align campaign 22",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for theme.",
-    "column": "blocked",
-    "priority": "high",
-    "progress": 42,
-    "due": "Mar 22, 2026",
-    "assignee": "Milan",
-    "team": [
-      "Milan",
-      "Nika",
-      "Leo"
-    ],
-    "estimate": "5h",
-    "tag": "review",
-    "accent": "#047857",
-    "createdAt": "2026-03-04",
-    "completed": false
-  },
-  {
-    "id": "task-23",
-    "title": "Review API 23",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for checklist.",
-    "column": "done",
-    "priority": "critical",
-    "progress": 100,
-    "due": "Mar 23, 2026",
-    "assignee": "Sara",
-    "team": [
-      "Sara",
-      "Maya",
-      "Ava"
-    ],
-    "estimate": "6h",
-    "tag": "meeting",
-    "accent": "#7c2d12",
-    "createdAt": "2026-03-05",
-    "completed": true
-  },
-  {
-    "id": "task-24",
-    "title": "Ship theme 24",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for profile.",
-    "column": "today",
-    "priority": "low",
-    "progress": 26,
-    "due": "Mar 24, 2026",
-    "assignee": "Nika",
-    "team": [
-      "Nika",
-      "Leo",
-      "Noah"
-    ],
-    "estimate": "1h",
-    "tag": "design",
-    "accent": "#111827",
-    "createdAt": "2026-03-06",
-    "completed": false
-  },
-  {
-    "id": "task-25",
-    "title": "Map checklist 25",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for timeline.",
-    "column": "upcoming",
-    "priority": "medium",
-    "progress": 35,
-    "due": "Mar 25, 2026",
-    "assignee": "Maya",
-    "team": [
-      "Maya",
-      "Ava",
-      "Iris"
-    ],
-    "estimate": "2h",
-    "tag": "frontend",
-    "accent": "#0f766e",
-    "createdAt": "2026-03-07",
-    "completed": false
-  },
-  {
-    "id": "task-26",
-    "title": "Test profile 26",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for report.",
-    "column": "blocked",
-    "priority": "high",
-    "progress": 42,
-    "due": "Mar 26, 2026",
-    "assignee": "Leo",
-    "team": [
-      "Leo",
-      "Noah",
-      "Milan"
-    ],
-    "estimate": "3h",
-    "tag": "backend",
-    "accent": "#1d4ed8",
-    "createdAt": "2026-03-08",
-    "completed": false
-  },
-  {
-    "id": "task-27",
-    "title": "Polish timeline 27",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for workflow.",
-    "column": "done",
-    "priority": "critical",
-    "progress": 100,
-    "due": "Mar 27, 2026",
-    "assignee": "Ava",
-    "team": [
-      "Ava",
-      "Iris",
-      "Sara"
-    ],
-    "estimate": "4h",
-    "tag": "ops",
-    "accent": "#be123c",
-    "createdAt": "2026-03-09",
-    "completed": true
-  },
-  {
-    "id": "task-28",
-    "title": "Write report 28",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for dashboard.",
-    "column": "today",
-    "priority": "low",
-    "progress": 62,
-    "due": "Mar 28, 2026",
-    "assignee": "Noah",
-    "team": [
-      "Noah",
-      "Milan",
-      "Nika"
-    ],
-    "estimate": "5h",
-    "tag": "research",
-    "accent": "#92400e",
-    "createdAt": "2026-03-01",
-    "completed": false
-  },
-  {
-    "id": "task-29",
-    "title": "Audit workflow 29",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for onboarding.",
-    "column": "upcoming",
-    "priority": "medium",
-    "progress": 71,
-    "due": "Mar 1, 2026",
-    "assignee": "Iris",
-    "team": [
-      "Iris",
-      "Sara",
-      "Maya"
-    ],
-    "estimate": "6h",
-    "tag": "content",
-    "accent": "#4338ca",
-    "createdAt": "2026-03-02",
-    "completed": false
-  },
-  {
-    "id": "task-30",
-    "title": "Refine dashboard 30",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for campaign.",
-    "column": "blocked",
-    "priority": "high",
-    "progress": 42,
-    "due": "Mar 2, 2026",
-    "assignee": "Milan",
-    "team": [
-      "Milan",
-      "Nika",
-      "Leo"
-    ],
-    "estimate": "1h",
-    "tag": "review",
-    "accent": "#047857",
-    "createdAt": "2026-03-03",
-    "completed": false
-  },
-  {
-    "id": "task-31",
-    "title": "Draft onboarding 31",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for API.",
-    "column": "done",
-    "priority": "critical",
-    "progress": 100,
-    "due": "Mar 3, 2026",
-    "assignee": "Sara",
-    "team": [
-      "Sara",
-      "Maya",
-      "Ava"
-    ],
-    "estimate": "2h",
-    "tag": "meeting",
-    "accent": "#7c2d12",
-    "createdAt": "2026-03-04",
-    "completed": true
-  },
-  {
-    "id": "task-32",
-    "title": "Align campaign 32",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for theme.",
-    "column": "today",
-    "priority": "low",
-    "progress": 28,
-    "due": "Mar 4, 2026",
-    "assignee": "Nika",
-    "team": [
-      "Nika",
-      "Leo",
-      "Noah"
-    ],
-    "estimate": "3h",
-    "tag": "design",
-    "accent": "#111827",
-    "createdAt": "2026-03-05",
-    "completed": false
-  },
-  {
-    "id": "task-33",
-    "title": "Review API 33",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for checklist.",
-    "column": "upcoming",
-    "priority": "medium",
-    "progress": 37,
-    "due": "Mar 5, 2026",
-    "assignee": "Maya",
-    "team": [
-      "Maya",
-      "Ava",
-      "Iris"
-    ],
-    "estimate": "4h",
-    "tag": "frontend",
-    "accent": "#0f766e",
-    "createdAt": "2026-03-06",
-    "completed": false
-  },
-  {
-    "id": "task-34",
-    "title": "Ship theme 34",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for profile.",
-    "column": "blocked",
-    "priority": "high",
-    "progress": 42,
-    "due": "Mar 6, 2026",
-    "assignee": "Leo",
-    "team": [
-      "Leo",
-      "Noah",
-      "Milan"
-    ],
-    "estimate": "5h",
-    "tag": "backend",
-    "accent": "#1d4ed8",
-    "createdAt": "2026-03-07",
-    "completed": false
-  },
-  {
-    "id": "task-35",
-    "title": "Map checklist 35",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for timeline.",
-    "column": "done",
-    "priority": "critical",
-    "progress": 100,
-    "due": "Mar 7, 2026",
-    "assignee": "Ava",
-    "team": [
-      "Ava",
-      "Iris",
-      "Sara"
-    ],
-    "estimate": "6h",
-    "tag": "ops",
-    "accent": "#be123c",
-    "createdAt": "2026-03-08",
-    "completed": true
-  },
-  {
-    "id": "task-36",
-    "title": "Test profile 36",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for report.",
-    "column": "today",
-    "priority": "low",
-    "progress": 64,
-    "due": "Mar 8, 2026",
-    "assignee": "Noah",
-    "team": [
-      "Noah",
-      "Milan",
-      "Nika"
-    ],
-    "estimate": "1h",
-    "tag": "research",
-    "accent": "#92400e",
-    "createdAt": "2026-03-09",
-    "completed": false
-  },
-  {
-    "id": "task-37",
-    "title": "Polish timeline 37",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for workflow.",
-    "column": "upcoming",
-    "priority": "medium",
-    "progress": 73,
-    "due": "Mar 9, 2026",
-    "assignee": "Iris",
-    "team": [
-      "Iris",
-      "Sara",
-      "Maya"
-    ],
-    "estimate": "2h",
-    "tag": "content",
-    "accent": "#4338ca",
-    "createdAt": "2026-03-01",
-    "completed": false
-  },
-  {
-    "id": "task-38",
-    "title": "Write report 38",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for dashboard.",
-    "column": "blocked",
-    "priority": "high",
-    "progress": 42,
-    "due": "Mar 10, 2026",
-    "assignee": "Milan",
-    "team": [
-      "Milan",
-      "Nika",
-      "Leo"
-    ],
-    "estimate": "3h",
-    "tag": "review",
-    "accent": "#047857",
-    "createdAt": "2026-03-02",
-    "completed": false
-  },
-  {
-    "id": "task-39",
-    "title": "Audit workflow 39",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for onboarding.",
-    "column": "done",
-    "priority": "critical",
-    "progress": 100,
-    "due": "Mar 11, 2026",
-    "assignee": "Sara",
-    "team": [
-      "Sara",
-      "Maya",
-      "Ava"
-    ],
-    "estimate": "4h",
-    "tag": "meeting",
-    "accent": "#7c2d12",
-    "createdAt": "2026-03-03",
-    "completed": true
-  },
-  {
-    "id": "task-40",
-    "title": "Refine dashboard 40",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for campaign.",
-    "column": "today",
-    "priority": "low",
-    "progress": 30,
-    "due": "Mar 12, 2026",
-    "assignee": "Nika",
-    "team": [
-      "Nika",
-      "Leo",
-      "Noah"
-    ],
-    "estimate": "5h",
-    "tag": "design",
-    "accent": "#111827",
-    "createdAt": "2026-03-04",
-    "completed": false
-  },
-  {
-    "id": "task-41",
-    "title": "Draft onboarding 41",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for API.",
-    "column": "upcoming",
-    "priority": "medium",
-    "progress": 39,
-    "due": "Mar 13, 2026",
-    "assignee": "Maya",
-    "team": [
-      "Maya",
-      "Ava",
-      "Iris"
-    ],
-    "estimate": "6h",
-    "tag": "frontend",
-    "accent": "#0f766e",
-    "createdAt": "2026-03-05",
-    "completed": false
-  },
-  {
-    "id": "task-42",
-    "title": "Align campaign 42",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for theme.",
-    "column": "blocked",
-    "priority": "high",
-    "progress": 42,
-    "due": "Mar 14, 2026",
-    "assignee": "Leo",
-    "team": [
-      "Leo",
-      "Noah",
-      "Milan"
-    ],
-    "estimate": "1h",
-    "tag": "backend",
-    "accent": "#1d4ed8",
-    "createdAt": "2026-03-06",
-    "completed": false
-  },
-  {
-    "id": "task-43",
-    "title": "Review API 43",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for checklist.",
-    "column": "done",
-    "priority": "critical",
-    "progress": 100,
-    "due": "Mar 15, 2026",
-    "assignee": "Ava",
-    "team": [
-      "Ava",
-      "Iris",
-      "Sara"
-    ],
-    "estimate": "2h",
-    "tag": "ops",
-    "accent": "#be123c",
-    "createdAt": "2026-03-07",
-    "completed": true
-  },
-  {
-    "id": "task-44",
-    "title": "Ship theme 44",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for profile.",
-    "column": "today",
-    "priority": "low",
-    "progress": 66,
-    "due": "Mar 16, 2026",
-    "assignee": "Noah",
-    "team": [
-      "Noah",
-      "Milan",
-      "Nika"
-    ],
-    "estimate": "3h",
-    "tag": "research",
-    "accent": "#92400e",
-    "createdAt": "2026-03-08",
-    "completed": false
-  },
-  {
-    "id": "task-45",
-    "title": "Map checklist 45",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for timeline.",
-    "column": "upcoming",
-    "priority": "medium",
-    "progress": 75,
-    "due": "Mar 17, 2026",
-    "assignee": "Iris",
-    "team": [
-      "Iris",
-      "Sara",
-      "Maya"
-    ],
-    "estimate": "4h",
-    "tag": "content",
-    "accent": "#4338ca",
-    "createdAt": "2026-03-09",
-    "completed": false
-  },
-  {
-    "id": "task-46",
-    "title": "Test profile 46",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for report.",
-    "column": "blocked",
-    "priority": "high",
-    "progress": 42,
-    "due": "Mar 18, 2026",
-    "assignee": "Milan",
-    "team": [
-      "Milan",
-      "Nika",
-      "Leo"
-    ],
-    "estimate": "5h",
-    "tag": "review",
-    "accent": "#047857",
-    "createdAt": "2026-03-01",
-    "completed": false
-  },
-  {
-    "id": "task-47",
-    "title": "Polish timeline 47",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for workflow.",
-    "column": "done",
-    "priority": "critical",
-    "progress": 100,
-    "due": "Mar 19, 2026",
-    "assignee": "Sara",
-    "team": [
-      "Sara",
-      "Maya",
-      "Ava"
-    ],
-    "estimate": "6h",
-    "tag": "meeting",
-    "accent": "#7c2d12",
-    "createdAt": "2026-03-02",
-    "completed": true
-  },
-  {
-    "id": "task-48",
-    "title": "Write report 48",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for dashboard.",
-    "column": "today",
-    "priority": "low",
-    "progress": 32,
-    "due": "Mar 20, 2026",
-    "assignee": "Nika",
-    "team": [
-      "Nika",
-      "Leo",
-      "Noah"
-    ],
-    "estimate": "1h",
-    "tag": "design",
-    "accent": "#111827",
-    "createdAt": "2026-03-03",
-    "completed": false
-  },
-  {
-    "id": "task-49",
-    "title": "Audit workflow 49",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for onboarding.",
-    "column": "upcoming",
-    "priority": "medium",
-    "progress": 41,
-    "due": "Mar 21, 2026",
-    "assignee": "Maya",
-    "team": [
-      "Maya",
-      "Ava",
-      "Iris"
-    ],
-    "estimate": "2h",
-    "tag": "frontend",
-    "accent": "#0f766e",
-    "createdAt": "2026-03-04",
-    "completed": false
-  },
-  {
-    "id": "task-50",
-    "title": "Refine dashboard 50",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for campaign.",
-    "column": "blocked",
-    "priority": "high",
-    "progress": 42,
-    "due": "Mar 22, 2026",
-    "assignee": "Leo",
-    "team": [
-      "Leo",
-      "Noah",
-      "Milan"
-    ],
-    "estimate": "3h",
-    "tag": "backend",
-    "accent": "#1d4ed8",
-    "createdAt": "2026-03-05",
-    "completed": false
-  },
-  {
-    "id": "task-51",
-    "title": "Draft onboarding 51",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for API.",
-    "column": "done",
-    "priority": "critical",
-    "progress": 100,
-    "due": "Mar 23, 2026",
-    "assignee": "Ava",
-    "team": [
-      "Ava",
-      "Iris",
-      "Sara"
-    ],
-    "estimate": "4h",
-    "tag": "ops",
-    "accent": "#be123c",
-    "createdAt": "2026-03-06",
-    "completed": true
-  },
-  {
-    "id": "task-52",
-    "title": "Align campaign 52",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for theme.",
-    "column": "today",
-    "priority": "low",
-    "progress": 68,
-    "due": "Mar 24, 2026",
-    "assignee": "Noah",
-    "team": [
-      "Noah",
-      "Milan",
-      "Nika"
-    ],
-    "estimate": "5h",
-    "tag": "research",
-    "accent": "#92400e",
-    "createdAt": "2026-03-07",
-    "completed": false
-  },
-  {
-    "id": "task-53",
-    "title": "Review API 53",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for checklist.",
-    "column": "upcoming",
-    "priority": "medium",
-    "progress": 77,
-    "due": "Mar 25, 2026",
-    "assignee": "Iris",
-    "team": [
-      "Iris",
-      "Sara",
-      "Maya"
-    ],
-    "estimate": "6h",
-    "tag": "content",
-    "accent": "#4338ca",
-    "createdAt": "2026-03-08",
-    "completed": false
-  },
-  {
-    "id": "task-54",
-    "title": "Ship theme 54",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for profile.",
-    "column": "blocked",
-    "priority": "high",
-    "progress": 42,
-    "due": "Mar 26, 2026",
-    "assignee": "Milan",
-    "team": [
-      "Milan",
-      "Nika",
-      "Leo"
-    ],
-    "estimate": "1h",
-    "tag": "review",
-    "accent": "#047857",
-    "createdAt": "2026-03-09",
-    "completed": false
-  },
-  {
-    "id": "task-55",
-    "title": "Map checklist 55",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for timeline.",
-    "column": "done",
-    "priority": "critical",
-    "progress": 100,
-    "due": "Mar 27, 2026",
-    "assignee": "Sara",
-    "team": [
-      "Sara",
-      "Maya",
-      "Ava"
-    ],
-    "estimate": "2h",
-    "tag": "meeting",
-    "accent": "#7c2d12",
-    "createdAt": "2026-03-01",
-    "completed": true
-  },
-  {
-    "id": "task-56",
-    "title": "Test profile 56",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for report.",
-    "column": "today",
-    "priority": "low",
-    "progress": 34,
-    "due": "Mar 28, 2026",
-    "assignee": "Nika",
-    "team": [
-      "Nika",
-      "Leo",
-      "Noah"
-    ],
-    "estimate": "3h",
-    "tag": "design",
-    "accent": "#111827",
-    "createdAt": "2026-03-02",
-    "completed": false
-  },
-  {
-    "id": "task-57",
-    "title": "Polish timeline 57",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for workflow.",
-    "column": "upcoming",
-    "priority": "medium",
-    "progress": 43,
-    "due": "Mar 1, 2026",
-    "assignee": "Maya",
-    "team": [
-      "Maya",
-      "Ava",
-      "Iris"
-    ],
-    "estimate": "4h",
-    "tag": "frontend",
-    "accent": "#0f766e",
-    "createdAt": "2026-03-03",
-    "completed": false
-  },
-  {
-    "id": "task-58",
-    "title": "Write report 58",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for dashboard.",
-    "column": "blocked",
-    "priority": "high",
-    "progress": 42,
-    "due": "Mar 2, 2026",
-    "assignee": "Leo",
-    "team": [
-      "Leo",
-      "Noah",
-      "Milan"
-    ],
-    "estimate": "5h",
-    "tag": "backend",
-    "accent": "#1d4ed8",
-    "createdAt": "2026-03-04",
-    "completed": false
-  },
-  {
-    "id": "task-59",
-    "title": "Audit workflow 59",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for onboarding.",
-    "column": "done",
-    "priority": "critical",
-    "progress": 100,
-    "due": "Mar 3, 2026",
-    "assignee": "Ava",
-    "team": [
-      "Ava",
-      "Iris",
-      "Sara"
-    ],
-    "estimate": "6h",
-    "tag": "ops",
-    "accent": "#be123c",
-    "createdAt": "2026-03-05",
-    "completed": true
-  },
-  {
-    "id": "task-60",
-    "title": "Refine dashboard 60",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for campaign.",
-    "column": "today",
-    "priority": "low",
-    "progress": 70,
-    "due": "Mar 4, 2026",
-    "assignee": "Noah",
-    "team": [
-      "Noah",
-      "Milan",
-      "Nika"
-    ],
-    "estimate": "1h",
-    "tag": "research",
-    "accent": "#92400e",
-    "createdAt": "2026-03-06",
-    "completed": false
-  },
-  {
-    "id": "task-61",
-    "title": "Draft onboarding 61",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for API.",
-    "column": "upcoming",
-    "priority": "medium",
-    "progress": 79,
-    "due": "Mar 5, 2026",
-    "assignee": "Iris",
-    "team": [
-      "Iris",
-      "Sara",
-      "Maya"
-    ],
-    "estimate": "2h",
-    "tag": "content",
-    "accent": "#4338ca",
-    "createdAt": "2026-03-07",
-    "completed": false
-  },
-  {
-    "id": "task-62",
-    "title": "Align campaign 62",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for theme.",
-    "column": "blocked",
-    "priority": "high",
-    "progress": 42,
-    "due": "Mar 6, 2026",
-    "assignee": "Milan",
-    "team": [
-      "Milan",
-      "Nika",
-      "Leo"
-    ],
-    "estimate": "3h",
-    "tag": "review",
-    "accent": "#047857",
-    "createdAt": "2026-03-08",
-    "completed": false
-  },
-  {
-    "id": "task-63",
-    "title": "Review API 63",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for checklist.",
-    "column": "done",
-    "priority": "critical",
-    "progress": 100,
-    "due": "Mar 7, 2026",
-    "assignee": "Sara",
-    "team": [
-      "Sara",
-      "Maya",
-      "Ava"
-    ],
-    "estimate": "4h",
-    "tag": "meeting",
-    "accent": "#7c2d12",
-    "createdAt": "2026-03-09",
-    "completed": true
-  },
-  {
-    "id": "task-64",
-    "title": "Ship theme 64",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for profile.",
-    "column": "today",
-    "priority": "low",
-    "progress": 36,
-    "due": "Mar 8, 2026",
-    "assignee": "Nika",
-    "team": [
-      "Nika",
-      "Leo",
-      "Noah"
-    ],
-    "estimate": "5h",
-    "tag": "design",
-    "accent": "#111827",
-    "createdAt": "2026-03-01",
-    "completed": false
-  },
-  {
-    "id": "task-65",
-    "title": "Map checklist 65",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for timeline.",
-    "column": "upcoming",
-    "priority": "medium",
-    "progress": 45,
-    "due": "Mar 9, 2026",
-    "assignee": "Maya",
-    "team": [
-      "Maya",
-      "Ava",
-      "Iris"
-    ],
-    "estimate": "6h",
-    "tag": "frontend",
-    "accent": "#0f766e",
-    "createdAt": "2026-03-02",
-    "completed": false
-  },
-  {
-    "id": "task-66",
-    "title": "Test profile 66",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for report.",
-    "column": "blocked",
-    "priority": "high",
-    "progress": 42,
-    "due": "Mar 10, 2026",
-    "assignee": "Leo",
-    "team": [
-      "Leo",
-      "Noah",
-      "Milan"
-    ],
-    "estimate": "1h",
-    "tag": "backend",
-    "accent": "#1d4ed8",
-    "createdAt": "2026-03-03",
-    "completed": false
-  },
-  {
-    "id": "task-67",
-    "title": "Polish timeline 67",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for workflow.",
-    "column": "done",
-    "priority": "critical",
-    "progress": 100,
-    "due": "Mar 11, 2026",
-    "assignee": "Ava",
-    "team": [
-      "Ava",
-      "Iris",
-      "Sara"
-    ],
-    "estimate": "2h",
-    "tag": "ops",
-    "accent": "#be123c",
-    "createdAt": "2026-03-04",
-    "completed": true
-  },
-  {
-    "id": "task-68",
-    "title": "Write report 68",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for dashboard.",
-    "column": "today",
-    "priority": "low",
-    "progress": 72,
-    "due": "Mar 12, 2026",
-    "assignee": "Noah",
-    "team": [
-      "Noah",
-      "Milan",
-      "Nika"
-    ],
-    "estimate": "3h",
-    "tag": "research",
-    "accent": "#92400e",
-    "createdAt": "2026-03-05",
-    "completed": false
-  },
-  {
-    "id": "task-69",
-    "title": "Audit workflow 69",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for onboarding.",
-    "column": "upcoming",
-    "priority": "medium",
-    "progress": 81,
-    "due": "Mar 13, 2026",
-    "assignee": "Iris",
-    "team": [
-      "Iris",
-      "Sara",
-      "Maya"
-    ],
-    "estimate": "4h",
-    "tag": "content",
-    "accent": "#4338ca",
-    "createdAt": "2026-03-06",
-    "completed": false
-  },
-  {
-    "id": "task-70",
-    "title": "Refine dashboard 70",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for campaign.",
-    "column": "blocked",
-    "priority": "high",
-    "progress": 42,
-    "due": "Mar 14, 2026",
-    "assignee": "Milan",
-    "team": [
-      "Milan",
-      "Nika",
-      "Leo"
-    ],
-    "estimate": "5h",
-    "tag": "review",
-    "accent": "#047857",
-    "createdAt": "2026-03-07",
-    "completed": false
-  },
-  {
-    "id": "task-71",
-    "title": "Draft onboarding 71",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for API.",
-    "column": "done",
-    "priority": "critical",
-    "progress": 100,
-    "due": "Mar 15, 2026",
-    "assignee": "Sara",
-    "team": [
-      "Sara",
-      "Maya",
-      "Ava"
-    ],
-    "estimate": "6h",
-    "tag": "meeting",
-    "accent": "#7c2d12",
-    "createdAt": "2026-03-08",
-    "completed": true
-  },
-  {
-    "id": "task-72",
-    "title": "Align campaign 72",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for theme.",
-    "column": "today",
-    "priority": "low",
-    "progress": 38,
-    "due": "Mar 16, 2026",
-    "assignee": "Nika",
-    "team": [
-      "Nika",
-      "Leo",
-      "Noah"
-    ],
-    "estimate": "1h",
-    "tag": "design",
-    "accent": "#111827",
-    "createdAt": "2026-03-09",
-    "completed": false
-  },
-  {
-    "id": "task-73",
-    "title": "Review API 73",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for checklist.",
-    "column": "upcoming",
-    "priority": "medium",
-    "progress": 47,
-    "due": "Mar 17, 2026",
-    "assignee": "Maya",
-    "team": [
-      "Maya",
-      "Ava",
-      "Iris"
-    ],
-    "estimate": "2h",
-    "tag": "frontend",
-    "accent": "#0f766e",
-    "createdAt": "2026-03-01",
-    "completed": false
-  },
-  {
-    "id": "task-74",
-    "title": "Ship theme 74",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for profile.",
-    "column": "blocked",
-    "priority": "high",
-    "progress": 42,
-    "due": "Mar 18, 2026",
-    "assignee": "Leo",
-    "team": [
-      "Leo",
-      "Noah",
-      "Milan"
-    ],
-    "estimate": "3h",
-    "tag": "backend",
-    "accent": "#1d4ed8",
-    "createdAt": "2026-03-02",
-    "completed": false
-  },
-  {
-    "id": "task-75",
-    "title": "Map checklist 75",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for timeline.",
-    "column": "done",
-    "priority": "critical",
-    "progress": 100,
-    "due": "Mar 19, 2026",
-    "assignee": "Ava",
-    "team": [
-      "Ava",
-      "Iris",
-      "Sara"
-    ],
-    "estimate": "4h",
-    "tag": "ops",
-    "accent": "#be123c",
-    "createdAt": "2026-03-03",
-    "completed": true
-  },
-  {
-    "id": "task-76",
-    "title": "Test profile 76",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for report.",
-    "column": "today",
-    "priority": "low",
-    "progress": 74,
-    "due": "Mar 20, 2026",
-    "assignee": "Noah",
-    "team": [
-      "Noah",
-      "Milan",
-      "Nika"
-    ],
-    "estimate": "5h",
-    "tag": "research",
-    "accent": "#92400e",
-    "createdAt": "2026-03-04",
-    "completed": false
-  },
-  {
-    "id": "task-77",
-    "title": "Polish timeline 77",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for workflow.",
-    "column": "upcoming",
-    "priority": "medium",
-    "progress": 83,
-    "due": "Mar 21, 2026",
-    "assignee": "Iris",
-    "team": [
-      "Iris",
-      "Sara",
-      "Maya"
-    ],
-    "estimate": "6h",
-    "tag": "content",
-    "accent": "#4338ca",
-    "createdAt": "2026-03-05",
-    "completed": false
-  },
-  {
-    "id": "task-78",
-    "title": "Write report 78",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for dashboard.",
-    "column": "blocked",
-    "priority": "high",
-    "progress": 42,
-    "due": "Mar 22, 2026",
-    "assignee": "Milan",
-    "team": [
-      "Milan",
-      "Nika",
-      "Leo"
-    ],
-    "estimate": "1h",
-    "tag": "review",
-    "accent": "#047857",
-    "createdAt": "2026-03-06",
-    "completed": false
-  },
-  {
-    "id": "task-79",
-    "title": "Audit workflow 79",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for onboarding.",
-    "column": "done",
-    "priority": "critical",
-    "progress": 100,
-    "due": "Mar 23, 2026",
-    "assignee": "Sara",
-    "team": [
-      "Sara",
-      "Maya",
-      "Ava"
-    ],
-    "estimate": "2h",
-    "tag": "meeting",
-    "accent": "#7c2d12",
-    "createdAt": "2026-03-07",
-    "completed": true
-  },
-  {
-    "id": "task-80",
-    "title": "Refine dashboard 80",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for campaign.",
-    "column": "today",
-    "priority": "low",
-    "progress": 40,
-    "due": "Mar 24, 2026",
-    "assignee": "Nika",
-    "team": [
-      "Nika",
-      "Leo",
-      "Noah"
-    ],
-    "estimate": "3h",
-    "tag": "design",
-    "accent": "#111827",
-    "createdAt": "2026-03-08",
-    "completed": false
-  },
-  {
-    "id": "task-81",
-    "title": "Draft onboarding 81",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for API.",
-    "column": "upcoming",
-    "priority": "medium",
-    "progress": 49,
-    "due": "Mar 25, 2026",
-    "assignee": "Maya",
-    "team": [
-      "Maya",
-      "Ava",
-      "Iris"
-    ],
-    "estimate": "4h",
-    "tag": "frontend",
-    "accent": "#0f766e",
-    "createdAt": "2026-03-09",
-    "completed": false
-  },
-  {
-    "id": "task-82",
-    "title": "Align campaign 82",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for theme.",
-    "column": "blocked",
-    "priority": "high",
-    "progress": 42,
-    "due": "Mar 26, 2026",
-    "assignee": "Leo",
-    "team": [
-      "Leo",
-      "Noah",
-      "Milan"
-    ],
-    "estimate": "5h",
-    "tag": "backend",
-    "accent": "#1d4ed8",
-    "createdAt": "2026-03-01",
-    "completed": false
-  },
-  {
-    "id": "task-83",
-    "title": "Review API 83",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for checklist.",
-    "column": "done",
-    "priority": "critical",
-    "progress": 100,
-    "due": "Mar 27, 2026",
-    "assignee": "Ava",
-    "team": [
-      "Ava",
-      "Iris",
-      "Sara"
-    ],
-    "estimate": "6h",
-    "tag": "ops",
-    "accent": "#be123c",
-    "createdAt": "2026-03-02",
-    "completed": true
-  },
-  {
-    "id": "task-84",
-    "title": "Ship theme 84",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for profile.",
-    "column": "today",
-    "priority": "low",
-    "progress": 76,
-    "due": "Mar 28, 2026",
-    "assignee": "Noah",
-    "team": [
-      "Noah",
-      "Milan",
-      "Nika"
-    ],
-    "estimate": "1h",
-    "tag": "research",
-    "accent": "#92400e",
-    "createdAt": "2026-03-03",
-    "completed": false
-  },
-  {
-    "id": "task-85",
-    "title": "Map checklist 85",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for timeline.",
-    "column": "upcoming",
-    "priority": "medium",
-    "progress": 85,
-    "due": "Mar 1, 2026",
-    "assignee": "Iris",
-    "team": [
-      "Iris",
-      "Sara",
-      "Maya"
-    ],
-    "estimate": "2h",
-    "tag": "content",
-    "accent": "#4338ca",
-    "createdAt": "2026-03-04",
-    "completed": false
-  },
-  {
-    "id": "task-86",
-    "title": "Test profile 86",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for report.",
-    "column": "blocked",
-    "priority": "high",
-    "progress": 42,
-    "due": "Mar 2, 2026",
-    "assignee": "Milan",
-    "team": [
-      "Milan",
-      "Nika",
-      "Leo"
-    ],
-    "estimate": "3h",
-    "tag": "review",
-    "accent": "#047857",
-    "createdAt": "2026-03-05",
-    "completed": false
-  },
-  {
-    "id": "task-87",
-    "title": "Polish timeline 87",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for workflow.",
-    "column": "done",
-    "priority": "critical",
-    "progress": 100,
-    "due": "Mar 3, 2026",
-    "assignee": "Sara",
-    "team": [
-      "Sara",
-      "Maya",
-      "Ava"
-    ],
-    "estimate": "4h",
-    "tag": "meeting",
-    "accent": "#7c2d12",
-    "createdAt": "2026-03-06",
-    "completed": true
-  },
-  {
-    "id": "task-88",
-    "title": "Write report 88",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for dashboard.",
-    "column": "today",
-    "priority": "low",
-    "progress": 42,
-    "due": "Mar 4, 2026",
-    "assignee": "Nika",
-    "team": [
-      "Nika",
-      "Leo",
-      "Noah"
-    ],
-    "estimate": "5h",
-    "tag": "design",
-    "accent": "#111827",
-    "createdAt": "2026-03-07",
-    "completed": false
-  },
-  {
-    "id": "task-89",
-    "title": "Audit workflow 89",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for onboarding.",
-    "column": "upcoming",
-    "priority": "medium",
-    "progress": 51,
-    "due": "Mar 5, 2026",
-    "assignee": "Maya",
-    "team": [
-      "Maya",
-      "Ava",
-      "Iris"
-    ],
-    "estimate": "6h",
-    "tag": "frontend",
-    "accent": "#0f766e",
-    "createdAt": "2026-03-08",
-    "completed": false
-  },
-  {
-    "id": "task-90",
-    "title": "Refine dashboard 90",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for campaign.",
-    "column": "blocked",
-    "priority": "high",
-    "progress": 42,
-    "due": "Mar 6, 2026",
-    "assignee": "Leo",
-    "team": [
-      "Leo",
-      "Noah",
-      "Milan"
-    ],
-    "estimate": "1h",
-    "tag": "backend",
-    "accent": "#1d4ed8",
-    "createdAt": "2026-03-09",
-    "completed": false
-  },
-  {
-    "id": "task-91",
-    "title": "Draft onboarding 91",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for API.",
-    "column": "done",
-    "priority": "critical",
-    "progress": 100,
-    "due": "Mar 7, 2026",
-    "assignee": "Ava",
-    "team": [
-      "Ava",
-      "Iris",
-      "Sara"
-    ],
-    "estimate": "2h",
-    "tag": "ops",
-    "accent": "#be123c",
-    "createdAt": "2026-03-01",
-    "completed": true
-  },
-  {
-    "id": "task-92",
-    "title": "Align campaign 92",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for theme.",
-    "column": "today",
-    "priority": "low",
-    "progress": 78,
-    "due": "Mar 8, 2026",
-    "assignee": "Noah",
-    "team": [
-      "Noah",
-      "Milan",
-      "Nika"
-    ],
-    "estimate": "3h",
-    "tag": "research",
-    "accent": "#92400e",
-    "createdAt": "2026-03-02",
-    "completed": false
-  },
-  {
-    "id": "task-93",
-    "title": "Review API 93",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for checklist.",
-    "column": "upcoming",
-    "priority": "medium",
-    "progress": 87,
-    "due": "Mar 9, 2026",
-    "assignee": "Iris",
-    "team": [
-      "Iris",
-      "Sara",
-      "Maya"
-    ],
-    "estimate": "4h",
-    "tag": "content",
-    "accent": "#4338ca",
-    "createdAt": "2026-03-03",
-    "completed": false
-  },
-  {
-    "id": "task-94",
-    "title": "Ship theme 94",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for profile.",
-    "column": "blocked",
-    "priority": "high",
-    "progress": 42,
-    "due": "Mar 10, 2026",
-    "assignee": "Milan",
-    "team": [
-      "Milan",
-      "Nika",
-      "Leo"
-    ],
-    "estimate": "5h",
-    "tag": "review",
-    "accent": "#047857",
-    "createdAt": "2026-03-04",
-    "completed": false
-  },
-  {
-    "id": "task-95",
-    "title": "Map checklist 95",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for timeline.",
-    "column": "done",
-    "priority": "critical",
-    "progress": 100,
-    "due": "Mar 11, 2026",
-    "assignee": "Sara",
-    "team": [
-      "Sara",
-      "Maya",
-      "Ava"
-    ],
-    "estimate": "6h",
-    "tag": "meeting",
-    "accent": "#7c2d12",
-    "createdAt": "2026-03-05",
-    "completed": true
-  },
-  {
-    "id": "task-96",
-    "title": "Test profile 96",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for report.",
-    "column": "today",
-    "priority": "low",
-    "progress": 44,
-    "due": "Mar 12, 2026",
-    "assignee": "Nika",
-    "team": [
-      "Nika",
-      "Leo",
-      "Noah"
-    ],
-    "estimate": "1h",
-    "tag": "design",
-    "accent": "#111827",
-    "createdAt": "2026-03-06",
-    "completed": false
-  },
-  {
-    "id": "task-97",
-    "title": "Polish timeline 97",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for workflow.",
-    "column": "upcoming",
-    "priority": "medium",
-    "progress": 53,
-    "due": "Mar 13, 2026",
-    "assignee": "Maya",
-    "team": [
-      "Maya",
-      "Ava",
-      "Iris"
-    ],
-    "estimate": "2h",
-    "tag": "frontend",
-    "accent": "#0f766e",
-    "createdAt": "2026-03-07",
-    "completed": false
-  },
-  {
-    "id": "task-98",
-    "title": "Write report 98",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for dashboard.",
-    "column": "blocked",
-    "priority": "high",
-    "progress": 42,
-    "due": "Mar 14, 2026",
-    "assignee": "Leo",
-    "team": [
-      "Leo",
-      "Noah",
-      "Milan"
-    ],
-    "estimate": "3h",
-    "tag": "backend",
-    "accent": "#1d4ed8",
-    "createdAt": "2026-03-08",
-    "completed": false
-  },
-  {
-    "id": "task-99",
-    "title": "Audit workflow 99",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for onboarding.",
-    "column": "done",
-    "priority": "critical",
-    "progress": 100,
-    "due": "Mar 15, 2026",
-    "assignee": "Ava",
-    "team": [
-      "Ava",
-      "Iris",
-      "Sara"
-    ],
-    "estimate": "4h",
-    "tag": "ops",
-    "accent": "#be123c",
-    "createdAt": "2026-03-09",
-    "completed": true
-  },
-  {
-    "id": "task-100",
-    "title": "Refine dashboard 100",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for campaign.",
-    "column": "today",
-    "priority": "low",
-    "progress": 80,
-    "due": "Mar 16, 2026",
-    "assignee": "Noah",
-    "team": [
-      "Noah",
-      "Milan",
-      "Nika"
-    ],
-    "estimate": "5h",
-    "tag": "research",
-    "accent": "#92400e",
-    "createdAt": "2026-03-01",
-    "completed": false
-  },
-  {
-    "id": "task-101",
-    "title": "Draft onboarding 101",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for API.",
-    "column": "upcoming",
-    "priority": "medium",
-    "progress": 89,
-    "due": "Mar 17, 2026",
-    "assignee": "Iris",
-    "team": [
-      "Iris",
-      "Sara",
-      "Maya"
-    ],
-    "estimate": "6h",
-    "tag": "content",
-    "accent": "#4338ca",
-    "createdAt": "2026-03-02",
-    "completed": false
-  },
-  {
-    "id": "task-102",
-    "title": "Align campaign 102",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for theme.",
-    "column": "blocked",
-    "priority": "high",
-    "progress": 42,
-    "due": "Mar 18, 2026",
-    "assignee": "Milan",
-    "team": [
-      "Milan",
-      "Nika",
-      "Leo"
-    ],
-    "estimate": "1h",
-    "tag": "review",
-    "accent": "#047857",
-    "createdAt": "2026-03-03",
-    "completed": false
-  },
-  {
-    "id": "task-103",
-    "title": "Review API 103",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for checklist.",
-    "column": "done",
-    "priority": "critical",
-    "progress": 100,
-    "due": "Mar 19, 2026",
-    "assignee": "Sara",
-    "team": [
-      "Sara",
-      "Maya",
-      "Ava"
-    ],
-    "estimate": "2h",
-    "tag": "meeting",
-    "accent": "#7c2d12",
-    "createdAt": "2026-03-04",
-    "completed": true
-  },
-  {
-    "id": "task-104",
-    "title": "Ship theme 104",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for profile.",
-    "column": "today",
-    "priority": "low",
-    "progress": 46,
-    "due": "Mar 20, 2026",
-    "assignee": "Nika",
-    "team": [
-      "Nika",
-      "Leo",
-      "Noah"
-    ],
-    "estimate": "3h",
-    "tag": "design",
-    "accent": "#111827",
-    "createdAt": "2026-03-05",
-    "completed": false
-  },
-  {
-    "id": "task-105",
-    "title": "Map checklist 105",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for timeline.",
-    "column": "upcoming",
-    "priority": "medium",
-    "progress": 55,
-    "due": "Mar 21, 2026",
-    "assignee": "Maya",
-    "team": [
-      "Maya",
-      "Ava",
-      "Iris"
-    ],
-    "estimate": "4h",
-    "tag": "frontend",
-    "accent": "#0f766e",
-    "createdAt": "2026-03-06",
-    "completed": false
-  },
-  {
-    "id": "task-106",
-    "title": "Test profile 106",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for report.",
-    "column": "blocked",
-    "priority": "high",
-    "progress": 42,
-    "due": "Mar 22, 2026",
-    "assignee": "Leo",
-    "team": [
-      "Leo",
-      "Noah",
-      "Milan"
-    ],
-    "estimate": "5h",
-    "tag": "backend",
-    "accent": "#1d4ed8",
-    "createdAt": "2026-03-07",
-    "completed": false
-  },
-  {
-    "id": "task-107",
-    "title": "Polish timeline 107",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for workflow.",
-    "column": "done",
-    "priority": "critical",
-    "progress": 100,
-    "due": "Mar 23, 2026",
-    "assignee": "Ava",
-    "team": [
-      "Ava",
-      "Iris",
-      "Sara"
-    ],
-    "estimate": "6h",
-    "tag": "ops",
-    "accent": "#be123c",
-    "createdAt": "2026-03-08",
-    "completed": true
-  },
-  {
-    "id": "task-108",
-    "title": "Write report 108",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for dashboard.",
-    "column": "today",
-    "priority": "low",
-    "progress": 82,
-    "due": "Mar 24, 2026",
-    "assignee": "Noah",
-    "team": [
-      "Noah",
-      "Milan",
-      "Nika"
-    ],
-    "estimate": "1h",
-    "tag": "research",
-    "accent": "#92400e",
-    "createdAt": "2026-03-09",
-    "completed": false
-  },
-  {
-    "id": "task-109",
-    "title": "Audit workflow 109",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for onboarding.",
-    "column": "upcoming",
-    "priority": "medium",
-    "progress": 21,
-    "due": "Mar 25, 2026",
-    "assignee": "Iris",
-    "team": [
-      "Iris",
-      "Sara",
-      "Maya"
-    ],
-    "estimate": "2h",
-    "tag": "content",
-    "accent": "#4338ca",
-    "createdAt": "2026-03-01",
-    "completed": false
-  },
-  {
-    "id": "task-110",
-    "title": "Refine dashboard 110",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for campaign.",
-    "column": "blocked",
-    "priority": "high",
-    "progress": 42,
-    "due": "Mar 26, 2026",
-    "assignee": "Milan",
-    "team": [
-      "Milan",
-      "Nika",
-      "Leo"
-    ],
-    "estimate": "3h",
-    "tag": "review",
-    "accent": "#047857",
-    "createdAt": "2026-03-02",
-    "completed": false
-  },
-  {
-    "id": "task-111",
-    "title": "Draft onboarding 111",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for API.",
-    "column": "done",
-    "priority": "critical",
-    "progress": 100,
-    "due": "Mar 27, 2026",
-    "assignee": "Sara",
-    "team": [
-      "Sara",
-      "Maya",
-      "Ava"
-    ],
-    "estimate": "4h",
-    "tag": "meeting",
-    "accent": "#7c2d12",
-    "createdAt": "2026-03-03",
-    "completed": true
-  },
-  {
-    "id": "task-112",
-    "title": "Align campaign 112",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for theme.",
-    "column": "today",
-    "priority": "low",
-    "progress": 48,
-    "due": "Mar 28, 2026",
-    "assignee": "Nika",
-    "team": [
-      "Nika",
-      "Leo",
-      "Noah"
-    ],
-    "estimate": "5h",
-    "tag": "design",
-    "accent": "#111827",
-    "createdAt": "2026-03-04",
-    "completed": false
-  },
-  {
-    "id": "task-113",
-    "title": "Review API 113",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for checklist.",
-    "column": "upcoming",
-    "priority": "medium",
-    "progress": 57,
-    "due": "Mar 1, 2026",
-    "assignee": "Maya",
-    "team": [
-      "Maya",
-      "Ava",
-      "Iris"
-    ],
-    "estimate": "6h",
-    "tag": "frontend",
-    "accent": "#0f766e",
-    "createdAt": "2026-03-05",
-    "completed": false
-  },
-  {
-    "id": "task-114",
-    "title": "Ship theme 114",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for profile.",
-    "column": "blocked",
-    "priority": "high",
-    "progress": 42,
-    "due": "Mar 2, 2026",
-    "assignee": "Leo",
-    "team": [
-      "Leo",
-      "Noah",
-      "Milan"
-    ],
-    "estimate": "1h",
-    "tag": "backend",
-    "accent": "#1d4ed8",
-    "createdAt": "2026-03-06",
-    "completed": false
-  },
-  {
-    "id": "task-115",
-    "title": "Map checklist 115",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for timeline.",
-    "column": "done",
-    "priority": "critical",
-    "progress": 100,
-    "due": "Mar 3, 2026",
-    "assignee": "Ava",
-    "team": [
-      "Ava",
-      "Iris",
-      "Sara"
-    ],
-    "estimate": "2h",
-    "tag": "ops",
-    "accent": "#be123c",
-    "createdAt": "2026-03-07",
-    "completed": true
-  },
-  {
-    "id": "task-116",
-    "title": "Test profile 116",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for report.",
-    "column": "today",
-    "priority": "low",
-    "progress": 84,
-    "due": "Mar 4, 2026",
-    "assignee": "Noah",
-    "team": [
-      "Noah",
-      "Milan",
-      "Nika"
-    ],
-    "estimate": "3h",
-    "tag": "research",
-    "accent": "#92400e",
-    "createdAt": "2026-03-08",
-    "completed": false
-  },
-  {
-    "id": "task-117",
-    "title": "Polish timeline 117",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for workflow.",
-    "column": "upcoming",
-    "priority": "medium",
-    "progress": 23,
-    "due": "Mar 5, 2026",
-    "assignee": "Iris",
-    "team": [
-      "Iris",
-      "Sara",
-      "Maya"
-    ],
-    "estimate": "4h",
-    "tag": "content",
-    "accent": "#4338ca",
-    "createdAt": "2026-03-09",
-    "completed": false
-  },
-  {
-    "id": "task-118",
-    "title": "Write report 118",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for dashboard.",
-    "column": "blocked",
-    "priority": "high",
-    "progress": 42,
-    "due": "Mar 6, 2026",
-    "assignee": "Milan",
-    "team": [
-      "Milan",
-      "Nika",
-      "Leo"
-    ],
-    "estimate": "5h",
-    "tag": "review",
-    "accent": "#047857",
-    "createdAt": "2026-03-01",
-    "completed": false
-  },
-  {
-    "id": "task-119",
-    "title": "Audit workflow 119",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for onboarding.",
-    "column": "done",
-    "priority": "critical",
-    "progress": 100,
-    "due": "Mar 7, 2026",
-    "assignee": "Sara",
-    "team": [
-      "Sara",
-      "Maya",
-      "Ava"
-    ],
-    "estimate": "6h",
-    "tag": "meeting",
-    "accent": "#7c2d12",
-    "createdAt": "2026-03-02",
-    "completed": true
-  },
-  {
-    "id": "task-120",
-    "title": "Refine dashboard 120",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for campaign.",
-    "column": "today",
-    "priority": "low",
-    "progress": 50,
-    "due": "Mar 8, 2026",
-    "assignee": "Nika",
-    "team": [
-      "Nika",
-      "Leo",
-      "Noah"
-    ],
-    "estimate": "1h",
-    "tag": "design",
-    "accent": "#111827",
-    "createdAt": "2026-03-03",
-    "completed": false
-  },
-  {
-    "id": "task-121",
-    "title": "Draft onboarding 121",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for API.",
-    "column": "upcoming",
-    "priority": "medium",
-    "progress": 59,
-    "due": "Mar 9, 2026",
-    "assignee": "Maya",
-    "team": [
-      "Maya",
-      "Ava",
-      "Iris"
-    ],
-    "estimate": "2h",
-    "tag": "frontend",
-    "accent": "#0f766e",
-    "createdAt": "2026-03-04",
-    "completed": false
-  },
-  {
-    "id": "task-122",
-    "title": "Align campaign 122",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for theme.",
-    "column": "blocked",
-    "priority": "high",
-    "progress": 42,
-    "due": "Mar 10, 2026",
-    "assignee": "Leo",
-    "team": [
-      "Leo",
-      "Noah",
-      "Milan"
-    ],
-    "estimate": "3h",
-    "tag": "backend",
-    "accent": "#1d4ed8",
-    "createdAt": "2026-03-05",
-    "completed": false
-  },
-  {
-    "id": "task-123",
-    "title": "Review API 123",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for checklist.",
-    "column": "done",
-    "priority": "critical",
-    "progress": 100,
-    "due": "Mar 11, 2026",
-    "assignee": "Ava",
-    "team": [
-      "Ava",
-      "Iris",
-      "Sara"
-    ],
-    "estimate": "4h",
-    "tag": "ops",
-    "accent": "#be123c",
-    "createdAt": "2026-03-06",
-    "completed": true
-  },
-  {
-    "id": "task-124",
-    "title": "Ship theme 124",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for profile.",
-    "column": "today",
-    "priority": "low",
-    "progress": 86,
-    "due": "Mar 12, 2026",
-    "assignee": "Noah",
-    "team": [
-      "Noah",
-      "Milan",
-      "Nika"
-    ],
-    "estimate": "5h",
-    "tag": "research",
-    "accent": "#92400e",
-    "createdAt": "2026-03-07",
-    "completed": false
-  },
-  {
-    "id": "task-125",
-    "title": "Map checklist 125",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for timeline.",
-    "column": "upcoming",
-    "priority": "medium",
-    "progress": 25,
-    "due": "Mar 13, 2026",
-    "assignee": "Iris",
-    "team": [
-      "Iris",
-      "Sara",
-      "Maya"
-    ],
-    "estimate": "6h",
-    "tag": "content",
-    "accent": "#4338ca",
-    "createdAt": "2026-03-08",
-    "completed": false
-  },
-  {
-    "id": "task-126",
-    "title": "Test profile 126",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for report.",
-    "column": "blocked",
-    "priority": "high",
-    "progress": 42,
-    "due": "Mar 14, 2026",
-    "assignee": "Milan",
-    "team": [
-      "Milan",
-      "Nika",
-      "Leo"
-    ],
-    "estimate": "1h",
-    "tag": "review",
-    "accent": "#047857",
-    "createdAt": "2026-03-09",
-    "completed": false
-  },
-  {
-    "id": "task-127",
-    "title": "Polish timeline 127",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for workflow.",
-    "column": "done",
-    "priority": "critical",
-    "progress": 100,
-    "due": "Mar 15, 2026",
-    "assignee": "Sara",
-    "team": [
-      "Sara",
-      "Maya",
-      "Ava"
-    ],
-    "estimate": "2h",
-    "tag": "meeting",
-    "accent": "#7c2d12",
-    "createdAt": "2026-03-01",
-    "completed": true
-  },
-  {
-    "id": "task-128",
-    "title": "Write report 128",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for dashboard.",
-    "column": "today",
-    "priority": "low",
-    "progress": 52,
-    "due": "Mar 16, 2026",
-    "assignee": "Nika",
-    "team": [
-      "Nika",
-      "Leo",
-      "Noah"
-    ],
-    "estimate": "3h",
-    "tag": "design",
-    "accent": "#111827",
-    "createdAt": "2026-03-02",
-    "completed": false
-  },
-  {
-    "id": "task-129",
-    "title": "Audit workflow 129",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for onboarding.",
-    "column": "upcoming",
-    "priority": "medium",
-    "progress": 61,
-    "due": "Mar 17, 2026",
-    "assignee": "Maya",
-    "team": [
-      "Maya",
-      "Ava",
-      "Iris"
-    ],
-    "estimate": "4h",
-    "tag": "frontend",
-    "accent": "#0f766e",
-    "createdAt": "2026-03-03",
-    "completed": false
-  },
-  {
-    "id": "task-130",
-    "title": "Refine dashboard 130",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for campaign.",
-    "column": "blocked",
-    "priority": "high",
-    "progress": 42,
-    "due": "Mar 18, 2026",
-    "assignee": "Leo",
-    "team": [
-      "Leo",
-      "Noah",
-      "Milan"
-    ],
-    "estimate": "5h",
-    "tag": "backend",
-    "accent": "#1d4ed8",
-    "createdAt": "2026-03-04",
-    "completed": false
-  },
-  {
-    "id": "task-131",
-    "title": "Draft onboarding 131",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for API.",
-    "column": "done",
-    "priority": "critical",
-    "progress": 100,
-    "due": "Mar 19, 2026",
-    "assignee": "Ava",
-    "team": [
-      "Ava",
-      "Iris",
-      "Sara"
-    ],
-    "estimate": "6h",
-    "tag": "ops",
-    "accent": "#be123c",
-    "createdAt": "2026-03-05",
-    "completed": true
-  },
-  {
-    "id": "task-132",
-    "title": "Align campaign 132",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for theme.",
-    "column": "today",
-    "priority": "low",
-    "progress": 88,
-    "due": "Mar 20, 2026",
-    "assignee": "Noah",
-    "team": [
-      "Noah",
-      "Milan",
-      "Nika"
-    ],
-    "estimate": "1h",
-    "tag": "research",
-    "accent": "#92400e",
-    "createdAt": "2026-03-06",
-    "completed": false
-  },
-  {
-    "id": "task-133",
-    "title": "Review API 133",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for checklist.",
-    "column": "upcoming",
-    "priority": "medium",
-    "progress": 27,
-    "due": "Mar 21, 2026",
-    "assignee": "Iris",
-    "team": [
-      "Iris",
-      "Sara",
-      "Maya"
-    ],
-    "estimate": "2h",
-    "tag": "content",
-    "accent": "#4338ca",
-    "createdAt": "2026-03-07",
-    "completed": false
-  },
-  {
-    "id": "task-134",
-    "title": "Ship theme 134",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for profile.",
-    "column": "blocked",
-    "priority": "high",
-    "progress": 42,
-    "due": "Mar 22, 2026",
-    "assignee": "Milan",
-    "team": [
-      "Milan",
-      "Nika",
-      "Leo"
-    ],
-    "estimate": "3h",
-    "tag": "review",
-    "accent": "#047857",
-    "createdAt": "2026-03-08",
-    "completed": false
-  },
-  {
-    "id": "task-135",
-    "title": "Map checklist 135",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for timeline.",
-    "column": "done",
-    "priority": "critical",
-    "progress": 100,
-    "due": "Mar 23, 2026",
-    "assignee": "Sara",
-    "team": [
-      "Sara",
-      "Maya",
-      "Ava"
-    ],
-    "estimate": "4h",
-    "tag": "meeting",
-    "accent": "#7c2d12",
-    "createdAt": "2026-03-09",
-    "completed": true
-  },
-  {
-    "id": "task-136",
-    "title": "Test profile 136",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for report.",
-    "column": "today",
-    "priority": "low",
-    "progress": 54,
-    "due": "Mar 24, 2026",
-    "assignee": "Nika",
-    "team": [
-      "Nika",
-      "Leo",
-      "Noah"
-    ],
-    "estimate": "5h",
-    "tag": "design",
-    "accent": "#111827",
-    "createdAt": "2026-03-01",
-    "completed": false
-  },
-  {
-    "id": "task-137",
-    "title": "Polish timeline 137",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for workflow.",
-    "column": "upcoming",
-    "priority": "medium",
-    "progress": 63,
-    "due": "Mar 25, 2026",
-    "assignee": "Maya",
-    "team": [
-      "Maya",
-      "Ava",
-      "Iris"
-    ],
-    "estimate": "6h",
-    "tag": "frontend",
-    "accent": "#0f766e",
-    "createdAt": "2026-03-02",
-    "completed": false
-  },
-  {
-    "id": "task-138",
-    "title": "Write report 138",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for dashboard.",
-    "column": "blocked",
-    "priority": "high",
-    "progress": 42,
-    "due": "Mar 26, 2026",
-    "assignee": "Leo",
-    "team": [
-      "Leo",
-      "Noah",
-      "Milan"
-    ],
-    "estimate": "1h",
-    "tag": "backend",
-    "accent": "#1d4ed8",
-    "createdAt": "2026-03-03",
-    "completed": false
-  },
-  {
-    "id": "task-139",
-    "title": "Audit workflow 139",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for onboarding.",
-    "column": "done",
-    "priority": "critical",
-    "progress": 100,
-    "due": "Mar 27, 2026",
-    "assignee": "Ava",
-    "team": [
-      "Ava",
-      "Iris",
-      "Sara"
-    ],
-    "estimate": "2h",
-    "tag": "ops",
-    "accent": "#be123c",
-    "createdAt": "2026-03-04",
-    "completed": true
-  },
-  {
-    "id": "task-140",
-    "title": "Refine dashboard 140",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for campaign.",
-    "column": "today",
-    "priority": "low",
-    "progress": 20,
-    "due": "Mar 28, 2026",
-    "assignee": "Noah",
-    "team": [
-      "Noah",
-      "Milan",
-      "Nika"
-    ],
-    "estimate": "3h",
-    "tag": "research",
-    "accent": "#92400e",
-    "createdAt": "2026-03-05",
-    "completed": false
-  },
-  {
-    "id": "task-141",
-    "title": "Draft onboarding 141",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for API.",
-    "column": "upcoming",
-    "priority": "medium",
-    "progress": 29,
-    "due": "Mar 1, 2026",
-    "assignee": "Iris",
-    "team": [
-      "Iris",
-      "Sara",
-      "Maya"
-    ],
-    "estimate": "4h",
-    "tag": "content",
-    "accent": "#4338ca",
-    "createdAt": "2026-03-06",
-    "completed": false
-  },
-  {
-    "id": "task-142",
-    "title": "Align campaign 142",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for theme.",
-    "column": "blocked",
-    "priority": "high",
-    "progress": 42,
-    "due": "Mar 2, 2026",
-    "assignee": "Milan",
-    "team": [
-      "Milan",
-      "Nika",
-      "Leo"
-    ],
-    "estimate": "5h",
-    "tag": "review",
-    "accent": "#047857",
-    "createdAt": "2026-03-07",
-    "completed": false
-  },
-  {
-    "id": "task-143",
-    "title": "Review API 143",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for checklist.",
-    "column": "done",
-    "priority": "critical",
-    "progress": 100,
-    "due": "Mar 3, 2026",
-    "assignee": "Sara",
-    "team": [
-      "Sara",
-      "Maya",
-      "Ava"
-    ],
-    "estimate": "6h",
-    "tag": "meeting",
-    "accent": "#7c2d12",
-    "createdAt": "2026-03-08",
-    "completed": true
-  },
-  {
-    "id": "task-144",
-    "title": "Ship theme 144",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for profile.",
-    "column": "today",
-    "priority": "low",
-    "progress": 56,
-    "due": "Mar 4, 2026",
-    "assignee": "Nika",
-    "team": [
-      "Nika",
-      "Leo",
-      "Noah"
-    ],
-    "estimate": "1h",
-    "tag": "design",
-    "accent": "#111827",
-    "createdAt": "2026-03-09",
-    "completed": false
-  },
-  {
-    "id": "task-145",
-    "title": "Map checklist 145",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for timeline.",
-    "column": "upcoming",
-    "priority": "medium",
-    "progress": 65,
-    "due": "Mar 5, 2026",
-    "assignee": "Maya",
-    "team": [
-      "Maya",
-      "Ava",
-      "Iris"
-    ],
-    "estimate": "2h",
-    "tag": "frontend",
-    "accent": "#0f766e",
-    "createdAt": "2026-03-01",
-    "completed": false
-  },
-  {
-    "id": "task-146",
-    "title": "Test profile 146",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for report.",
-    "column": "blocked",
-    "priority": "high",
-    "progress": 42,
-    "due": "Mar 6, 2026",
-    "assignee": "Leo",
-    "team": [
-      "Leo",
-      "Noah",
-      "Milan"
-    ],
-    "estimate": "3h",
-    "tag": "backend",
-    "accent": "#1d4ed8",
-    "createdAt": "2026-03-02",
-    "completed": false
-  },
-  {
-    "id": "task-147",
-    "title": "Polish timeline 147",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for workflow.",
-    "column": "done",
-    "priority": "critical",
-    "progress": 100,
-    "due": "Mar 7, 2026",
-    "assignee": "Ava",
-    "team": [
-      "Ava",
-      "Iris",
-      "Sara"
-    ],
-    "estimate": "4h",
-    "tag": "ops",
-    "accent": "#be123c",
-    "createdAt": "2026-03-03",
-    "completed": true
-  },
-  {
-    "id": "task-148",
-    "title": "Write report 148",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for dashboard.",
-    "column": "today",
-    "priority": "low",
-    "progress": 22,
-    "due": "Mar 8, 2026",
-    "assignee": "Noah",
-    "team": [
-      "Noah",
-      "Milan",
-      "Nika"
-    ],
-    "estimate": "5h",
-    "tag": "research",
-    "accent": "#92400e",
-    "createdAt": "2026-03-04",
-    "completed": false
-  },
-  {
-    "id": "task-149",
-    "title": "Audit workflow 149",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for onboarding.",
-    "column": "upcoming",
-    "priority": "medium",
-    "progress": 31,
-    "due": "Mar 9, 2026",
-    "assignee": "Iris",
-    "team": [
-      "Iris",
-      "Sara",
-      "Maya"
-    ],
-    "estimate": "6h",
-    "tag": "content",
-    "accent": "#4338ca",
-    "createdAt": "2026-03-05",
-    "completed": false
-  },
-  {
-    "id": "task-150",
-    "title": "Refine dashboard 150",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for campaign.",
-    "column": "blocked",
-    "priority": "high",
-    "progress": 42,
-    "due": "Mar 10, 2026",
-    "assignee": "Milan",
-    "team": [
-      "Milan",
-      "Nika",
-      "Leo"
-    ],
-    "estimate": "1h",
-    "tag": "review",
-    "accent": "#047857",
-    "createdAt": "2026-03-06",
-    "completed": false
-  },
-  {
-    "id": "task-151",
-    "title": "Draft onboarding 151",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for API.",
-    "column": "done",
-    "priority": "critical",
-    "progress": 100,
-    "due": "Mar 11, 2026",
-    "assignee": "Sara",
-    "team": [
-      "Sara",
-      "Maya",
-      "Ava"
-    ],
-    "estimate": "2h",
-    "tag": "meeting",
-    "accent": "#7c2d12",
-    "createdAt": "2026-03-07",
-    "completed": true
-  },
-  {
-    "id": "task-152",
-    "title": "Align campaign 152",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for theme.",
-    "column": "today",
-    "priority": "low",
-    "progress": 58,
-    "due": "Mar 12, 2026",
-    "assignee": "Nika",
-    "team": [
-      "Nika",
-      "Leo",
-      "Noah"
-    ],
-    "estimate": "3h",
-    "tag": "design",
-    "accent": "#111827",
-    "createdAt": "2026-03-08",
-    "completed": false
-  },
-  {
-    "id": "task-153",
-    "title": "Review API 153",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for checklist.",
-    "column": "upcoming",
-    "priority": "medium",
-    "progress": 67,
-    "due": "Mar 13, 2026",
-    "assignee": "Maya",
-    "team": [
-      "Maya",
-      "Ava",
-      "Iris"
-    ],
-    "estimate": "4h",
-    "tag": "frontend",
-    "accent": "#0f766e",
-    "createdAt": "2026-03-09",
-    "completed": false
-  },
-  {
-    "id": "task-154",
-    "title": "Ship theme 154",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for profile.",
-    "column": "blocked",
-    "priority": "high",
-    "progress": 42,
-    "due": "Mar 14, 2026",
-    "assignee": "Leo",
-    "team": [
-      "Leo",
-      "Noah",
-      "Milan"
-    ],
-    "estimate": "5h",
-    "tag": "backend",
-    "accent": "#1d4ed8",
-    "createdAt": "2026-03-01",
-    "completed": false
-  },
-  {
-    "id": "task-155",
-    "title": "Map checklist 155",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for timeline.",
-    "column": "done",
-    "priority": "critical",
-    "progress": 100,
-    "due": "Mar 15, 2026",
-    "assignee": "Ava",
-    "team": [
-      "Ava",
-      "Iris",
-      "Sara"
-    ],
-    "estimate": "6h",
-    "tag": "ops",
-    "accent": "#be123c",
-    "createdAt": "2026-03-02",
-    "completed": true
-  },
-  {
-    "id": "task-156",
-    "title": "Test profile 156",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for report.",
-    "column": "today",
-    "priority": "low",
-    "progress": 24,
-    "due": "Mar 16, 2026",
-    "assignee": "Noah",
-    "team": [
-      "Noah",
-      "Milan",
-      "Nika"
-    ],
-    "estimate": "1h",
-    "tag": "research",
-    "accent": "#92400e",
-    "createdAt": "2026-03-03",
-    "completed": false
-  },
-  {
-    "id": "task-157",
-    "title": "Polish timeline 157",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for workflow.",
-    "column": "upcoming",
-    "priority": "medium",
-    "progress": 33,
-    "due": "Mar 17, 2026",
-    "assignee": "Iris",
-    "team": [
-      "Iris",
-      "Sara",
-      "Maya"
-    ],
-    "estimate": "2h",
-    "tag": "content",
-    "accent": "#4338ca",
-    "createdAt": "2026-03-04",
-    "completed": false
-  },
-  {
-    "id": "task-158",
-    "title": "Write report 158",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for dashboard.",
-    "column": "blocked",
-    "priority": "high",
-    "progress": 42,
-    "due": "Mar 18, 2026",
-    "assignee": "Milan",
-    "team": [
-      "Milan",
-      "Nika",
-      "Leo"
-    ],
-    "estimate": "3h",
-    "tag": "review",
-    "accent": "#047857",
-    "createdAt": "2026-03-05",
-    "completed": false
-  },
-  {
-    "id": "task-159",
-    "title": "Audit workflow 159",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for onboarding.",
-    "column": "done",
-    "priority": "critical",
-    "progress": 100,
-    "due": "Mar 19, 2026",
-    "assignee": "Sara",
-    "team": [
-      "Sara",
-      "Maya",
-      "Ava"
-    ],
-    "estimate": "4h",
-    "tag": "meeting",
-    "accent": "#7c2d12",
-    "createdAt": "2026-03-06",
-    "completed": true
-  },
-  {
-    "id": "task-160",
-    "title": "Refine dashboard 160",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for campaign.",
-    "column": "today",
-    "priority": "low",
-    "progress": 60,
-    "due": "Mar 20, 2026",
-    "assignee": "Nika",
-    "team": [
-      "Nika",
-      "Leo",
-      "Noah"
-    ],
-    "estimate": "5h",
-    "tag": "design",
-    "accent": "#111827",
-    "createdAt": "2026-03-07",
-    "completed": false
-  },
-  {
-    "id": "task-161",
-    "title": "Draft onboarding 161",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for API.",
-    "column": "upcoming",
-    "priority": "medium",
-    "progress": 69,
-    "due": "Mar 21, 2026",
-    "assignee": "Maya",
-    "team": [
-      "Maya",
-      "Ava",
-      "Iris"
-    ],
-    "estimate": "6h",
-    "tag": "frontend",
-    "accent": "#0f766e",
-    "createdAt": "2026-03-08",
-    "completed": false
-  },
-  {
-    "id": "task-162",
-    "title": "Align campaign 162",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for theme.",
-    "column": "blocked",
-    "priority": "high",
-    "progress": 42,
-    "due": "Mar 22, 2026",
-    "assignee": "Leo",
-    "team": [
-      "Leo",
-      "Noah",
-      "Milan"
-    ],
-    "estimate": "1h",
-    "tag": "backend",
-    "accent": "#1d4ed8",
-    "createdAt": "2026-03-09",
-    "completed": false
-  },
-  {
-    "id": "task-163",
-    "title": "Review API 163",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for checklist.",
-    "column": "done",
-    "priority": "critical",
-    "progress": 100,
-    "due": "Mar 23, 2026",
-    "assignee": "Ava",
-    "team": [
-      "Ava",
-      "Iris",
-      "Sara"
-    ],
-    "estimate": "2h",
-    "tag": "ops",
-    "accent": "#be123c",
-    "createdAt": "2026-03-01",
-    "completed": true
-  },
-  {
-    "id": "task-164",
-    "title": "Ship theme 164",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for profile.",
-    "column": "today",
-    "priority": "low",
-    "progress": 26,
-    "due": "Mar 24, 2026",
-    "assignee": "Noah",
-    "team": [
-      "Noah",
-      "Milan",
-      "Nika"
-    ],
-    "estimate": "3h",
-    "tag": "research",
-    "accent": "#92400e",
-    "createdAt": "2026-03-02",
-    "completed": false
-  },
-  {
-    "id": "task-165",
-    "title": "Map checklist 165",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for timeline.",
-    "column": "upcoming",
-    "priority": "medium",
-    "progress": 35,
-    "due": "Mar 25, 2026",
-    "assignee": "Iris",
-    "team": [
-      "Iris",
-      "Sara",
-      "Maya"
-    ],
-    "estimate": "4h",
-    "tag": "content",
-    "accent": "#4338ca",
-    "createdAt": "2026-03-03",
-    "completed": false
-  },
-  {
-    "id": "task-166",
-    "title": "Test profile 166",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for report.",
-    "column": "blocked",
-    "priority": "high",
-    "progress": 42,
-    "due": "Mar 26, 2026",
-    "assignee": "Milan",
-    "team": [
-      "Milan",
-      "Nika",
-      "Leo"
-    ],
-    "estimate": "5h",
-    "tag": "review",
-    "accent": "#047857",
-    "createdAt": "2026-03-04",
-    "completed": false
-  },
-  {
-    "id": "task-167",
-    "title": "Polish timeline 167",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for workflow.",
-    "column": "done",
-    "priority": "critical",
-    "progress": 100,
-    "due": "Mar 27, 2026",
-    "assignee": "Sara",
-    "team": [
-      "Sara",
-      "Maya",
-      "Ava"
-    ],
-    "estimate": "6h",
-    "tag": "meeting",
-    "accent": "#7c2d12",
-    "createdAt": "2026-03-05",
-    "completed": true
-  },
-  {
-    "id": "task-168",
-    "title": "Write report 168",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for dashboard.",
-    "column": "today",
-    "priority": "low",
-    "progress": 62,
-    "due": "Mar 28, 2026",
-    "assignee": "Nika",
-    "team": [
-      "Nika",
-      "Leo",
-      "Noah"
-    ],
-    "estimate": "1h",
-    "tag": "design",
-    "accent": "#111827",
-    "createdAt": "2026-03-06",
-    "completed": false
-  },
-  {
-    "id": "task-169",
-    "title": "Audit workflow 169",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for onboarding.",
-    "column": "upcoming",
-    "priority": "medium",
-    "progress": 71,
-    "due": "Mar 1, 2026",
-    "assignee": "Maya",
-    "team": [
-      "Maya",
-      "Ava",
-      "Iris"
-    ],
-    "estimate": "2h",
-    "tag": "frontend",
-    "accent": "#0f766e",
-    "createdAt": "2026-03-07",
-    "completed": false
-  },
-  {
-    "id": "task-170",
-    "title": "Refine dashboard 170",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for campaign.",
-    "column": "blocked",
-    "priority": "high",
-    "progress": 42,
-    "due": "Mar 2, 2026",
-    "assignee": "Leo",
-    "team": [
-      "Leo",
-      "Noah",
-      "Milan"
-    ],
-    "estimate": "3h",
-    "tag": "backend",
-    "accent": "#1d4ed8",
-    "createdAt": "2026-03-08",
-    "completed": false
-  },
-  {
-    "id": "task-171",
-    "title": "Draft onboarding 171",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for API.",
-    "column": "done",
-    "priority": "critical",
-    "progress": 100,
-    "due": "Mar 3, 2026",
-    "assignee": "Ava",
-    "team": [
-      "Ava",
-      "Iris",
-      "Sara"
-    ],
-    "estimate": "4h",
-    "tag": "ops",
-    "accent": "#be123c",
-    "createdAt": "2026-03-09",
-    "completed": true
-  },
-  {
-    "id": "task-172",
-    "title": "Align campaign 172",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for theme.",
-    "column": "today",
-    "priority": "low",
-    "progress": 28,
-    "due": "Mar 4, 2026",
-    "assignee": "Noah",
-    "team": [
-      "Noah",
-      "Milan",
-      "Nika"
-    ],
-    "estimate": "5h",
-    "tag": "research",
-    "accent": "#92400e",
-    "createdAt": "2026-03-01",
-    "completed": false
-  },
-  {
-    "id": "task-173",
-    "title": "Review API 173",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for checklist.",
-    "column": "upcoming",
-    "priority": "medium",
-    "progress": 37,
-    "due": "Mar 5, 2026",
-    "assignee": "Iris",
-    "team": [
-      "Iris",
-      "Sara",
-      "Maya"
-    ],
-    "estimate": "6h",
-    "tag": "content",
-    "accent": "#4338ca",
-    "createdAt": "2026-03-02",
-    "completed": false
-  },
-  {
-    "id": "task-174",
-    "title": "Ship theme 174",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for profile.",
-    "column": "blocked",
-    "priority": "high",
-    "progress": 42,
-    "due": "Mar 6, 2026",
-    "assignee": "Milan",
-    "team": [
-      "Milan",
-      "Nika",
-      "Leo"
-    ],
-    "estimate": "1h",
-    "tag": "review",
-    "accent": "#047857",
-    "createdAt": "2026-03-03",
-    "completed": false
-  },
-  {
-    "id": "task-175",
-    "title": "Map checklist 175",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for timeline.",
-    "column": "done",
-    "priority": "critical",
-    "progress": 100,
-    "due": "Mar 7, 2026",
-    "assignee": "Sara",
-    "team": [
-      "Sara",
-      "Maya",
-      "Ava"
-    ],
-    "estimate": "2h",
-    "tag": "meeting",
-    "accent": "#7c2d12",
-    "createdAt": "2026-03-04",
-    "completed": true
-  },
-  {
-    "id": "task-176",
-    "title": "Test profile 176",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for report.",
-    "column": "today",
-    "priority": "low",
-    "progress": 64,
-    "due": "Mar 8, 2026",
-    "assignee": "Nika",
-    "team": [
-      "Nika",
-      "Leo",
-      "Noah"
-    ],
-    "estimate": "3h",
-    "tag": "design",
-    "accent": "#111827",
-    "createdAt": "2026-03-05",
-    "completed": false
-  },
-  {
-    "id": "task-177",
-    "title": "Polish timeline 177",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for workflow.",
-    "column": "upcoming",
-    "priority": "medium",
-    "progress": 73,
-    "due": "Mar 9, 2026",
-    "assignee": "Maya",
-    "team": [
-      "Maya",
-      "Ava",
-      "Iris"
-    ],
-    "estimate": "4h",
-    "tag": "frontend",
-    "accent": "#0f766e",
-    "createdAt": "2026-03-06",
-    "completed": false
-  },
-  {
-    "id": "task-178",
-    "title": "Write report 178",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for dashboard.",
-    "column": "blocked",
-    "priority": "high",
-    "progress": 42,
-    "due": "Mar 10, 2026",
-    "assignee": "Leo",
-    "team": [
-      "Leo",
-      "Noah",
-      "Milan"
-    ],
-    "estimate": "5h",
-    "tag": "backend",
-    "accent": "#1d4ed8",
-    "createdAt": "2026-03-07",
-    "completed": false
-  },
-  {
-    "id": "task-179",
-    "title": "Audit workflow 179",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for onboarding.",
-    "column": "done",
-    "priority": "critical",
-    "progress": 100,
-    "due": "Mar 11, 2026",
-    "assignee": "Ava",
-    "team": [
-      "Ava",
-      "Iris",
-      "Sara"
-    ],
-    "estimate": "6h",
-    "tag": "ops",
-    "accent": "#be123c",
-    "createdAt": "2026-03-08",
-    "completed": true
-  },
-  {
-    "id": "task-180",
-    "title": "Refine dashboard 180",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for campaign.",
-    "column": "today",
-    "priority": "low",
-    "progress": 30,
-    "due": "Mar 12, 2026",
-    "assignee": "Noah",
-    "team": [
-      "Noah",
-      "Milan",
-      "Nika"
-    ],
-    "estimate": "1h",
-    "tag": "research",
-    "accent": "#92400e",
-    "createdAt": "2026-03-09",
-    "completed": false
-  },
-  {
-    "id": "task-181",
-    "title": "Draft onboarding 181",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for API.",
-    "column": "upcoming",
-    "priority": "medium",
-    "progress": 39,
-    "due": "Mar 13, 2026",
-    "assignee": "Iris",
-    "team": [
-      "Iris",
-      "Sara",
-      "Maya"
-    ],
-    "estimate": "2h",
-    "tag": "content",
-    "accent": "#4338ca",
-    "createdAt": "2026-03-01",
-    "completed": false
-  },
-  {
-    "id": "task-182",
-    "title": "Align campaign 182",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for theme.",
-    "column": "blocked",
-    "priority": "high",
-    "progress": 42,
-    "due": "Mar 14, 2026",
-    "assignee": "Milan",
-    "team": [
-      "Milan",
-      "Nika",
-      "Leo"
-    ],
-    "estimate": "3h",
-    "tag": "review",
-    "accent": "#047857",
-    "createdAt": "2026-03-02",
-    "completed": false
-  },
-  {
-    "id": "task-183",
-    "title": "Review API 183",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for checklist.",
-    "column": "done",
-    "priority": "critical",
-    "progress": 100,
-    "due": "Mar 15, 2026",
-    "assignee": "Sara",
-    "team": [
-      "Sara",
-      "Maya",
-      "Ava"
-    ],
-    "estimate": "4h",
-    "tag": "meeting",
-    "accent": "#7c2d12",
-    "createdAt": "2026-03-03",
-    "completed": true
-  },
-  {
-    "id": "task-184",
-    "title": "Ship theme 184",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for profile.",
-    "column": "today",
-    "priority": "low",
-    "progress": 66,
-    "due": "Mar 16, 2026",
-    "assignee": "Nika",
-    "team": [
-      "Nika",
-      "Leo",
-      "Noah"
-    ],
-    "estimate": "5h",
-    "tag": "design",
-    "accent": "#111827",
-    "createdAt": "2026-03-04",
-    "completed": false
-  },
-  {
-    "id": "task-185",
-    "title": "Map checklist 185",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for timeline.",
-    "column": "upcoming",
-    "priority": "medium",
-    "progress": 75,
-    "due": "Mar 17, 2026",
-    "assignee": "Maya",
-    "team": [
-      "Maya",
-      "Ava",
-      "Iris"
-    ],
-    "estimate": "6h",
-    "tag": "frontend",
-    "accent": "#0f766e",
-    "createdAt": "2026-03-05",
-    "completed": false
-  },
-  {
-    "id": "task-186",
-    "title": "Test profile 186",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for report.",
-    "column": "blocked",
-    "priority": "high",
-    "progress": 42,
-    "due": "Mar 18, 2026",
-    "assignee": "Leo",
-    "team": [
-      "Leo",
-      "Noah",
-      "Milan"
-    ],
-    "estimate": "1h",
-    "tag": "backend",
-    "accent": "#1d4ed8",
-    "createdAt": "2026-03-06",
-    "completed": false
-  },
-  {
-    "id": "task-187",
-    "title": "Polish timeline 187",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for workflow.",
-    "column": "done",
-    "priority": "critical",
-    "progress": 100,
-    "due": "Mar 19, 2026",
-    "assignee": "Ava",
-    "team": [
-      "Ava",
-      "Iris",
-      "Sara"
-    ],
-    "estimate": "2h",
-    "tag": "ops",
-    "accent": "#be123c",
-    "createdAt": "2026-03-07",
-    "completed": true
-  },
-  {
-    "id": "task-188",
-    "title": "Write report 188",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for dashboard.",
-    "column": "today",
-    "priority": "low",
-    "progress": 32,
-    "due": "Mar 20, 2026",
-    "assignee": "Noah",
-    "team": [
-      "Noah",
-      "Milan",
-      "Nika"
-    ],
-    "estimate": "3h",
-    "tag": "research",
-    "accent": "#92400e",
-    "createdAt": "2026-03-08",
-    "completed": false
-  },
-  {
-    "id": "task-189",
-    "title": "Audit workflow 189",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for onboarding.",
-    "column": "upcoming",
-    "priority": "medium",
-    "progress": 41,
-    "due": "Mar 21, 2026",
-    "assignee": "Iris",
-    "team": [
-      "Iris",
-      "Sara",
-      "Maya"
-    ],
-    "estimate": "4h",
-    "tag": "content",
-    "accent": "#4338ca",
-    "createdAt": "2026-03-09",
-    "completed": false
-  },
-  {
-    "id": "task-190",
-    "title": "Refine dashboard 190",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for campaign.",
-    "column": "blocked",
-    "priority": "high",
-    "progress": 42,
-    "due": "Mar 22, 2026",
-    "assignee": "Milan",
-    "team": [
-      "Milan",
-      "Nika",
-      "Leo"
-    ],
-    "estimate": "5h",
-    "tag": "review",
-    "accent": "#047857",
-    "createdAt": "2026-03-01",
-    "completed": false
-  },
-  {
-    "id": "task-191",
-    "title": "Draft onboarding 191",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for API.",
-    "column": "done",
-    "priority": "critical",
-    "progress": 100,
-    "due": "Mar 23, 2026",
-    "assignee": "Sara",
-    "team": [
-      "Sara",
-      "Maya",
-      "Ava"
-    ],
-    "estimate": "6h",
-    "tag": "meeting",
-    "accent": "#7c2d12",
-    "createdAt": "2026-03-02",
-    "completed": true
-  },
-  {
-    "id": "task-192",
-    "title": "Align campaign 192",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for theme.",
-    "column": "today",
-    "priority": "low",
-    "progress": 68,
-    "due": "Mar 24, 2026",
-    "assignee": "Nika",
-    "team": [
-      "Nika",
-      "Leo",
-      "Noah"
-    ],
-    "estimate": "1h",
-    "tag": "design",
-    "accent": "#111827",
-    "createdAt": "2026-03-03",
-    "completed": false
-  },
-  {
-    "id": "task-193",
-    "title": "Review API 193",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for checklist.",
-    "column": "upcoming",
-    "priority": "medium",
-    "progress": 77,
-    "due": "Mar 25, 2026",
-    "assignee": "Maya",
-    "team": [
-      "Maya",
-      "Ava",
-      "Iris"
-    ],
-    "estimate": "2h",
-    "tag": "frontend",
-    "accent": "#0f766e",
-    "createdAt": "2026-03-04",
-    "completed": false
-  },
-  {
-    "id": "task-194",
-    "title": "Ship theme 194",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for profile.",
-    "column": "blocked",
-    "priority": "high",
-    "progress": 42,
-    "due": "Mar 26, 2026",
-    "assignee": "Leo",
-    "team": [
-      "Leo",
-      "Noah",
-      "Milan"
-    ],
-    "estimate": "3h",
-    "tag": "backend",
-    "accent": "#1d4ed8",
-    "createdAt": "2026-03-05",
-    "completed": false
-  },
-  {
-    "id": "task-195",
-    "title": "Map checklist 195",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for timeline.",
-    "column": "done",
-    "priority": "critical",
-    "progress": 100,
-    "due": "Mar 27, 2026",
-    "assignee": "Ava",
-    "team": [
-      "Ava",
-      "Iris",
-      "Sara"
-    ],
-    "estimate": "4h",
-    "tag": "ops",
-    "accent": "#be123c",
-    "createdAt": "2026-03-06",
-    "completed": true
-  },
-  {
-    "id": "task-196",
-    "title": "Test profile 196",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for report.",
-    "column": "today",
-    "priority": "low",
-    "progress": 34,
-    "due": "Mar 28, 2026",
-    "assignee": "Noah",
-    "team": [
-      "Noah",
-      "Milan",
-      "Nika"
-    ],
-    "estimate": "5h",
-    "tag": "research",
-    "accent": "#92400e",
-    "createdAt": "2026-03-07",
-    "completed": false
-  },
-  {
-    "id": "task-197",
-    "title": "Polish timeline 197",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for workflow.",
-    "column": "upcoming",
-    "priority": "medium",
-    "progress": 43,
-    "due": "Mar 1, 2026",
-    "assignee": "Iris",
-    "team": [
-      "Iris",
-      "Sara",
-      "Maya"
-    ],
-    "estimate": "6h",
-    "tag": "content",
-    "accent": "#4338ca",
-    "createdAt": "2026-03-08",
-    "completed": false
-  },
-  {
-    "id": "task-198",
-    "title": "Write report 198",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for dashboard.",
-    "column": "blocked",
-    "priority": "high",
-    "progress": 42,
-    "due": "Mar 2, 2026",
-    "assignee": "Milan",
-    "team": [
-      "Milan",
-      "Nika",
-      "Leo"
-    ],
-    "estimate": "1h",
-    "tag": "review",
-    "accent": "#047857",
-    "createdAt": "2026-03-09",
-    "completed": false
-  },
-  {
-    "id": "task-199",
-    "title": "Audit workflow 199",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for onboarding.",
-    "column": "done",
-    "priority": "critical",
-    "progress": 100,
-    "due": "Mar 3, 2026",
-    "assignee": "Sara",
-    "team": [
-      "Sara",
-      "Maya",
-      "Ava"
-    ],
-    "estimate": "2h",
-    "tag": "meeting",
-    "accent": "#7c2d12",
-    "createdAt": "2026-03-01",
-    "completed": true
-  },
-  {
-    "id": "task-200",
-    "title": "Refine dashboard 200",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for campaign.",
-    "column": "today",
-    "priority": "low",
-    "progress": 70,
-    "due": "Mar 4, 2026",
-    "assignee": "Nika",
-    "team": [
-      "Nika",
-      "Leo",
-      "Noah"
-    ],
-    "estimate": "3h",
-    "tag": "design",
-    "accent": "#111827",
-    "createdAt": "2026-03-02",
-    "completed": false
-  },
-  {
-    "id": "task-201",
-    "title": "Draft onboarding 201",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for API.",
-    "column": "upcoming",
-    "priority": "medium",
-    "progress": 79,
-    "due": "Mar 5, 2026",
-    "assignee": "Maya",
-    "team": [
-      "Maya",
-      "Ava",
-      "Iris"
-    ],
-    "estimate": "4h",
-    "tag": "frontend",
-    "accent": "#0f766e",
-    "createdAt": "2026-03-03",
-    "completed": false
-  },
-  {
-    "id": "task-202",
-    "title": "Align campaign 202",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for theme.",
-    "column": "blocked",
-    "priority": "high",
-    "progress": 42,
-    "due": "Mar 6, 2026",
-    "assignee": "Leo",
-    "team": [
-      "Leo",
-      "Noah",
-      "Milan"
-    ],
-    "estimate": "5h",
-    "tag": "backend",
-    "accent": "#1d4ed8",
-    "createdAt": "2026-03-04",
-    "completed": false
-  },
-  {
-    "id": "task-203",
-    "title": "Review API 203",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for checklist.",
-    "column": "done",
-    "priority": "critical",
-    "progress": 100,
-    "due": "Mar 7, 2026",
-    "assignee": "Ava",
-    "team": [
-      "Ava",
-      "Iris",
-      "Sara"
-    ],
-    "estimate": "6h",
-    "tag": "ops",
-    "accent": "#be123c",
-    "createdAt": "2026-03-05",
-    "completed": true
-  },
-  {
-    "id": "task-204",
-    "title": "Ship theme 204",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for profile.",
-    "column": "today",
-    "priority": "low",
-    "progress": 36,
-    "due": "Mar 8, 2026",
-    "assignee": "Noah",
-    "team": [
-      "Noah",
-      "Milan",
-      "Nika"
-    ],
-    "estimate": "1h",
-    "tag": "research",
-    "accent": "#92400e",
-    "createdAt": "2026-03-06",
-    "completed": false
-  },
-  {
-    "id": "task-205",
-    "title": "Map checklist 205",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for timeline.",
-    "column": "upcoming",
-    "priority": "medium",
-    "progress": 45,
-    "due": "Mar 9, 2026",
-    "assignee": "Iris",
-    "team": [
-      "Iris",
-      "Sara",
-      "Maya"
-    ],
-    "estimate": "2h",
-    "tag": "content",
-    "accent": "#4338ca",
-    "createdAt": "2026-03-07",
-    "completed": false
-  },
-  {
-    "id": "task-206",
-    "title": "Test profile 206",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for report.",
-    "column": "blocked",
-    "priority": "high",
-    "progress": 42,
-    "due": "Mar 10, 2026",
-    "assignee": "Milan",
-    "team": [
-      "Milan",
-      "Nika",
-      "Leo"
-    ],
-    "estimate": "3h",
-    "tag": "review",
-    "accent": "#047857",
-    "createdAt": "2026-03-08",
-    "completed": false
-  },
-  {
-    "id": "task-207",
-    "title": "Polish timeline 207",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for workflow.",
-    "column": "done",
-    "priority": "critical",
-    "progress": 100,
-    "due": "Mar 11, 2026",
-    "assignee": "Sara",
-    "team": [
-      "Sara",
-      "Maya",
-      "Ava"
-    ],
-    "estimate": "4h",
-    "tag": "meeting",
-    "accent": "#7c2d12",
-    "createdAt": "2026-03-09",
-    "completed": true
-  },
-  {
-    "id": "task-208",
-    "title": "Write report 208",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for dashboard.",
-    "column": "today",
-    "priority": "low",
-    "progress": 72,
-    "due": "Mar 12, 2026",
-    "assignee": "Nika",
-    "team": [
-      "Nika",
-      "Leo",
-      "Noah"
-    ],
-    "estimate": "5h",
-    "tag": "design",
-    "accent": "#111827",
-    "createdAt": "2026-03-01",
-    "completed": false
-  },
-  {
-    "id": "task-209",
-    "title": "Audit workflow 209",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for onboarding.",
-    "column": "upcoming",
-    "priority": "medium",
-    "progress": 81,
-    "due": "Mar 13, 2026",
-    "assignee": "Maya",
-    "team": [
-      "Maya",
-      "Ava",
-      "Iris"
-    ],
-    "estimate": "6h",
-    "tag": "frontend",
-    "accent": "#0f766e",
-    "createdAt": "2026-03-02",
-    "completed": false
-  },
-  {
-    "id": "task-210",
-    "title": "Refine dashboard 210",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for campaign.",
-    "column": "blocked",
-    "priority": "high",
-    "progress": 42,
-    "due": "Mar 14, 2026",
-    "assignee": "Leo",
-    "team": [
-      "Leo",
-      "Noah",
-      "Milan"
-    ],
-    "estimate": "1h",
-    "tag": "backend",
-    "accent": "#1d4ed8",
-    "createdAt": "2026-03-03",
-    "completed": false
-  },
-  {
-    "id": "task-211",
-    "title": "Draft onboarding 211",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for API.",
-    "column": "done",
-    "priority": "critical",
-    "progress": 100,
-    "due": "Mar 15, 2026",
-    "assignee": "Ava",
-    "team": [
-      "Ava",
-      "Iris",
-      "Sara"
-    ],
-    "estimate": "2h",
-    "tag": "ops",
-    "accent": "#be123c",
-    "createdAt": "2026-03-04",
-    "completed": true
-  },
-  {
-    "id": "task-212",
-    "title": "Align campaign 212",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for theme.",
-    "column": "today",
-    "priority": "low",
-    "progress": 38,
-    "due": "Mar 16, 2026",
-    "assignee": "Noah",
-    "team": [
-      "Noah",
-      "Milan",
-      "Nika"
-    ],
-    "estimate": "3h",
-    "tag": "research",
-    "accent": "#92400e",
-    "createdAt": "2026-03-05",
-    "completed": false
-  },
-  {
-    "id": "task-213",
-    "title": "Review API 213",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for checklist.",
-    "column": "upcoming",
-    "priority": "medium",
-    "progress": 47,
-    "due": "Mar 17, 2026",
-    "assignee": "Iris",
-    "team": [
-      "Iris",
-      "Sara",
-      "Maya"
-    ],
-    "estimate": "4h",
-    "tag": "content",
-    "accent": "#4338ca",
-    "createdAt": "2026-03-06",
-    "completed": false
-  },
-  {
-    "id": "task-214",
-    "title": "Ship theme 214",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for profile.",
-    "column": "blocked",
-    "priority": "high",
-    "progress": 42,
-    "due": "Mar 18, 2026",
-    "assignee": "Milan",
-    "team": [
-      "Milan",
-      "Nika",
-      "Leo"
-    ],
-    "estimate": "5h",
-    "tag": "review",
-    "accent": "#047857",
-    "createdAt": "2026-03-07",
-    "completed": false
-  },
-  {
-    "id": "task-215",
-    "title": "Map checklist 215",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for timeline.",
-    "column": "done",
-    "priority": "critical",
-    "progress": 100,
-    "due": "Mar 19, 2026",
-    "assignee": "Sara",
-    "team": [
-      "Sara",
-      "Maya",
-      "Ava"
-    ],
-    "estimate": "6h",
-    "tag": "meeting",
-    "accent": "#7c2d12",
-    "createdAt": "2026-03-08",
-    "completed": true
-  },
-  {
-    "id": "task-216",
-    "title": "Test profile 216",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for report.",
-    "column": "today",
-    "priority": "low",
-    "progress": 74,
-    "due": "Mar 20, 2026",
-    "assignee": "Nika",
-    "team": [
-      "Nika",
-      "Leo",
-      "Noah"
-    ],
-    "estimate": "1h",
-    "tag": "design",
-    "accent": "#111827",
-    "createdAt": "2026-03-09",
-    "completed": false
-  },
-  {
-    "id": "task-217",
-    "title": "Polish timeline 217",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for workflow.",
-    "column": "upcoming",
-    "priority": "medium",
-    "progress": 83,
-    "due": "Mar 21, 2026",
-    "assignee": "Maya",
-    "team": [
-      "Maya",
-      "Ava",
-      "Iris"
-    ],
-    "estimate": "2h",
-    "tag": "frontend",
-    "accent": "#0f766e",
-    "createdAt": "2026-03-01",
-    "completed": false
-  },
-  {
-    "id": "task-218",
-    "title": "Write report 218",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for dashboard.",
-    "column": "blocked",
-    "priority": "high",
-    "progress": 42,
-    "due": "Mar 22, 2026",
-    "assignee": "Leo",
-    "team": [
-      "Leo",
-      "Noah",
-      "Milan"
-    ],
-    "estimate": "3h",
-    "tag": "backend",
-    "accent": "#1d4ed8",
-    "createdAt": "2026-03-02",
-    "completed": false
-  },
-  {
-    "id": "task-219",
-    "title": "Audit workflow 219",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for onboarding.",
-    "column": "done",
-    "priority": "critical",
-    "progress": 100,
-    "due": "Mar 23, 2026",
-    "assignee": "Ava",
-    "team": [
-      "Ava",
-      "Iris",
-      "Sara"
-    ],
-    "estimate": "4h",
-    "tag": "ops",
-    "accent": "#be123c",
-    "createdAt": "2026-03-03",
-    "completed": true
-  },
-  {
-    "id": "task-220",
-    "title": "Refine dashboard 220",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for campaign.",
-    "column": "today",
-    "priority": "low",
-    "progress": 40,
-    "due": "Mar 24, 2026",
-    "assignee": "Noah",
-    "team": [
-      "Noah",
-      "Milan",
-      "Nika"
-    ],
-    "estimate": "5h",
-    "tag": "research",
-    "accent": "#92400e",
-    "createdAt": "2026-03-04",
-    "completed": false
-  },
-  {
-    "id": "task-221",
-    "title": "Draft onboarding 221",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for API.",
-    "column": "upcoming",
-    "priority": "medium",
-    "progress": 49,
-    "due": "Mar 25, 2026",
-    "assignee": "Iris",
-    "team": [
-      "Iris",
-      "Sara",
-      "Maya"
-    ],
-    "estimate": "6h",
-    "tag": "content",
-    "accent": "#4338ca",
-    "createdAt": "2026-03-05",
-    "completed": false
-  },
-  {
-    "id": "task-222",
-    "title": "Align campaign 222",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for theme.",
-    "column": "blocked",
-    "priority": "high",
-    "progress": 42,
-    "due": "Mar 26, 2026",
-    "assignee": "Milan",
-    "team": [
-      "Milan",
-      "Nika",
-      "Leo"
-    ],
-    "estimate": "1h",
-    "tag": "review",
-    "accent": "#047857",
-    "createdAt": "2026-03-06",
-    "completed": false
-  },
-  {
-    "id": "task-223",
-    "title": "Review API 223",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for checklist.",
-    "column": "done",
-    "priority": "critical",
-    "progress": 100,
-    "due": "Mar 27, 2026",
-    "assignee": "Sara",
-    "team": [
-      "Sara",
-      "Maya",
-      "Ava"
-    ],
-    "estimate": "2h",
-    "tag": "meeting",
-    "accent": "#7c2d12",
-    "createdAt": "2026-03-07",
-    "completed": true
-  },
-  {
-    "id": "task-224",
-    "title": "Ship theme 224",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for profile.",
-    "column": "today",
-    "priority": "low",
-    "progress": 76,
-    "due": "Mar 28, 2026",
-    "assignee": "Nika",
-    "team": [
-      "Nika",
-      "Leo",
-      "Noah"
-    ],
-    "estimate": "3h",
-    "tag": "design",
-    "accent": "#111827",
-    "createdAt": "2026-03-08",
-    "completed": false
-  },
-  {
-    "id": "task-225",
-    "title": "Map checklist 225",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for timeline.",
-    "column": "upcoming",
-    "priority": "medium",
-    "progress": 85,
-    "due": "Mar 1, 2026",
-    "assignee": "Maya",
-    "team": [
-      "Maya",
-      "Ava",
-      "Iris"
-    ],
-    "estimate": "4h",
-    "tag": "frontend",
-    "accent": "#0f766e",
-    "createdAt": "2026-03-09",
-    "completed": false
-  },
-  {
-    "id": "task-226",
-    "title": "Test profile 226",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for report.",
-    "column": "blocked",
-    "priority": "high",
-    "progress": 42,
-    "due": "Mar 2, 2026",
-    "assignee": "Leo",
-    "team": [
-      "Leo",
-      "Noah",
-      "Milan"
-    ],
-    "estimate": "5h",
-    "tag": "backend",
-    "accent": "#1d4ed8",
-    "createdAt": "2026-03-01",
-    "completed": false
-  },
-  {
-    "id": "task-227",
-    "title": "Polish timeline 227",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for workflow.",
-    "column": "done",
-    "priority": "critical",
-    "progress": 100,
-    "due": "Mar 3, 2026",
-    "assignee": "Ava",
-    "team": [
-      "Ava",
-      "Iris",
-      "Sara"
-    ],
-    "estimate": "6h",
-    "tag": "ops",
-    "accent": "#be123c",
-    "createdAt": "2026-03-02",
-    "completed": true
-  },
-  {
-    "id": "task-228",
-    "title": "Write report 228",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for dashboard.",
-    "column": "today",
-    "priority": "low",
-    "progress": 42,
-    "due": "Mar 4, 2026",
-    "assignee": "Noah",
-    "team": [
-      "Noah",
-      "Milan",
-      "Nika"
-    ],
-    "estimate": "1h",
-    "tag": "research",
-    "accent": "#92400e",
-    "createdAt": "2026-03-03",
-    "completed": false
-  },
-  {
-    "id": "task-229",
-    "title": "Audit workflow 229",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for onboarding.",
-    "column": "upcoming",
-    "priority": "medium",
-    "progress": 51,
-    "due": "Mar 5, 2026",
-    "assignee": "Iris",
-    "team": [
-      "Iris",
-      "Sara",
-      "Maya"
-    ],
-    "estimate": "2h",
-    "tag": "content",
-    "accent": "#4338ca",
-    "createdAt": "2026-03-04",
-    "completed": false
-  },
-  {
-    "id": "task-230",
-    "title": "Refine dashboard 230",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for campaign.",
-    "column": "blocked",
-    "priority": "high",
-    "progress": 42,
-    "due": "Mar 6, 2026",
-    "assignee": "Milan",
-    "team": [
-      "Milan",
-      "Nika",
-      "Leo"
-    ],
-    "estimate": "3h",
-    "tag": "review",
-    "accent": "#047857",
-    "createdAt": "2026-03-05",
-    "completed": false
-  },
-  {
-    "id": "task-231",
-    "title": "Draft onboarding 231",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for API.",
-    "column": "done",
-    "priority": "critical",
-    "progress": 100,
-    "due": "Mar 7, 2026",
-    "assignee": "Sara",
-    "team": [
-      "Sara",
-      "Maya",
-      "Ava"
-    ],
-    "estimate": "4h",
-    "tag": "meeting",
-    "accent": "#7c2d12",
-    "createdAt": "2026-03-06",
-    "completed": true
-  },
-  {
-    "id": "task-232",
-    "title": "Align campaign 232",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for theme.",
-    "column": "today",
-    "priority": "low",
-    "progress": 78,
-    "due": "Mar 8, 2026",
-    "assignee": "Nika",
-    "team": [
-      "Nika",
-      "Leo",
-      "Noah"
-    ],
-    "estimate": "5h",
-    "tag": "design",
-    "accent": "#111827",
-    "createdAt": "2026-03-07",
-    "completed": false
-  },
-  {
-    "id": "task-233",
-    "title": "Review API 233",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for checklist.",
-    "column": "upcoming",
-    "priority": "medium",
-    "progress": 87,
-    "due": "Mar 9, 2026",
-    "assignee": "Maya",
-    "team": [
-      "Maya",
-      "Ava",
-      "Iris"
-    ],
-    "estimate": "6h",
-    "tag": "frontend",
-    "accent": "#0f766e",
-    "createdAt": "2026-03-08",
-    "completed": false
-  },
-  {
-    "id": "task-234",
-    "title": "Ship theme 234",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for profile.",
-    "column": "blocked",
-    "priority": "high",
-    "progress": 42,
-    "due": "Mar 10, 2026",
-    "assignee": "Leo",
-    "team": [
-      "Leo",
-      "Noah",
-      "Milan"
-    ],
-    "estimate": "1h",
-    "tag": "backend",
-    "accent": "#1d4ed8",
-    "createdAt": "2026-03-09",
-    "completed": false
-  },
-  {
-    "id": "task-235",
-    "title": "Map checklist 235",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for timeline.",
-    "column": "done",
-    "priority": "critical",
-    "progress": 100,
-    "due": "Mar 11, 2026",
-    "assignee": "Ava",
-    "team": [
-      "Ava",
-      "Iris",
-      "Sara"
-    ],
-    "estimate": "2h",
-    "tag": "ops",
-    "accent": "#be123c",
-    "createdAt": "2026-03-01",
-    "completed": true
-  },
-  {
-    "id": "task-236",
-    "title": "Test profile 236",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for report.",
-    "column": "today",
-    "priority": "low",
-    "progress": 44,
-    "due": "Mar 12, 2026",
-    "assignee": "Noah",
-    "team": [
-      "Noah",
-      "Milan",
-      "Nika"
-    ],
-    "estimate": "3h",
-    "tag": "research",
-    "accent": "#92400e",
-    "createdAt": "2026-03-02",
-    "completed": false
-  },
-  {
-    "id": "task-237",
-    "title": "Polish timeline 237",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for workflow.",
-    "column": "upcoming",
-    "priority": "medium",
-    "progress": 53,
-    "due": "Mar 13, 2026",
-    "assignee": "Iris",
-    "team": [
-      "Iris",
-      "Sara",
-      "Maya"
-    ],
-    "estimate": "4h",
-    "tag": "content",
-    "accent": "#4338ca",
-    "createdAt": "2026-03-03",
-    "completed": false
-  },
-  {
-    "id": "task-238",
-    "title": "Write report 238",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for dashboard.",
-    "column": "blocked",
-    "priority": "high",
-    "progress": 42,
-    "due": "Mar 14, 2026",
-    "assignee": "Milan",
-    "team": [
-      "Milan",
-      "Nika",
-      "Leo"
-    ],
-    "estimate": "5h",
-    "tag": "review",
-    "accent": "#047857",
-    "createdAt": "2026-03-04",
-    "completed": false
-  },
-  {
-    "id": "task-239",
-    "title": "Audit workflow 239",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for onboarding.",
-    "column": "done",
-    "priority": "critical",
-    "progress": 100,
-    "due": "Mar 15, 2026",
-    "assignee": "Sara",
-    "team": [
-      "Sara",
-      "Maya",
-      "Ava"
-    ],
-    "estimate": "6h",
-    "tag": "meeting",
-    "accent": "#7c2d12",
-    "createdAt": "2026-03-05",
-    "completed": true
-  },
-  {
-    "id": "task-240",
-    "title": "Refine dashboard 240",
-    "detail": "Keep scope clear, move the next blocker, and document the decision path for campaign.",
-    "column": "today",
-    "priority": "low",
-    "progress": 80,
-    "due": "Mar 16, 2026",
-    "assignee": "Nika",
-    "team": [
-      "Nika",
-      "Leo",
-      "Noah"
-    ],
-    "estimate": "1h",
-    "tag": "design",
-    "accent": "#111827",
-    "createdAt": "2026-03-06",
-    "completed": false
-  }
-]
+    id: "task-1",
+    title: "Draft onboarding 1",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for API.",
+    column: "upcoming",
+    priority: "medium",
+    progress: 29,
+    due: "Mar 1, 2026",
+    assignee: "Maya",
+    team: ["Maya", "Ava", "Iris"],
+    estimate: "2h",
+    tag: "frontend",
+    accent: "#0f766e",
+    createdAt: "2026-03-01",
+    completed: false,
+  },
+  {
+    id: "task-2",
+    title: "Align campaign 2",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for theme.",
+    column: "blocked",
+    priority: "high",
+    progress: 42,
+    due: "Mar 2, 2026",
+    assignee: "Leo",
+    team: ["Leo", "Noah", "Milan"],
+    estimate: "3h",
+    tag: "backend",
+    accent: "#1d4ed8",
+    createdAt: "2026-03-02",
+    completed: false,
+  },
+  {
+    id: "task-3",
+    title: "Review API 3",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for checklist.",
+    column: "done",
+    priority: "critical",
+    progress: 100,
+    due: "Mar 3, 2026",
+    assignee: "Ava",
+    team: ["Ava", "Iris", "Sara"],
+    estimate: "4h",
+    tag: "ops",
+    accent: "#be123c",
+    createdAt: "2026-03-03",
+    completed: true,
+  },
+  {
+    id: "task-4",
+    title: "Ship theme 4",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for profile.",
+    column: "today",
+    priority: "low",
+    progress: 56,
+    due: "Mar 4, 2026",
+    assignee: "Noah",
+    team: ["Noah", "Milan", "Nika"],
+    estimate: "5h",
+    tag: "research",
+    accent: "#92400e",
+    createdAt: "2026-03-04",
+    completed: false,
+  },
+  {
+    id: "task-5",
+    title: "Map checklist 5",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for timeline.",
+    column: "upcoming",
+    priority: "medium",
+    progress: 65,
+    due: "Mar 5, 2026",
+    assignee: "Iris",
+    team: ["Iris", "Sara", "Maya"],
+    estimate: "6h",
+    tag: "content",
+    accent: "#4338ca",
+    createdAt: "2026-03-05",
+    completed: false,
+  },
+  {
+    id: "task-6",
+    title: "Test profile 6",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for report.",
+    column: "blocked",
+    priority: "high",
+    progress: 42,
+    due: "Mar 6, 2026",
+    assignee: "Milan",
+    team: ["Milan", "Nika", "Leo"],
+    estimate: "1h",
+    tag: "review",
+    accent: "#047857",
+    createdAt: "2026-03-06",
+    completed: false,
+  },
+  {
+    id: "task-7",
+    title: "Polish timeline 7",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for workflow.",
+    column: "done",
+    priority: "critical",
+    progress: 100,
+    due: "Mar 7, 2026",
+    assignee: "Sara",
+    team: ["Sara", "Maya", "Ava"],
+    estimate: "2h",
+    tag: "meeting",
+    accent: "#7c2d12",
+    createdAt: "2026-03-07",
+    completed: true,
+  },
+  {
+    id: "task-8",
+    title: "Write report 8",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for dashboard.",
+    column: "today",
+    priority: "low",
+    progress: 22,
+    due: "Mar 8, 2026",
+    assignee: "Nika",
+    team: ["Nika", "Leo", "Noah"],
+    estimate: "3h",
+    tag: "design",
+    accent: "#111827",
+    createdAt: "2026-03-08",
+    completed: false,
+  },
+  {
+    id: "task-9",
+    title: "Audit workflow 9",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for onboarding.",
+    column: "upcoming",
+    priority: "medium",
+    progress: 31,
+    due: "Mar 9, 2026",
+    assignee: "Maya",
+    team: ["Maya", "Ava", "Iris"],
+    estimate: "4h",
+    tag: "frontend",
+    accent: "#0f766e",
+    createdAt: "2026-03-09",
+    completed: false,
+  },
+  {
+    id: "task-10",
+    title: "Refine dashboard 10",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for campaign.",
+    column: "blocked",
+    priority: "high",
+    progress: 42,
+    due: "Mar 10, 2026",
+    assignee: "Leo",
+    team: ["Leo", "Noah", "Milan"],
+    estimate: "5h",
+    tag: "backend",
+    accent: "#1d4ed8",
+    createdAt: "2026-03-01",
+    completed: false,
+  },
+  {
+    id: "task-11",
+    title: "Draft onboarding 11",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for API.",
+    column: "done",
+    priority: "critical",
+    progress: 100,
+    due: "Mar 11, 2026",
+    assignee: "Ava",
+    team: ["Ava", "Iris", "Sara"],
+    estimate: "6h",
+    tag: "ops",
+    accent: "#be123c",
+    createdAt: "2026-03-02",
+    completed: true,
+  },
+  {
+    id: "task-12",
+    title: "Align campaign 12",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for theme.",
+    column: "today",
+    priority: "low",
+    progress: 58,
+    due: "Mar 12, 2026",
+    assignee: "Noah",
+    team: ["Noah", "Milan", "Nika"],
+    estimate: "1h",
+    tag: "research",
+    accent: "#92400e",
+    createdAt: "2026-03-03",
+    completed: false,
+  },
+  {
+    id: "task-13",
+    title: "Review API 13",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for checklist.",
+    column: "upcoming",
+    priority: "medium",
+    progress: 67,
+    due: "Mar 13, 2026",
+    assignee: "Iris",
+    team: ["Iris", "Sara", "Maya"],
+    estimate: "2h",
+    tag: "content",
+    accent: "#4338ca",
+    createdAt: "2026-03-04",
+    completed: false,
+  },
+  {
+    id: "task-14",
+    title: "Ship theme 14",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for profile.",
+    column: "blocked",
+    priority: "high",
+    progress: 42,
+    due: "Mar 14, 2026",
+    assignee: "Milan",
+    team: ["Milan", "Nika", "Leo"],
+    estimate: "3h",
+    tag: "review",
+    accent: "#047857",
+    createdAt: "2026-03-05",
+    completed: false,
+  },
+  {
+    id: "task-15",
+    title: "Map checklist 15",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for timeline.",
+    column: "done",
+    priority: "critical",
+    progress: 100,
+    due: "Mar 15, 2026",
+    assignee: "Sara",
+    team: ["Sara", "Maya", "Ava"],
+    estimate: "4h",
+    tag: "meeting",
+    accent: "#7c2d12",
+    createdAt: "2026-03-06",
+    completed: true,
+  },
+  {
+    id: "task-16",
+    title: "Test profile 16",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for report.",
+    column: "today",
+    priority: "low",
+    progress: 24,
+    due: "Mar 16, 2026",
+    assignee: "Nika",
+    team: ["Nika", "Leo", "Noah"],
+    estimate: "5h",
+    tag: "design",
+    accent: "#111827",
+    createdAt: "2026-03-07",
+    completed: false,
+  },
+  {
+    id: "task-17",
+    title: "Polish timeline 17",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for workflow.",
+    column: "upcoming",
+    priority: "medium",
+    progress: 33,
+    due: "Mar 17, 2026",
+    assignee: "Maya",
+    team: ["Maya", "Ava", "Iris"],
+    estimate: "6h",
+    tag: "frontend",
+    accent: "#0f766e",
+    createdAt: "2026-03-08",
+    completed: false,
+  },
+  {
+    id: "task-18",
+    title: "Write report 18",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for dashboard.",
+    column: "blocked",
+    priority: "high",
+    progress: 42,
+    due: "Mar 18, 2026",
+    assignee: "Leo",
+    team: ["Leo", "Noah", "Milan"],
+    estimate: "1h",
+    tag: "backend",
+    accent: "#1d4ed8",
+    createdAt: "2026-03-09",
+    completed: false,
+  },
+  {
+    id: "task-19",
+    title: "Audit workflow 19",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for onboarding.",
+    column: "done",
+    priority: "critical",
+    progress: 100,
+    due: "Mar 19, 2026",
+    assignee: "Ava",
+    team: ["Ava", "Iris", "Sara"],
+    estimate: "2h",
+    tag: "ops",
+    accent: "#be123c",
+    createdAt: "2026-03-01",
+    completed: true,
+  },
+  {
+    id: "task-20",
+    title: "Refine dashboard 20",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for campaign.",
+    column: "today",
+    priority: "low",
+    progress: 60,
+    due: "Mar 20, 2026",
+    assignee: "Noah",
+    team: ["Noah", "Milan", "Nika"],
+    estimate: "3h",
+    tag: "research",
+    accent: "#92400e",
+    createdAt: "2026-03-02",
+    completed: false,
+  },
+  {
+    id: "task-21",
+    title: "Draft onboarding 21",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for API.",
+    column: "upcoming",
+    priority: "medium",
+    progress: 69,
+    due: "Mar 21, 2026",
+    assignee: "Iris",
+    team: ["Iris", "Sara", "Maya"],
+    estimate: "4h",
+    tag: "content",
+    accent: "#4338ca",
+    createdAt: "2026-03-03",
+    completed: false,
+  },
+  {
+    id: "task-22",
+    title: "Align campaign 22",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for theme.",
+    column: "blocked",
+    priority: "high",
+    progress: 42,
+    due: "Mar 22, 2026",
+    assignee: "Milan",
+    team: ["Milan", "Nika", "Leo"],
+    estimate: "5h",
+    tag: "review",
+    accent: "#047857",
+    createdAt: "2026-03-04",
+    completed: false,
+  },
+  {
+    id: "task-23",
+    title: "Review API 23",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for checklist.",
+    column: "done",
+    priority: "critical",
+    progress: 100,
+    due: "Mar 23, 2026",
+    assignee: "Sara",
+    team: ["Sara", "Maya", "Ava"],
+    estimate: "6h",
+    tag: "meeting",
+    accent: "#7c2d12",
+    createdAt: "2026-03-05",
+    completed: true,
+  },
+  {
+    id: "task-24",
+    title: "Ship theme 24",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for profile.",
+    column: "today",
+    priority: "low",
+    progress: 26,
+    due: "Mar 24, 2026",
+    assignee: "Nika",
+    team: ["Nika", "Leo", "Noah"],
+    estimate: "1h",
+    tag: "design",
+    accent: "#111827",
+    createdAt: "2026-03-06",
+    completed: false,
+  },
+  {
+    id: "task-25",
+    title: "Map checklist 25",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for timeline.",
+    column: "upcoming",
+    priority: "medium",
+    progress: 35,
+    due: "Mar 25, 2026",
+    assignee: "Maya",
+    team: ["Maya", "Ava", "Iris"],
+    estimate: "2h",
+    tag: "frontend",
+    accent: "#0f766e",
+    createdAt: "2026-03-07",
+    completed: false,
+  },
+  {
+    id: "task-26",
+    title: "Test profile 26",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for report.",
+    column: "blocked",
+    priority: "high",
+    progress: 42,
+    due: "Mar 26, 2026",
+    assignee: "Leo",
+    team: ["Leo", "Noah", "Milan"],
+    estimate: "3h",
+    tag: "backend",
+    accent: "#1d4ed8",
+    createdAt: "2026-03-08",
+    completed: false,
+  },
+  {
+    id: "task-27",
+    title: "Polish timeline 27",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for workflow.",
+    column: "done",
+    priority: "critical",
+    progress: 100,
+    due: "Mar 27, 2026",
+    assignee: "Ava",
+    team: ["Ava", "Iris", "Sara"],
+    estimate: "4h",
+    tag: "ops",
+    accent: "#be123c",
+    createdAt: "2026-03-09",
+    completed: true,
+  },
+  {
+    id: "task-28",
+    title: "Write report 28",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for dashboard.",
+    column: "today",
+    priority: "low",
+    progress: 62,
+    due: "Mar 28, 2026",
+    assignee: "Noah",
+    team: ["Noah", "Milan", "Nika"],
+    estimate: "5h",
+    tag: "research",
+    accent: "#92400e",
+    createdAt: "2026-03-01",
+    completed: false,
+  },
+  {
+    id: "task-29",
+    title: "Audit workflow 29",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for onboarding.",
+    column: "upcoming",
+    priority: "medium",
+    progress: 71,
+    due: "Mar 1, 2026",
+    assignee: "Iris",
+    team: ["Iris", "Sara", "Maya"],
+    estimate: "6h",
+    tag: "content",
+    accent: "#4338ca",
+    createdAt: "2026-03-02",
+    completed: false,
+  },
+  {
+    id: "task-30",
+    title: "Refine dashboard 30",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for campaign.",
+    column: "blocked",
+    priority: "high",
+    progress: 42,
+    due: "Mar 2, 2026",
+    assignee: "Milan",
+    team: ["Milan", "Nika", "Leo"],
+    estimate: "1h",
+    tag: "review",
+    accent: "#047857",
+    createdAt: "2026-03-03",
+    completed: false,
+  },
+  {
+    id: "task-31",
+    title: "Draft onboarding 31",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for API.",
+    column: "done",
+    priority: "critical",
+    progress: 100,
+    due: "Mar 3, 2026",
+    assignee: "Sara",
+    team: ["Sara", "Maya", "Ava"],
+    estimate: "2h",
+    tag: "meeting",
+    accent: "#7c2d12",
+    createdAt: "2026-03-04",
+    completed: true,
+  },
+  {
+    id: "task-32",
+    title: "Align campaign 32",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for theme.",
+    column: "today",
+    priority: "low",
+    progress: 28,
+    due: "Mar 4, 2026",
+    assignee: "Nika",
+    team: ["Nika", "Leo", "Noah"],
+    estimate: "3h",
+    tag: "design",
+    accent: "#111827",
+    createdAt: "2026-03-05",
+    completed: false,
+  },
+  {
+    id: "task-33",
+    title: "Review API 33",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for checklist.",
+    column: "upcoming",
+    priority: "medium",
+    progress: 37,
+    due: "Mar 5, 2026",
+    assignee: "Maya",
+    team: ["Maya", "Ava", "Iris"],
+    estimate: "4h",
+    tag: "frontend",
+    accent: "#0f766e",
+    createdAt: "2026-03-06",
+    completed: false,
+  },
+  {
+    id: "task-34",
+    title: "Ship theme 34",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for profile.",
+    column: "blocked",
+    priority: "high",
+    progress: 42,
+    due: "Mar 6, 2026",
+    assignee: "Leo",
+    team: ["Leo", "Noah", "Milan"],
+    estimate: "5h",
+    tag: "backend",
+    accent: "#1d4ed8",
+    createdAt: "2026-03-07",
+    completed: false,
+  },
+  {
+    id: "task-35",
+    title: "Map checklist 35",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for timeline.",
+    column: "done",
+    priority: "critical",
+    progress: 100,
+    due: "Mar 7, 2026",
+    assignee: "Ava",
+    team: ["Ava", "Iris", "Sara"],
+    estimate: "6h",
+    tag: "ops",
+    accent: "#be123c",
+    createdAt: "2026-03-08",
+    completed: true,
+  },
+  {
+    id: "task-36",
+    title: "Test profile 36",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for report.",
+    column: "today",
+    priority: "low",
+    progress: 64,
+    due: "Mar 8, 2026",
+    assignee: "Noah",
+    team: ["Noah", "Milan", "Nika"],
+    estimate: "1h",
+    tag: "research",
+    accent: "#92400e",
+    createdAt: "2026-03-09",
+    completed: false,
+  },
+  {
+    id: "task-37",
+    title: "Polish timeline 37",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for workflow.",
+    column: "upcoming",
+    priority: "medium",
+    progress: 73,
+    due: "Mar 9, 2026",
+    assignee: "Iris",
+    team: ["Iris", "Sara", "Maya"],
+    estimate: "2h",
+    tag: "content",
+    accent: "#4338ca",
+    createdAt: "2026-03-01",
+    completed: false,
+  },
+  {
+    id: "task-38",
+    title: "Write report 38",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for dashboard.",
+    column: "blocked",
+    priority: "high",
+    progress: 42,
+    due: "Mar 10, 2026",
+    assignee: "Milan",
+    team: ["Milan", "Nika", "Leo"],
+    estimate: "3h",
+    tag: "review",
+    accent: "#047857",
+    createdAt: "2026-03-02",
+    completed: false,
+  },
+  {
+    id: "task-39",
+    title: "Audit workflow 39",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for onboarding.",
+    column: "done",
+    priority: "critical",
+    progress: 100,
+    due: "Mar 11, 2026",
+    assignee: "Sara",
+    team: ["Sara", "Maya", "Ava"],
+    estimate: "4h",
+    tag: "meeting",
+    accent: "#7c2d12",
+    createdAt: "2026-03-03",
+    completed: true,
+  },
+  {
+    id: "task-40",
+    title: "Refine dashboard 40",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for campaign.",
+    column: "today",
+    priority: "low",
+    progress: 30,
+    due: "Mar 12, 2026",
+    assignee: "Nika",
+    team: ["Nika", "Leo", "Noah"],
+    estimate: "5h",
+    tag: "design",
+    accent: "#111827",
+    createdAt: "2026-03-04",
+    completed: false,
+  },
+  {
+    id: "task-41",
+    title: "Draft onboarding 41",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for API.",
+    column: "upcoming",
+    priority: "medium",
+    progress: 39,
+    due: "Mar 13, 2026",
+    assignee: "Maya",
+    team: ["Maya", "Ava", "Iris"],
+    estimate: "6h",
+    tag: "frontend",
+    accent: "#0f766e",
+    createdAt: "2026-03-05",
+    completed: false,
+  },
+  {
+    id: "task-42",
+    title: "Align campaign 42",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for theme.",
+    column: "blocked",
+    priority: "high",
+    progress: 42,
+    due: "Mar 14, 2026",
+    assignee: "Leo",
+    team: ["Leo", "Noah", "Milan"],
+    estimate: "1h",
+    tag: "backend",
+    accent: "#1d4ed8",
+    createdAt: "2026-03-06",
+    completed: false,
+  },
+  {
+    id: "task-43",
+    title: "Review API 43",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for checklist.",
+    column: "done",
+    priority: "critical",
+    progress: 100,
+    due: "Mar 15, 2026",
+    assignee: "Ava",
+    team: ["Ava", "Iris", "Sara"],
+    estimate: "2h",
+    tag: "ops",
+    accent: "#be123c",
+    createdAt: "2026-03-07",
+    completed: true,
+  },
+  {
+    id: "task-44",
+    title: "Ship theme 44",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for profile.",
+    column: "today",
+    priority: "low",
+    progress: 66,
+    due: "Mar 16, 2026",
+    assignee: "Noah",
+    team: ["Noah", "Milan", "Nika"],
+    estimate: "3h",
+    tag: "research",
+    accent: "#92400e",
+    createdAt: "2026-03-08",
+    completed: false,
+  },
+  {
+    id: "task-45",
+    title: "Map checklist 45",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for timeline.",
+    column: "upcoming",
+    priority: "medium",
+    progress: 75,
+    due: "Mar 17, 2026",
+    assignee: "Iris",
+    team: ["Iris", "Sara", "Maya"],
+    estimate: "4h",
+    tag: "content",
+    accent: "#4338ca",
+    createdAt: "2026-03-09",
+    completed: false,
+  },
+  {
+    id: "task-46",
+    title: "Test profile 46",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for report.",
+    column: "blocked",
+    priority: "high",
+    progress: 42,
+    due: "Mar 18, 2026",
+    assignee: "Milan",
+    team: ["Milan", "Nika", "Leo"],
+    estimate: "5h",
+    tag: "review",
+    accent: "#047857",
+    createdAt: "2026-03-01",
+    completed: false,
+  },
+  {
+    id: "task-47",
+    title: "Polish timeline 47",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for workflow.",
+    column: "done",
+    priority: "critical",
+    progress: 100,
+    due: "Mar 19, 2026",
+    assignee: "Sara",
+    team: ["Sara", "Maya", "Ava"],
+    estimate: "6h",
+    tag: "meeting",
+    accent: "#7c2d12",
+    createdAt: "2026-03-02",
+    completed: true,
+  },
+  {
+    id: "task-48",
+    title: "Write report 48",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for dashboard.",
+    column: "today",
+    priority: "low",
+    progress: 32,
+    due: "Mar 20, 2026",
+    assignee: "Nika",
+    team: ["Nika", "Leo", "Noah"],
+    estimate: "1h",
+    tag: "design",
+    accent: "#111827",
+    createdAt: "2026-03-03",
+    completed: false,
+  },
+  {
+    id: "task-49",
+    title: "Audit workflow 49",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for onboarding.",
+    column: "upcoming",
+    priority: "medium",
+    progress: 41,
+    due: "Mar 21, 2026",
+    assignee: "Maya",
+    team: ["Maya", "Ava", "Iris"],
+    estimate: "2h",
+    tag: "frontend",
+    accent: "#0f766e",
+    createdAt: "2026-03-04",
+    completed: false,
+  },
+  {
+    id: "task-50",
+    title: "Refine dashboard 50",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for campaign.",
+    column: "blocked",
+    priority: "high",
+    progress: 42,
+    due: "Mar 22, 2026",
+    assignee: "Leo",
+    team: ["Leo", "Noah", "Milan"],
+    estimate: "3h",
+    tag: "backend",
+    accent: "#1d4ed8",
+    createdAt: "2026-03-05",
+    completed: false,
+  },
+  {
+    id: "task-51",
+    title: "Draft onboarding 51",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for API.",
+    column: "done",
+    priority: "critical",
+    progress: 100,
+    due: "Mar 23, 2026",
+    assignee: "Ava",
+    team: ["Ava", "Iris", "Sara"],
+    estimate: "4h",
+    tag: "ops",
+    accent: "#be123c",
+    createdAt: "2026-03-06",
+    completed: true,
+  },
+  {
+    id: "task-52",
+    title: "Align campaign 52",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for theme.",
+    column: "today",
+    priority: "low",
+    progress: 68,
+    due: "Mar 24, 2026",
+    assignee: "Noah",
+    team: ["Noah", "Milan", "Nika"],
+    estimate: "5h",
+    tag: "research",
+    accent: "#92400e",
+    createdAt: "2026-03-07",
+    completed: false,
+  },
+  {
+    id: "task-53",
+    title: "Review API 53",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for checklist.",
+    column: "upcoming",
+    priority: "medium",
+    progress: 77,
+    due: "Mar 25, 2026",
+    assignee: "Iris",
+    team: ["Iris", "Sara", "Maya"],
+    estimate: "6h",
+    tag: "content",
+    accent: "#4338ca",
+    createdAt: "2026-03-08",
+    completed: false,
+  },
+  {
+    id: "task-54",
+    title: "Ship theme 54",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for profile.",
+    column: "blocked",
+    priority: "high",
+    progress: 42,
+    due: "Mar 26, 2026",
+    assignee: "Milan",
+    team: ["Milan", "Nika", "Leo"],
+    estimate: "1h",
+    tag: "review",
+    accent: "#047857",
+    createdAt: "2026-03-09",
+    completed: false,
+  },
+  {
+    id: "task-55",
+    title: "Map checklist 55",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for timeline.",
+    column: "done",
+    priority: "critical",
+    progress: 100,
+    due: "Mar 27, 2026",
+    assignee: "Sara",
+    team: ["Sara", "Maya", "Ava"],
+    estimate: "2h",
+    tag: "meeting",
+    accent: "#7c2d12",
+    createdAt: "2026-03-01",
+    completed: true,
+  },
+  {
+    id: "task-56",
+    title: "Test profile 56",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for report.",
+    column: "today",
+    priority: "low",
+    progress: 34,
+    due: "Mar 28, 2026",
+    assignee: "Nika",
+    team: ["Nika", "Leo", "Noah"],
+    estimate: "3h",
+    tag: "design",
+    accent: "#111827",
+    createdAt: "2026-03-02",
+    completed: false,
+  },
+  {
+    id: "task-57",
+    title: "Polish timeline 57",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for workflow.",
+    column: "upcoming",
+    priority: "medium",
+    progress: 43,
+    due: "Mar 1, 2026",
+    assignee: "Maya",
+    team: ["Maya", "Ava", "Iris"],
+    estimate: "4h",
+    tag: "frontend",
+    accent: "#0f766e",
+    createdAt: "2026-03-03",
+    completed: false,
+  },
+  {
+    id: "task-58",
+    title: "Write report 58",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for dashboard.",
+    column: "blocked",
+    priority: "high",
+    progress: 42,
+    due: "Mar 2, 2026",
+    assignee: "Leo",
+    team: ["Leo", "Noah", "Milan"],
+    estimate: "5h",
+    tag: "backend",
+    accent: "#1d4ed8",
+    createdAt: "2026-03-04",
+    completed: false,
+  },
+  {
+    id: "task-59",
+    title: "Audit workflow 59",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for onboarding.",
+    column: "done",
+    priority: "critical",
+    progress: 100,
+    due: "Mar 3, 2026",
+    assignee: "Ava",
+    team: ["Ava", "Iris", "Sara"],
+    estimate: "6h",
+    tag: "ops",
+    accent: "#be123c",
+    createdAt: "2026-03-05",
+    completed: true,
+  },
+  {
+    id: "task-60",
+    title: "Refine dashboard 60",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for campaign.",
+    column: "today",
+    priority: "low",
+    progress: 70,
+    due: "Mar 4, 2026",
+    assignee: "Noah",
+    team: ["Noah", "Milan", "Nika"],
+    estimate: "1h",
+    tag: "research",
+    accent: "#92400e",
+    createdAt: "2026-03-06",
+    completed: false,
+  },
+  {
+    id: "task-61",
+    title: "Draft onboarding 61",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for API.",
+    column: "upcoming",
+    priority: "medium",
+    progress: 79,
+    due: "Mar 5, 2026",
+    assignee: "Iris",
+    team: ["Iris", "Sara", "Maya"],
+    estimate: "2h",
+    tag: "content",
+    accent: "#4338ca",
+    createdAt: "2026-03-07",
+    completed: false,
+  },
+  {
+    id: "task-62",
+    title: "Align campaign 62",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for theme.",
+    column: "blocked",
+    priority: "high",
+    progress: 42,
+    due: "Mar 6, 2026",
+    assignee: "Milan",
+    team: ["Milan", "Nika", "Leo"],
+    estimate: "3h",
+    tag: "review",
+    accent: "#047857",
+    createdAt: "2026-03-08",
+    completed: false,
+  },
+  {
+    id: "task-63",
+    title: "Review API 63",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for checklist.",
+    column: "done",
+    priority: "critical",
+    progress: 100,
+    due: "Mar 7, 2026",
+    assignee: "Sara",
+    team: ["Sara", "Maya", "Ava"],
+    estimate: "4h",
+    tag: "meeting",
+    accent: "#7c2d12",
+    createdAt: "2026-03-09",
+    completed: true,
+  },
+  {
+    id: "task-64",
+    title: "Ship theme 64",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for profile.",
+    column: "today",
+    priority: "low",
+    progress: 36,
+    due: "Mar 8, 2026",
+    assignee: "Nika",
+    team: ["Nika", "Leo", "Noah"],
+    estimate: "5h",
+    tag: "design",
+    accent: "#111827",
+    createdAt: "2026-03-01",
+    completed: false,
+  },
+  {
+    id: "task-65",
+    title: "Map checklist 65",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for timeline.",
+    column: "upcoming",
+    priority: "medium",
+    progress: 45,
+    due: "Mar 9, 2026",
+    assignee: "Maya",
+    team: ["Maya", "Ava", "Iris"],
+    estimate: "6h",
+    tag: "frontend",
+    accent: "#0f766e",
+    createdAt: "2026-03-02",
+    completed: false,
+  },
+  {
+    id: "task-66",
+    title: "Test profile 66",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for report.",
+    column: "blocked",
+    priority: "high",
+    progress: 42,
+    due: "Mar 10, 2026",
+    assignee: "Leo",
+    team: ["Leo", "Noah", "Milan"],
+    estimate: "1h",
+    tag: "backend",
+    accent: "#1d4ed8",
+    createdAt: "2026-03-03",
+    completed: false,
+  },
+  {
+    id: "task-67",
+    title: "Polish timeline 67",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for workflow.",
+    column: "done",
+    priority: "critical",
+    progress: 100,
+    due: "Mar 11, 2026",
+    assignee: "Ava",
+    team: ["Ava", "Iris", "Sara"],
+    estimate: "2h",
+    tag: "ops",
+    accent: "#be123c",
+    createdAt: "2026-03-04",
+    completed: true,
+  },
+  {
+    id: "task-68",
+    title: "Write report 68",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for dashboard.",
+    column: "today",
+    priority: "low",
+    progress: 72,
+    due: "Mar 12, 2026",
+    assignee: "Noah",
+    team: ["Noah", "Milan", "Nika"],
+    estimate: "3h",
+    tag: "research",
+    accent: "#92400e",
+    createdAt: "2026-03-05",
+    completed: false,
+  },
+  {
+    id: "task-69",
+    title: "Audit workflow 69",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for onboarding.",
+    column: "upcoming",
+    priority: "medium",
+    progress: 81,
+    due: "Mar 13, 2026",
+    assignee: "Iris",
+    team: ["Iris", "Sara", "Maya"],
+    estimate: "4h",
+    tag: "content",
+    accent: "#4338ca",
+    createdAt: "2026-03-06",
+    completed: false,
+  },
+  {
+    id: "task-70",
+    title: "Refine dashboard 70",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for campaign.",
+    column: "blocked",
+    priority: "high",
+    progress: 42,
+    due: "Mar 14, 2026",
+    assignee: "Milan",
+    team: ["Milan", "Nika", "Leo"],
+    estimate: "5h",
+    tag: "review",
+    accent: "#047857",
+    createdAt: "2026-03-07",
+    completed: false,
+  },
+  {
+    id: "task-71",
+    title: "Draft onboarding 71",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for API.",
+    column: "done",
+    priority: "critical",
+    progress: 100,
+    due: "Mar 15, 2026",
+    assignee: "Sara",
+    team: ["Sara", "Maya", "Ava"],
+    estimate: "6h",
+    tag: "meeting",
+    accent: "#7c2d12",
+    createdAt: "2026-03-08",
+    completed: true,
+  },
+  {
+    id: "task-72",
+    title: "Align campaign 72",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for theme.",
+    column: "today",
+    priority: "low",
+    progress: 38,
+    due: "Mar 16, 2026",
+    assignee: "Nika",
+    team: ["Nika", "Leo", "Noah"],
+    estimate: "1h",
+    tag: "design",
+    accent: "#111827",
+    createdAt: "2026-03-09",
+    completed: false,
+  },
+  {
+    id: "task-73",
+    title: "Review API 73",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for checklist.",
+    column: "upcoming",
+    priority: "medium",
+    progress: 47,
+    due: "Mar 17, 2026",
+    assignee: "Maya",
+    team: ["Maya", "Ava", "Iris"],
+    estimate: "2h",
+    tag: "frontend",
+    accent: "#0f766e",
+    createdAt: "2026-03-01",
+    completed: false,
+  },
+  {
+    id: "task-74",
+    title: "Ship theme 74",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for profile.",
+    column: "blocked",
+    priority: "high",
+    progress: 42,
+    due: "Mar 18, 2026",
+    assignee: "Leo",
+    team: ["Leo", "Noah", "Milan"],
+    estimate: "3h",
+    tag: "backend",
+    accent: "#1d4ed8",
+    createdAt: "2026-03-02",
+    completed: false,
+  },
+  {
+    id: "task-75",
+    title: "Map checklist 75",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for timeline.",
+    column: "done",
+    priority: "critical",
+    progress: 100,
+    due: "Mar 19, 2026",
+    assignee: "Ava",
+    team: ["Ava", "Iris", "Sara"],
+    estimate: "4h",
+    tag: "ops",
+    accent: "#be123c",
+    createdAt: "2026-03-03",
+    completed: true,
+  },
+  {
+    id: "task-76",
+    title: "Test profile 76",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for report.",
+    column: "today",
+    priority: "low",
+    progress: 74,
+    due: "Mar 20, 2026",
+    assignee: "Noah",
+    team: ["Noah", "Milan", "Nika"],
+    estimate: "5h",
+    tag: "research",
+    accent: "#92400e",
+    createdAt: "2026-03-04",
+    completed: false,
+  },
+  {
+    id: "task-77",
+    title: "Polish timeline 77",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for workflow.",
+    column: "upcoming",
+    priority: "medium",
+    progress: 83,
+    due: "Mar 21, 2026",
+    assignee: "Iris",
+    team: ["Iris", "Sara", "Maya"],
+    estimate: "6h",
+    tag: "content",
+    accent: "#4338ca",
+    createdAt: "2026-03-05",
+    completed: false,
+  },
+  {
+    id: "task-78",
+    title: "Write report 78",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for dashboard.",
+    column: "blocked",
+    priority: "high",
+    progress: 42,
+    due: "Mar 22, 2026",
+    assignee: "Milan",
+    team: ["Milan", "Nika", "Leo"],
+    estimate: "1h",
+    tag: "review",
+    accent: "#047857",
+    createdAt: "2026-03-06",
+    completed: false,
+  },
+  {
+    id: "task-79",
+    title: "Audit workflow 79",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for onboarding.",
+    column: "done",
+    priority: "critical",
+    progress: 100,
+    due: "Mar 23, 2026",
+    assignee: "Sara",
+    team: ["Sara", "Maya", "Ava"],
+    estimate: "2h",
+    tag: "meeting",
+    accent: "#7c2d12",
+    createdAt: "2026-03-07",
+    completed: true,
+  },
+  {
+    id: "task-80",
+    title: "Refine dashboard 80",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for campaign.",
+    column: "today",
+    priority: "low",
+    progress: 40,
+    due: "Mar 24, 2026",
+    assignee: "Nika",
+    team: ["Nika", "Leo", "Noah"],
+    estimate: "3h",
+    tag: "design",
+    accent: "#111827",
+    createdAt: "2026-03-08",
+    completed: false,
+  },
+  {
+    id: "task-81",
+    title: "Draft onboarding 81",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for API.",
+    column: "upcoming",
+    priority: "medium",
+    progress: 49,
+    due: "Mar 25, 2026",
+    assignee: "Maya",
+    team: ["Maya", "Ava", "Iris"],
+    estimate: "4h",
+    tag: "frontend",
+    accent: "#0f766e",
+    createdAt: "2026-03-09",
+    completed: false,
+  },
+  {
+    id: "task-82",
+    title: "Align campaign 82",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for theme.",
+    column: "blocked",
+    priority: "high",
+    progress: 42,
+    due: "Mar 26, 2026",
+    assignee: "Leo",
+    team: ["Leo", "Noah", "Milan"],
+    estimate: "5h",
+    tag: "backend",
+    accent: "#1d4ed8",
+    createdAt: "2026-03-01",
+    completed: false,
+  },
+  {
+    id: "task-83",
+    title: "Review API 83",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for checklist.",
+    column: "done",
+    priority: "critical",
+    progress: 100,
+    due: "Mar 27, 2026",
+    assignee: "Ava",
+    team: ["Ava", "Iris", "Sara"],
+    estimate: "6h",
+    tag: "ops",
+    accent: "#be123c",
+    createdAt: "2026-03-02",
+    completed: true,
+  },
+  {
+    id: "task-84",
+    title: "Ship theme 84",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for profile.",
+    column: "today",
+    priority: "low",
+    progress: 76,
+    due: "Mar 28, 2026",
+    assignee: "Noah",
+    team: ["Noah", "Milan", "Nika"],
+    estimate: "1h",
+    tag: "research",
+    accent: "#92400e",
+    createdAt: "2026-03-03",
+    completed: false,
+  },
+  {
+    id: "task-85",
+    title: "Map checklist 85",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for timeline.",
+    column: "upcoming",
+    priority: "medium",
+    progress: 85,
+    due: "Mar 1, 2026",
+    assignee: "Iris",
+    team: ["Iris", "Sara", "Maya"],
+    estimate: "2h",
+    tag: "content",
+    accent: "#4338ca",
+    createdAt: "2026-03-04",
+    completed: false,
+  },
+  {
+    id: "task-86",
+    title: "Test profile 86",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for report.",
+    column: "blocked",
+    priority: "high",
+    progress: 42,
+    due: "Mar 2, 2026",
+    assignee: "Milan",
+    team: ["Milan", "Nika", "Leo"],
+    estimate: "3h",
+    tag: "review",
+    accent: "#047857",
+    createdAt: "2026-03-05",
+    completed: false,
+  },
+  {
+    id: "task-87",
+    title: "Polish timeline 87",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for workflow.",
+    column: "done",
+    priority: "critical",
+    progress: 100,
+    due: "Mar 3, 2026",
+    assignee: "Sara",
+    team: ["Sara", "Maya", "Ava"],
+    estimate: "4h",
+    tag: "meeting",
+    accent: "#7c2d12",
+    createdAt: "2026-03-06",
+    completed: true,
+  },
+  {
+    id: "task-88",
+    title: "Write report 88",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for dashboard.",
+    column: "today",
+    priority: "low",
+    progress: 42,
+    due: "Mar 4, 2026",
+    assignee: "Nika",
+    team: ["Nika", "Leo", "Noah"],
+    estimate: "5h",
+    tag: "design",
+    accent: "#111827",
+    createdAt: "2026-03-07",
+    completed: false,
+  },
+  {
+    id: "task-89",
+    title: "Audit workflow 89",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for onboarding.",
+    column: "upcoming",
+    priority: "medium",
+    progress: 51,
+    due: "Mar 5, 2026",
+    assignee: "Maya",
+    team: ["Maya", "Ava", "Iris"],
+    estimate: "6h",
+    tag: "frontend",
+    accent: "#0f766e",
+    createdAt: "2026-03-08",
+    completed: false,
+  },
+  {
+    id: "task-90",
+    title: "Refine dashboard 90",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for campaign.",
+    column: "blocked",
+    priority: "high",
+    progress: 42,
+    due: "Mar 6, 2026",
+    assignee: "Leo",
+    team: ["Leo", "Noah", "Milan"],
+    estimate: "1h",
+    tag: "backend",
+    accent: "#1d4ed8",
+    createdAt: "2026-03-09",
+    completed: false,
+  },
+  {
+    id: "task-91",
+    title: "Draft onboarding 91",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for API.",
+    column: "done",
+    priority: "critical",
+    progress: 100,
+    due: "Mar 7, 2026",
+    assignee: "Ava",
+    team: ["Ava", "Iris", "Sara"],
+    estimate: "2h",
+    tag: "ops",
+    accent: "#be123c",
+    createdAt: "2026-03-01",
+    completed: true,
+  },
+  {
+    id: "task-92",
+    title: "Align campaign 92",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for theme.",
+    column: "today",
+    priority: "low",
+    progress: 78,
+    due: "Mar 8, 2026",
+    assignee: "Noah",
+    team: ["Noah", "Milan", "Nika"],
+    estimate: "3h",
+    tag: "research",
+    accent: "#92400e",
+    createdAt: "2026-03-02",
+    completed: false,
+  },
+  {
+    id: "task-93",
+    title: "Review API 93",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for checklist.",
+    column: "upcoming",
+    priority: "medium",
+    progress: 87,
+    due: "Mar 9, 2026",
+    assignee: "Iris",
+    team: ["Iris", "Sara", "Maya"],
+    estimate: "4h",
+    tag: "content",
+    accent: "#4338ca",
+    createdAt: "2026-03-03",
+    completed: false,
+  },
+  {
+    id: "task-94",
+    title: "Ship theme 94",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for profile.",
+    column: "blocked",
+    priority: "high",
+    progress: 42,
+    due: "Mar 10, 2026",
+    assignee: "Milan",
+    team: ["Milan", "Nika", "Leo"],
+    estimate: "5h",
+    tag: "review",
+    accent: "#047857",
+    createdAt: "2026-03-04",
+    completed: false,
+  },
+  {
+    id: "task-95",
+    title: "Map checklist 95",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for timeline.",
+    column: "done",
+    priority: "critical",
+    progress: 100,
+    due: "Mar 11, 2026",
+    assignee: "Sara",
+    team: ["Sara", "Maya", "Ava"],
+    estimate: "6h",
+    tag: "meeting",
+    accent: "#7c2d12",
+    createdAt: "2026-03-05",
+    completed: true,
+  },
+  {
+    id: "task-96",
+    title: "Test profile 96",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for report.",
+    column: "today",
+    priority: "low",
+    progress: 44,
+    due: "Mar 12, 2026",
+    assignee: "Nika",
+    team: ["Nika", "Leo", "Noah"],
+    estimate: "1h",
+    tag: "design",
+    accent: "#111827",
+    createdAt: "2026-03-06",
+    completed: false,
+  },
+  {
+    id: "task-97",
+    title: "Polish timeline 97",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for workflow.",
+    column: "upcoming",
+    priority: "medium",
+    progress: 53,
+    due: "Mar 13, 2026",
+    assignee: "Maya",
+    team: ["Maya", "Ava", "Iris"],
+    estimate: "2h",
+    tag: "frontend",
+    accent: "#0f766e",
+    createdAt: "2026-03-07",
+    completed: false,
+  },
+  {
+    id: "task-98",
+    title: "Write report 98",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for dashboard.",
+    column: "blocked",
+    priority: "high",
+    progress: 42,
+    due: "Mar 14, 2026",
+    assignee: "Leo",
+    team: ["Leo", "Noah", "Milan"],
+    estimate: "3h",
+    tag: "backend",
+    accent: "#1d4ed8",
+    createdAt: "2026-03-08",
+    completed: false,
+  },
+  {
+    id: "task-99",
+    title: "Audit workflow 99",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for onboarding.",
+    column: "done",
+    priority: "critical",
+    progress: 100,
+    due: "Mar 15, 2026",
+    assignee: "Ava",
+    team: ["Ava", "Iris", "Sara"],
+    estimate: "4h",
+    tag: "ops",
+    accent: "#be123c",
+    createdAt: "2026-03-09",
+    completed: true,
+  },
+  {
+    id: "task-100",
+    title: "Refine dashboard 100",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for campaign.",
+    column: "today",
+    priority: "low",
+    progress: 80,
+    due: "Mar 16, 2026",
+    assignee: "Noah",
+    team: ["Noah", "Milan", "Nika"],
+    estimate: "5h",
+    tag: "research",
+    accent: "#92400e",
+    createdAt: "2026-03-01",
+    completed: false,
+  },
+  {
+    id: "task-101",
+    title: "Draft onboarding 101",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for API.",
+    column: "upcoming",
+    priority: "medium",
+    progress: 89,
+    due: "Mar 17, 2026",
+    assignee: "Iris",
+    team: ["Iris", "Sara", "Maya"],
+    estimate: "6h",
+    tag: "content",
+    accent: "#4338ca",
+    createdAt: "2026-03-02",
+    completed: false,
+  },
+  {
+    id: "task-102",
+    title: "Align campaign 102",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for theme.",
+    column: "blocked",
+    priority: "high",
+    progress: 42,
+    due: "Mar 18, 2026",
+    assignee: "Milan",
+    team: ["Milan", "Nika", "Leo"],
+    estimate: "1h",
+    tag: "review",
+    accent: "#047857",
+    createdAt: "2026-03-03",
+    completed: false,
+  },
+  {
+    id: "task-103",
+    title: "Review API 103",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for checklist.",
+    column: "done",
+    priority: "critical",
+    progress: 100,
+    due: "Mar 19, 2026",
+    assignee: "Sara",
+    team: ["Sara", "Maya", "Ava"],
+    estimate: "2h",
+    tag: "meeting",
+    accent: "#7c2d12",
+    createdAt: "2026-03-04",
+    completed: true,
+  },
+  {
+    id: "task-104",
+    title: "Ship theme 104",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for profile.",
+    column: "today",
+    priority: "low",
+    progress: 46,
+    due: "Mar 20, 2026",
+    assignee: "Nika",
+    team: ["Nika", "Leo", "Noah"],
+    estimate: "3h",
+    tag: "design",
+    accent: "#111827",
+    createdAt: "2026-03-05",
+    completed: false,
+  },
+  {
+    id: "task-105",
+    title: "Map checklist 105",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for timeline.",
+    column: "upcoming",
+    priority: "medium",
+    progress: 55,
+    due: "Mar 21, 2026",
+    assignee: "Maya",
+    team: ["Maya", "Ava", "Iris"],
+    estimate: "4h",
+    tag: "frontend",
+    accent: "#0f766e",
+    createdAt: "2026-03-06",
+    completed: false,
+  },
+  {
+    id: "task-106",
+    title: "Test profile 106",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for report.",
+    column: "blocked",
+    priority: "high",
+    progress: 42,
+    due: "Mar 22, 2026",
+    assignee: "Leo",
+    team: ["Leo", "Noah", "Milan"],
+    estimate: "5h",
+    tag: "backend",
+    accent: "#1d4ed8",
+    createdAt: "2026-03-07",
+    completed: false,
+  },
+  {
+    id: "task-107",
+    title: "Polish timeline 107",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for workflow.",
+    column: "done",
+    priority: "critical",
+    progress: 100,
+    due: "Mar 23, 2026",
+    assignee: "Ava",
+    team: ["Ava", "Iris", "Sara"],
+    estimate: "6h",
+    tag: "ops",
+    accent: "#be123c",
+    createdAt: "2026-03-08",
+    completed: true,
+  },
+  {
+    id: "task-108",
+    title: "Write report 108",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for dashboard.",
+    column: "today",
+    priority: "low",
+    progress: 82,
+    due: "Mar 24, 2026",
+    assignee: "Noah",
+    team: ["Noah", "Milan", "Nika"],
+    estimate: "1h",
+    tag: "research",
+    accent: "#92400e",
+    createdAt: "2026-03-09",
+    completed: false,
+  },
+  {
+    id: "task-109",
+    title: "Audit workflow 109",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for onboarding.",
+    column: "upcoming",
+    priority: "medium",
+    progress: 21,
+    due: "Mar 25, 2026",
+    assignee: "Iris",
+    team: ["Iris", "Sara", "Maya"],
+    estimate: "2h",
+    tag: "content",
+    accent: "#4338ca",
+    createdAt: "2026-03-01",
+    completed: false,
+  },
+  {
+    id: "task-110",
+    title: "Refine dashboard 110",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for campaign.",
+    column: "blocked",
+    priority: "high",
+    progress: 42,
+    due: "Mar 26, 2026",
+    assignee: "Milan",
+    team: ["Milan", "Nika", "Leo"],
+    estimate: "3h",
+    tag: "review",
+    accent: "#047857",
+    createdAt: "2026-03-02",
+    completed: false,
+  },
+  {
+    id: "task-111",
+    title: "Draft onboarding 111",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for API.",
+    column: "done",
+    priority: "critical",
+    progress: 100,
+    due: "Mar 27, 2026",
+    assignee: "Sara",
+    team: ["Sara", "Maya", "Ava"],
+    estimate: "4h",
+    tag: "meeting",
+    accent: "#7c2d12",
+    createdAt: "2026-03-03",
+    completed: true,
+  },
+  {
+    id: "task-112",
+    title: "Align campaign 112",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for theme.",
+    column: "today",
+    priority: "low",
+    progress: 48,
+    due: "Mar 28, 2026",
+    assignee: "Nika",
+    team: ["Nika", "Leo", "Noah"],
+    estimate: "5h",
+    tag: "design",
+    accent: "#111827",
+    createdAt: "2026-03-04",
+    completed: false,
+  },
+  {
+    id: "task-113",
+    title: "Review API 113",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for checklist.",
+    column: "upcoming",
+    priority: "medium",
+    progress: 57,
+    due: "Mar 1, 2026",
+    assignee: "Maya",
+    team: ["Maya", "Ava", "Iris"],
+    estimate: "6h",
+    tag: "frontend",
+    accent: "#0f766e",
+    createdAt: "2026-03-05",
+    completed: false,
+  },
+  {
+    id: "task-114",
+    title: "Ship theme 114",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for profile.",
+    column: "blocked",
+    priority: "high",
+    progress: 42,
+    due: "Mar 2, 2026",
+    assignee: "Leo",
+    team: ["Leo", "Noah", "Milan"],
+    estimate: "1h",
+    tag: "backend",
+    accent: "#1d4ed8",
+    createdAt: "2026-03-06",
+    completed: false,
+  },
+  {
+    id: "task-115",
+    title: "Map checklist 115",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for timeline.",
+    column: "done",
+    priority: "critical",
+    progress: 100,
+    due: "Mar 3, 2026",
+    assignee: "Ava",
+    team: ["Ava", "Iris", "Sara"],
+    estimate: "2h",
+    tag: "ops",
+    accent: "#be123c",
+    createdAt: "2026-03-07",
+    completed: true,
+  },
+  {
+    id: "task-116",
+    title: "Test profile 116",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for report.",
+    column: "today",
+    priority: "low",
+    progress: 84,
+    due: "Mar 4, 2026",
+    assignee: "Noah",
+    team: ["Noah", "Milan", "Nika"],
+    estimate: "3h",
+    tag: "research",
+    accent: "#92400e",
+    createdAt: "2026-03-08",
+    completed: false,
+  },
+  {
+    id: "task-117",
+    title: "Polish timeline 117",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for workflow.",
+    column: "upcoming",
+    priority: "medium",
+    progress: 23,
+    due: "Mar 5, 2026",
+    assignee: "Iris",
+    team: ["Iris", "Sara", "Maya"],
+    estimate: "4h",
+    tag: "content",
+    accent: "#4338ca",
+    createdAt: "2026-03-09",
+    completed: false,
+  },
+  {
+    id: "task-118",
+    title: "Write report 118",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for dashboard.",
+    column: "blocked",
+    priority: "high",
+    progress: 42,
+    due: "Mar 6, 2026",
+    assignee: "Milan",
+    team: ["Milan", "Nika", "Leo"],
+    estimate: "5h",
+    tag: "review",
+    accent: "#047857",
+    createdAt: "2026-03-01",
+    completed: false,
+  },
+  {
+    id: "task-119",
+    title: "Audit workflow 119",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for onboarding.",
+    column: "done",
+    priority: "critical",
+    progress: 100,
+    due: "Mar 7, 2026",
+    assignee: "Sara",
+    team: ["Sara", "Maya", "Ava"],
+    estimate: "6h",
+    tag: "meeting",
+    accent: "#7c2d12",
+    createdAt: "2026-03-02",
+    completed: true,
+  },
+  {
+    id: "task-120",
+    title: "Refine dashboard 120",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for campaign.",
+    column: "today",
+    priority: "low",
+    progress: 50,
+    due: "Mar 8, 2026",
+    assignee: "Nika",
+    team: ["Nika", "Leo", "Noah"],
+    estimate: "1h",
+    tag: "design",
+    accent: "#111827",
+    createdAt: "2026-03-03",
+    completed: false,
+  },
+  {
+    id: "task-121",
+    title: "Draft onboarding 121",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for API.",
+    column: "upcoming",
+    priority: "medium",
+    progress: 59,
+    due: "Mar 9, 2026",
+    assignee: "Maya",
+    team: ["Maya", "Ava", "Iris"],
+    estimate: "2h",
+    tag: "frontend",
+    accent: "#0f766e",
+    createdAt: "2026-03-04",
+    completed: false,
+  },
+  {
+    id: "task-122",
+    title: "Align campaign 122",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for theme.",
+    column: "blocked",
+    priority: "high",
+    progress: 42,
+    due: "Mar 10, 2026",
+    assignee: "Leo",
+    team: ["Leo", "Noah", "Milan"],
+    estimate: "3h",
+    tag: "backend",
+    accent: "#1d4ed8",
+    createdAt: "2026-03-05",
+    completed: false,
+  },
+  {
+    id: "task-123",
+    title: "Review API 123",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for checklist.",
+    column: "done",
+    priority: "critical",
+    progress: 100,
+    due: "Mar 11, 2026",
+    assignee: "Ava",
+    team: ["Ava", "Iris", "Sara"],
+    estimate: "4h",
+    tag: "ops",
+    accent: "#be123c",
+    createdAt: "2026-03-06",
+    completed: true,
+  },
+  {
+    id: "task-124",
+    title: "Ship theme 124",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for profile.",
+    column: "today",
+    priority: "low",
+    progress: 86,
+    due: "Mar 12, 2026",
+    assignee: "Noah",
+    team: ["Noah", "Milan", "Nika"],
+    estimate: "5h",
+    tag: "research",
+    accent: "#92400e",
+    createdAt: "2026-03-07",
+    completed: false,
+  },
+  {
+    id: "task-125",
+    title: "Map checklist 125",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for timeline.",
+    column: "upcoming",
+    priority: "medium",
+    progress: 25,
+    due: "Mar 13, 2026",
+    assignee: "Iris",
+    team: ["Iris", "Sara", "Maya"],
+    estimate: "6h",
+    tag: "content",
+    accent: "#4338ca",
+    createdAt: "2026-03-08",
+    completed: false,
+  },
+  {
+    id: "task-126",
+    title: "Test profile 126",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for report.",
+    column: "blocked",
+    priority: "high",
+    progress: 42,
+    due: "Mar 14, 2026",
+    assignee: "Milan",
+    team: ["Milan", "Nika", "Leo"],
+    estimate: "1h",
+    tag: "review",
+    accent: "#047857",
+    createdAt: "2026-03-09",
+    completed: false,
+  },
+  {
+    id: "task-127",
+    title: "Polish timeline 127",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for workflow.",
+    column: "done",
+    priority: "critical",
+    progress: 100,
+    due: "Mar 15, 2026",
+    assignee: "Sara",
+    team: ["Sara", "Maya", "Ava"],
+    estimate: "2h",
+    tag: "meeting",
+    accent: "#7c2d12",
+    createdAt: "2026-03-01",
+    completed: true,
+  },
+  {
+    id: "task-128",
+    title: "Write report 128",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for dashboard.",
+    column: "today",
+    priority: "low",
+    progress: 52,
+    due: "Mar 16, 2026",
+    assignee: "Nika",
+    team: ["Nika", "Leo", "Noah"],
+    estimate: "3h",
+    tag: "design",
+    accent: "#111827",
+    createdAt: "2026-03-02",
+    completed: false,
+  },
+  {
+    id: "task-129",
+    title: "Audit workflow 129",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for onboarding.",
+    column: "upcoming",
+    priority: "medium",
+    progress: 61,
+    due: "Mar 17, 2026",
+    assignee: "Maya",
+    team: ["Maya", "Ava", "Iris"],
+    estimate: "4h",
+    tag: "frontend",
+    accent: "#0f766e",
+    createdAt: "2026-03-03",
+    completed: false,
+  },
+  {
+    id: "task-130",
+    title: "Refine dashboard 130",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for campaign.",
+    column: "blocked",
+    priority: "high",
+    progress: 42,
+    due: "Mar 18, 2026",
+    assignee: "Leo",
+    team: ["Leo", "Noah", "Milan"],
+    estimate: "5h",
+    tag: "backend",
+    accent: "#1d4ed8",
+    createdAt: "2026-03-04",
+    completed: false,
+  },
+  {
+    id: "task-131",
+    title: "Draft onboarding 131",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for API.",
+    column: "done",
+    priority: "critical",
+    progress: 100,
+    due: "Mar 19, 2026",
+    assignee: "Ava",
+    team: ["Ava", "Iris", "Sara"],
+    estimate: "6h",
+    tag: "ops",
+    accent: "#be123c",
+    createdAt: "2026-03-05",
+    completed: true,
+  },
+  {
+    id: "task-132",
+    title: "Align campaign 132",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for theme.",
+    column: "today",
+    priority: "low",
+    progress: 88,
+    due: "Mar 20, 2026",
+    assignee: "Noah",
+    team: ["Noah", "Milan", "Nika"],
+    estimate: "1h",
+    tag: "research",
+    accent: "#92400e",
+    createdAt: "2026-03-06",
+    completed: false,
+  },
+  {
+    id: "task-133",
+    title: "Review API 133",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for checklist.",
+    column: "upcoming",
+    priority: "medium",
+    progress: 27,
+    due: "Mar 21, 2026",
+    assignee: "Iris",
+    team: ["Iris", "Sara", "Maya"],
+    estimate: "2h",
+    tag: "content",
+    accent: "#4338ca",
+    createdAt: "2026-03-07",
+    completed: false,
+  },
+  {
+    id: "task-134",
+    title: "Ship theme 134",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for profile.",
+    column: "blocked",
+    priority: "high",
+    progress: 42,
+    due: "Mar 22, 2026",
+    assignee: "Milan",
+    team: ["Milan", "Nika", "Leo"],
+    estimate: "3h",
+    tag: "review",
+    accent: "#047857",
+    createdAt: "2026-03-08",
+    completed: false,
+  },
+  {
+    id: "task-135",
+    title: "Map checklist 135",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for timeline.",
+    column: "done",
+    priority: "critical",
+    progress: 100,
+    due: "Mar 23, 2026",
+    assignee: "Sara",
+    team: ["Sara", "Maya", "Ava"],
+    estimate: "4h",
+    tag: "meeting",
+    accent: "#7c2d12",
+    createdAt: "2026-03-09",
+    completed: true,
+  },
+  {
+    id: "task-136",
+    title: "Test profile 136",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for report.",
+    column: "today",
+    priority: "low",
+    progress: 54,
+    due: "Mar 24, 2026",
+    assignee: "Nika",
+    team: ["Nika", "Leo", "Noah"],
+    estimate: "5h",
+    tag: "design",
+    accent: "#111827",
+    createdAt: "2026-03-01",
+    completed: false,
+  },
+  {
+    id: "task-137",
+    title: "Polish timeline 137",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for workflow.",
+    column: "upcoming",
+    priority: "medium",
+    progress: 63,
+    due: "Mar 25, 2026",
+    assignee: "Maya",
+    team: ["Maya", "Ava", "Iris"],
+    estimate: "6h",
+    tag: "frontend",
+    accent: "#0f766e",
+    createdAt: "2026-03-02",
+    completed: false,
+  },
+  {
+    id: "task-138",
+    title: "Write report 138",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for dashboard.",
+    column: "blocked",
+    priority: "high",
+    progress: 42,
+    due: "Mar 26, 2026",
+    assignee: "Leo",
+    team: ["Leo", "Noah", "Milan"],
+    estimate: "1h",
+    tag: "backend",
+    accent: "#1d4ed8",
+    createdAt: "2026-03-03",
+    completed: false,
+  },
+  {
+    id: "task-139",
+    title: "Audit workflow 139",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for onboarding.",
+    column: "done",
+    priority: "critical",
+    progress: 100,
+    due: "Mar 27, 2026",
+    assignee: "Ava",
+    team: ["Ava", "Iris", "Sara"],
+    estimate: "2h",
+    tag: "ops",
+    accent: "#be123c",
+    createdAt: "2026-03-04",
+    completed: true,
+  },
+  {
+    id: "task-140",
+    title: "Refine dashboard 140",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for campaign.",
+    column: "today",
+    priority: "low",
+    progress: 20,
+    due: "Mar 28, 2026",
+    assignee: "Noah",
+    team: ["Noah", "Milan", "Nika"],
+    estimate: "3h",
+    tag: "research",
+    accent: "#92400e",
+    createdAt: "2026-03-05",
+    completed: false,
+  },
+  {
+    id: "task-141",
+    title: "Draft onboarding 141",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for API.",
+    column: "upcoming",
+    priority: "medium",
+    progress: 29,
+    due: "Mar 1, 2026",
+    assignee: "Iris",
+    team: ["Iris", "Sara", "Maya"],
+    estimate: "4h",
+    tag: "content",
+    accent: "#4338ca",
+    createdAt: "2026-03-06",
+    completed: false,
+  },
+  {
+    id: "task-142",
+    title: "Align campaign 142",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for theme.",
+    column: "blocked",
+    priority: "high",
+    progress: 42,
+    due: "Mar 2, 2026",
+    assignee: "Milan",
+    team: ["Milan", "Nika", "Leo"],
+    estimate: "5h",
+    tag: "review",
+    accent: "#047857",
+    createdAt: "2026-03-07",
+    completed: false,
+  },
+  {
+    id: "task-143",
+    title: "Review API 143",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for checklist.",
+    column: "done",
+    priority: "critical",
+    progress: 100,
+    due: "Mar 3, 2026",
+    assignee: "Sara",
+    team: ["Sara", "Maya", "Ava"],
+    estimate: "6h",
+    tag: "meeting",
+    accent: "#7c2d12",
+    createdAt: "2026-03-08",
+    completed: true,
+  },
+  {
+    id: "task-144",
+    title: "Ship theme 144",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for profile.",
+    column: "today",
+    priority: "low",
+    progress: 56,
+    due: "Mar 4, 2026",
+    assignee: "Nika",
+    team: ["Nika", "Leo", "Noah"],
+    estimate: "1h",
+    tag: "design",
+    accent: "#111827",
+    createdAt: "2026-03-09",
+    completed: false,
+  },
+  {
+    id: "task-145",
+    title: "Map checklist 145",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for timeline.",
+    column: "upcoming",
+    priority: "medium",
+    progress: 65,
+    due: "Mar 5, 2026",
+    assignee: "Maya",
+    team: ["Maya", "Ava", "Iris"],
+    estimate: "2h",
+    tag: "frontend",
+    accent: "#0f766e",
+    createdAt: "2026-03-01",
+    completed: false,
+  },
+  {
+    id: "task-146",
+    title: "Test profile 146",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for report.",
+    column: "blocked",
+    priority: "high",
+    progress: 42,
+    due: "Mar 6, 2026",
+    assignee: "Leo",
+    team: ["Leo", "Noah", "Milan"],
+    estimate: "3h",
+    tag: "backend",
+    accent: "#1d4ed8",
+    createdAt: "2026-03-02",
+    completed: false,
+  },
+  {
+    id: "task-147",
+    title: "Polish timeline 147",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for workflow.",
+    column: "done",
+    priority: "critical",
+    progress: 100,
+    due: "Mar 7, 2026",
+    assignee: "Ava",
+    team: ["Ava", "Iris", "Sara"],
+    estimate: "4h",
+    tag: "ops",
+    accent: "#be123c",
+    createdAt: "2026-03-03",
+    completed: true,
+  },
+  {
+    id: "task-148",
+    title: "Write report 148",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for dashboard.",
+    column: "today",
+    priority: "low",
+    progress: 22,
+    due: "Mar 8, 2026",
+    assignee: "Noah",
+    team: ["Noah", "Milan", "Nika"],
+    estimate: "5h",
+    tag: "research",
+    accent: "#92400e",
+    createdAt: "2026-03-04",
+    completed: false,
+  },
+  {
+    id: "task-149",
+    title: "Audit workflow 149",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for onboarding.",
+    column: "upcoming",
+    priority: "medium",
+    progress: 31,
+    due: "Mar 9, 2026",
+    assignee: "Iris",
+    team: ["Iris", "Sara", "Maya"],
+    estimate: "6h",
+    tag: "content",
+    accent: "#4338ca",
+    createdAt: "2026-03-05",
+    completed: false,
+  },
+  {
+    id: "task-150",
+    title: "Refine dashboard 150",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for campaign.",
+    column: "blocked",
+    priority: "high",
+    progress: 42,
+    due: "Mar 10, 2026",
+    assignee: "Milan",
+    team: ["Milan", "Nika", "Leo"],
+    estimate: "1h",
+    tag: "review",
+    accent: "#047857",
+    createdAt: "2026-03-06",
+    completed: false,
+  },
+  {
+    id: "task-151",
+    title: "Draft onboarding 151",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for API.",
+    column: "done",
+    priority: "critical",
+    progress: 100,
+    due: "Mar 11, 2026",
+    assignee: "Sara",
+    team: ["Sara", "Maya", "Ava"],
+    estimate: "2h",
+    tag: "meeting",
+    accent: "#7c2d12",
+    createdAt: "2026-03-07",
+    completed: true,
+  },
+  {
+    id: "task-152",
+    title: "Align campaign 152",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for theme.",
+    column: "today",
+    priority: "low",
+    progress: 58,
+    due: "Mar 12, 2026",
+    assignee: "Nika",
+    team: ["Nika", "Leo", "Noah"],
+    estimate: "3h",
+    tag: "design",
+    accent: "#111827",
+    createdAt: "2026-03-08",
+    completed: false,
+  },
+  {
+    id: "task-153",
+    title: "Review API 153",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for checklist.",
+    column: "upcoming",
+    priority: "medium",
+    progress: 67,
+    due: "Mar 13, 2026",
+    assignee: "Maya",
+    team: ["Maya", "Ava", "Iris"],
+    estimate: "4h",
+    tag: "frontend",
+    accent: "#0f766e",
+    createdAt: "2026-03-09",
+    completed: false,
+  },
+  {
+    id: "task-154",
+    title: "Ship theme 154",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for profile.",
+    column: "blocked",
+    priority: "high",
+    progress: 42,
+    due: "Mar 14, 2026",
+    assignee: "Leo",
+    team: ["Leo", "Noah", "Milan"],
+    estimate: "5h",
+    tag: "backend",
+    accent: "#1d4ed8",
+    createdAt: "2026-03-01",
+    completed: false,
+  },
+  {
+    id: "task-155",
+    title: "Map checklist 155",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for timeline.",
+    column: "done",
+    priority: "critical",
+    progress: 100,
+    due: "Mar 15, 2026",
+    assignee: "Ava",
+    team: ["Ava", "Iris", "Sara"],
+    estimate: "6h",
+    tag: "ops",
+    accent: "#be123c",
+    createdAt: "2026-03-02",
+    completed: true,
+  },
+  {
+    id: "task-156",
+    title: "Test profile 156",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for report.",
+    column: "today",
+    priority: "low",
+    progress: 24,
+    due: "Mar 16, 2026",
+    assignee: "Noah",
+    team: ["Noah", "Milan", "Nika"],
+    estimate: "1h",
+    tag: "research",
+    accent: "#92400e",
+    createdAt: "2026-03-03",
+    completed: false,
+  },
+  {
+    id: "task-157",
+    title: "Polish timeline 157",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for workflow.",
+    column: "upcoming",
+    priority: "medium",
+    progress: 33,
+    due: "Mar 17, 2026",
+    assignee: "Iris",
+    team: ["Iris", "Sara", "Maya"],
+    estimate: "2h",
+    tag: "content",
+    accent: "#4338ca",
+    createdAt: "2026-03-04",
+    completed: false,
+  },
+  {
+    id: "task-158",
+    title: "Write report 158",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for dashboard.",
+    column: "blocked",
+    priority: "high",
+    progress: 42,
+    due: "Mar 18, 2026",
+    assignee: "Milan",
+    team: ["Milan", "Nika", "Leo"],
+    estimate: "3h",
+    tag: "review",
+    accent: "#047857",
+    createdAt: "2026-03-05",
+    completed: false,
+  },
+  {
+    id: "task-159",
+    title: "Audit workflow 159",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for onboarding.",
+    column: "done",
+    priority: "critical",
+    progress: 100,
+    due: "Mar 19, 2026",
+    assignee: "Sara",
+    team: ["Sara", "Maya", "Ava"],
+    estimate: "4h",
+    tag: "meeting",
+    accent: "#7c2d12",
+    createdAt: "2026-03-06",
+    completed: true,
+  },
+  {
+    id: "task-160",
+    title: "Refine dashboard 160",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for campaign.",
+    column: "today",
+    priority: "low",
+    progress: 60,
+    due: "Mar 20, 2026",
+    assignee: "Nika",
+    team: ["Nika", "Leo", "Noah"],
+    estimate: "5h",
+    tag: "design",
+    accent: "#111827",
+    createdAt: "2026-03-07",
+    completed: false,
+  },
+  {
+    id: "task-161",
+    title: "Draft onboarding 161",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for API.",
+    column: "upcoming",
+    priority: "medium",
+    progress: 69,
+    due: "Mar 21, 2026",
+    assignee: "Maya",
+    team: ["Maya", "Ava", "Iris"],
+    estimate: "6h",
+    tag: "frontend",
+    accent: "#0f766e",
+    createdAt: "2026-03-08",
+    completed: false,
+  },
+  {
+    id: "task-162",
+    title: "Align campaign 162",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for theme.",
+    column: "blocked",
+    priority: "high",
+    progress: 42,
+    due: "Mar 22, 2026",
+    assignee: "Leo",
+    team: ["Leo", "Noah", "Milan"],
+    estimate: "1h",
+    tag: "backend",
+    accent: "#1d4ed8",
+    createdAt: "2026-03-09",
+    completed: false,
+  },
+  {
+    id: "task-163",
+    title: "Review API 163",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for checklist.",
+    column: "done",
+    priority: "critical",
+    progress: 100,
+    due: "Mar 23, 2026",
+    assignee: "Ava",
+    team: ["Ava", "Iris", "Sara"],
+    estimate: "2h",
+    tag: "ops",
+    accent: "#be123c",
+    createdAt: "2026-03-01",
+    completed: true,
+  },
+  {
+    id: "task-164",
+    title: "Ship theme 164",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for profile.",
+    column: "today",
+    priority: "low",
+    progress: 26,
+    due: "Mar 24, 2026",
+    assignee: "Noah",
+    team: ["Noah", "Milan", "Nika"],
+    estimate: "3h",
+    tag: "research",
+    accent: "#92400e",
+    createdAt: "2026-03-02",
+    completed: false,
+  },
+  {
+    id: "task-165",
+    title: "Map checklist 165",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for timeline.",
+    column: "upcoming",
+    priority: "medium",
+    progress: 35,
+    due: "Mar 25, 2026",
+    assignee: "Iris",
+    team: ["Iris", "Sara", "Maya"],
+    estimate: "4h",
+    tag: "content",
+    accent: "#4338ca",
+    createdAt: "2026-03-03",
+    completed: false,
+  },
+  {
+    id: "task-166",
+    title: "Test profile 166",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for report.",
+    column: "blocked",
+    priority: "high",
+    progress: 42,
+    due: "Mar 26, 2026",
+    assignee: "Milan",
+    team: ["Milan", "Nika", "Leo"],
+    estimate: "5h",
+    tag: "review",
+    accent: "#047857",
+    createdAt: "2026-03-04",
+    completed: false,
+  },
+  {
+    id: "task-167",
+    title: "Polish timeline 167",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for workflow.",
+    column: "done",
+    priority: "critical",
+    progress: 100,
+    due: "Mar 27, 2026",
+    assignee: "Sara",
+    team: ["Sara", "Maya", "Ava"],
+    estimate: "6h",
+    tag: "meeting",
+    accent: "#7c2d12",
+    createdAt: "2026-03-05",
+    completed: true,
+  },
+  {
+    id: "task-168",
+    title: "Write report 168",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for dashboard.",
+    column: "today",
+    priority: "low",
+    progress: 62,
+    due: "Mar 28, 2026",
+    assignee: "Nika",
+    team: ["Nika", "Leo", "Noah"],
+    estimate: "1h",
+    tag: "design",
+    accent: "#111827",
+    createdAt: "2026-03-06",
+    completed: false,
+  },
+  {
+    id: "task-169",
+    title: "Audit workflow 169",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for onboarding.",
+    column: "upcoming",
+    priority: "medium",
+    progress: 71,
+    due: "Mar 1, 2026",
+    assignee: "Maya",
+    team: ["Maya", "Ava", "Iris"],
+    estimate: "2h",
+    tag: "frontend",
+    accent: "#0f766e",
+    createdAt: "2026-03-07",
+    completed: false,
+  },
+  {
+    id: "task-170",
+    title: "Refine dashboard 170",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for campaign.",
+    column: "blocked",
+    priority: "high",
+    progress: 42,
+    due: "Mar 2, 2026",
+    assignee: "Leo",
+    team: ["Leo", "Noah", "Milan"],
+    estimate: "3h",
+    tag: "backend",
+    accent: "#1d4ed8",
+    createdAt: "2026-03-08",
+    completed: false,
+  },
+  {
+    id: "task-171",
+    title: "Draft onboarding 171",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for API.",
+    column: "done",
+    priority: "critical",
+    progress: 100,
+    due: "Mar 3, 2026",
+    assignee: "Ava",
+    team: ["Ava", "Iris", "Sara"],
+    estimate: "4h",
+    tag: "ops",
+    accent: "#be123c",
+    createdAt: "2026-03-09",
+    completed: true,
+  },
+  {
+    id: "task-172",
+    title: "Align campaign 172",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for theme.",
+    column: "today",
+    priority: "low",
+    progress: 28,
+    due: "Mar 4, 2026",
+    assignee: "Noah",
+    team: ["Noah", "Milan", "Nika"],
+    estimate: "5h",
+    tag: "research",
+    accent: "#92400e",
+    createdAt: "2026-03-01",
+    completed: false,
+  },
+  {
+    id: "task-173",
+    title: "Review API 173",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for checklist.",
+    column: "upcoming",
+    priority: "medium",
+    progress: 37,
+    due: "Mar 5, 2026",
+    assignee: "Iris",
+    team: ["Iris", "Sara", "Maya"],
+    estimate: "6h",
+    tag: "content",
+    accent: "#4338ca",
+    createdAt: "2026-03-02",
+    completed: false,
+  },
+  {
+    id: "task-174",
+    title: "Ship theme 174",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for profile.",
+    column: "blocked",
+    priority: "high",
+    progress: 42,
+    due: "Mar 6, 2026",
+    assignee: "Milan",
+    team: ["Milan", "Nika", "Leo"],
+    estimate: "1h",
+    tag: "review",
+    accent: "#047857",
+    createdAt: "2026-03-03",
+    completed: false,
+  },
+  {
+    id: "task-175",
+    title: "Map checklist 175",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for timeline.",
+    column: "done",
+    priority: "critical",
+    progress: 100,
+    due: "Mar 7, 2026",
+    assignee: "Sara",
+    team: ["Sara", "Maya", "Ava"],
+    estimate: "2h",
+    tag: "meeting",
+    accent: "#7c2d12",
+    createdAt: "2026-03-04",
+    completed: true,
+  },
+  {
+    id: "task-176",
+    title: "Test profile 176",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for report.",
+    column: "today",
+    priority: "low",
+    progress: 64,
+    due: "Mar 8, 2026",
+    assignee: "Nika",
+    team: ["Nika", "Leo", "Noah"],
+    estimate: "3h",
+    tag: "design",
+    accent: "#111827",
+    createdAt: "2026-03-05",
+    completed: false,
+  },
+  {
+    id: "task-177",
+    title: "Polish timeline 177",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for workflow.",
+    column: "upcoming",
+    priority: "medium",
+    progress: 73,
+    due: "Mar 9, 2026",
+    assignee: "Maya",
+    team: ["Maya", "Ava", "Iris"],
+    estimate: "4h",
+    tag: "frontend",
+    accent: "#0f766e",
+    createdAt: "2026-03-06",
+    completed: false,
+  },
+  {
+    id: "task-178",
+    title: "Write report 178",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for dashboard.",
+    column: "blocked",
+    priority: "high",
+    progress: 42,
+    due: "Mar 10, 2026",
+    assignee: "Leo",
+    team: ["Leo", "Noah", "Milan"],
+    estimate: "5h",
+    tag: "backend",
+    accent: "#1d4ed8",
+    createdAt: "2026-03-07",
+    completed: false,
+  },
+  {
+    id: "task-179",
+    title: "Audit workflow 179",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for onboarding.",
+    column: "done",
+    priority: "critical",
+    progress: 100,
+    due: "Mar 11, 2026",
+    assignee: "Ava",
+    team: ["Ava", "Iris", "Sara"],
+    estimate: "6h",
+    tag: "ops",
+    accent: "#be123c",
+    createdAt: "2026-03-08",
+    completed: true,
+  },
+  {
+    id: "task-180",
+    title: "Refine dashboard 180",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for campaign.",
+    column: "today",
+    priority: "low",
+    progress: 30,
+    due: "Mar 12, 2026",
+    assignee: "Noah",
+    team: ["Noah", "Milan", "Nika"],
+    estimate: "1h",
+    tag: "research",
+    accent: "#92400e",
+    createdAt: "2026-03-09",
+    completed: false,
+  },
+  {
+    id: "task-181",
+    title: "Draft onboarding 181",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for API.",
+    column: "upcoming",
+    priority: "medium",
+    progress: 39,
+    due: "Mar 13, 2026",
+    assignee: "Iris",
+    team: ["Iris", "Sara", "Maya"],
+    estimate: "2h",
+    tag: "content",
+    accent: "#4338ca",
+    createdAt: "2026-03-01",
+    completed: false,
+  },
+  {
+    id: "task-182",
+    title: "Align campaign 182",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for theme.",
+    column: "blocked",
+    priority: "high",
+    progress: 42,
+    due: "Mar 14, 2026",
+    assignee: "Milan",
+    team: ["Milan", "Nika", "Leo"],
+    estimate: "3h",
+    tag: "review",
+    accent: "#047857",
+    createdAt: "2026-03-02",
+    completed: false,
+  },
+  {
+    id: "task-183",
+    title: "Review API 183",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for checklist.",
+    column: "done",
+    priority: "critical",
+    progress: 100,
+    due: "Mar 15, 2026",
+    assignee: "Sara",
+    team: ["Sara", "Maya", "Ava"],
+    estimate: "4h",
+    tag: "meeting",
+    accent: "#7c2d12",
+    createdAt: "2026-03-03",
+    completed: true,
+  },
+  {
+    id: "task-184",
+    title: "Ship theme 184",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for profile.",
+    column: "today",
+    priority: "low",
+    progress: 66,
+    due: "Mar 16, 2026",
+    assignee: "Nika",
+    team: ["Nika", "Leo", "Noah"],
+    estimate: "5h",
+    tag: "design",
+    accent: "#111827",
+    createdAt: "2026-03-04",
+    completed: false,
+  },
+  {
+    id: "task-185",
+    title: "Map checklist 185",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for timeline.",
+    column: "upcoming",
+    priority: "medium",
+    progress: 75,
+    due: "Mar 17, 2026",
+    assignee: "Maya",
+    team: ["Maya", "Ava", "Iris"],
+    estimate: "6h",
+    tag: "frontend",
+    accent: "#0f766e",
+    createdAt: "2026-03-05",
+    completed: false,
+  },
+  {
+    id: "task-186",
+    title: "Test profile 186",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for report.",
+    column: "blocked",
+    priority: "high",
+    progress: 42,
+    due: "Mar 18, 2026",
+    assignee: "Leo",
+    team: ["Leo", "Noah", "Milan"],
+    estimate: "1h",
+    tag: "backend",
+    accent: "#1d4ed8",
+    createdAt: "2026-03-06",
+    completed: false,
+  },
+  {
+    id: "task-187",
+    title: "Polish timeline 187",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for workflow.",
+    column: "done",
+    priority: "critical",
+    progress: 100,
+    due: "Mar 19, 2026",
+    assignee: "Ava",
+    team: ["Ava", "Iris", "Sara"],
+    estimate: "2h",
+    tag: "ops",
+    accent: "#be123c",
+    createdAt: "2026-03-07",
+    completed: true,
+  },
+  {
+    id: "task-188",
+    title: "Write report 188",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for dashboard.",
+    column: "today",
+    priority: "low",
+    progress: 32,
+    due: "Mar 20, 2026",
+    assignee: "Noah",
+    team: ["Noah", "Milan", "Nika"],
+    estimate: "3h",
+    tag: "research",
+    accent: "#92400e",
+    createdAt: "2026-03-08",
+    completed: false,
+  },
+  {
+    id: "task-189",
+    title: "Audit workflow 189",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for onboarding.",
+    column: "upcoming",
+    priority: "medium",
+    progress: 41,
+    due: "Mar 21, 2026",
+    assignee: "Iris",
+    team: ["Iris", "Sara", "Maya"],
+    estimate: "4h",
+    tag: "content",
+    accent: "#4338ca",
+    createdAt: "2026-03-09",
+    completed: false,
+  },
+  {
+    id: "task-190",
+    title: "Refine dashboard 190",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for campaign.",
+    column: "blocked",
+    priority: "high",
+    progress: 42,
+    due: "Mar 22, 2026",
+    assignee: "Milan",
+    team: ["Milan", "Nika", "Leo"],
+    estimate: "5h",
+    tag: "review",
+    accent: "#047857",
+    createdAt: "2026-03-01",
+    completed: false,
+  },
+  {
+    id: "task-191",
+    title: "Draft onboarding 191",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for API.",
+    column: "done",
+    priority: "critical",
+    progress: 100,
+    due: "Mar 23, 2026",
+    assignee: "Sara",
+    team: ["Sara", "Maya", "Ava"],
+    estimate: "6h",
+    tag: "meeting",
+    accent: "#7c2d12",
+    createdAt: "2026-03-02",
+    completed: true,
+  },
+  {
+    id: "task-192",
+    title: "Align campaign 192",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for theme.",
+    column: "today",
+    priority: "low",
+    progress: 68,
+    due: "Mar 24, 2026",
+    assignee: "Nika",
+    team: ["Nika", "Leo", "Noah"],
+    estimate: "1h",
+    tag: "design",
+    accent: "#111827",
+    createdAt: "2026-03-03",
+    completed: false,
+  },
+  {
+    id: "task-193",
+    title: "Review API 193",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for checklist.",
+    column: "upcoming",
+    priority: "medium",
+    progress: 77,
+    due: "Mar 25, 2026",
+    assignee: "Maya",
+    team: ["Maya", "Ava", "Iris"],
+    estimate: "2h",
+    tag: "frontend",
+    accent: "#0f766e",
+    createdAt: "2026-03-04",
+    completed: false,
+  },
+  {
+    id: "task-194",
+    title: "Ship theme 194",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for profile.",
+    column: "blocked",
+    priority: "high",
+    progress: 42,
+    due: "Mar 26, 2026",
+    assignee: "Leo",
+    team: ["Leo", "Noah", "Milan"],
+    estimate: "3h",
+    tag: "backend",
+    accent: "#1d4ed8",
+    createdAt: "2026-03-05",
+    completed: false,
+  },
+  {
+    id: "task-195",
+    title: "Map checklist 195",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for timeline.",
+    column: "done",
+    priority: "critical",
+    progress: 100,
+    due: "Mar 27, 2026",
+    assignee: "Ava",
+    team: ["Ava", "Iris", "Sara"],
+    estimate: "4h",
+    tag: "ops",
+    accent: "#be123c",
+    createdAt: "2026-03-06",
+    completed: true,
+  },
+  {
+    id: "task-196",
+    title: "Test profile 196",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for report.",
+    column: "today",
+    priority: "low",
+    progress: 34,
+    due: "Mar 28, 2026",
+    assignee: "Noah",
+    team: ["Noah", "Milan", "Nika"],
+    estimate: "5h",
+    tag: "research",
+    accent: "#92400e",
+    createdAt: "2026-03-07",
+    completed: false,
+  },
+  {
+    id: "task-197",
+    title: "Polish timeline 197",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for workflow.",
+    column: "upcoming",
+    priority: "medium",
+    progress: 43,
+    due: "Mar 1, 2026",
+    assignee: "Iris",
+    team: ["Iris", "Sara", "Maya"],
+    estimate: "6h",
+    tag: "content",
+    accent: "#4338ca",
+    createdAt: "2026-03-08",
+    completed: false,
+  },
+  {
+    id: "task-198",
+    title: "Write report 198",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for dashboard.",
+    column: "blocked",
+    priority: "high",
+    progress: 42,
+    due: "Mar 2, 2026",
+    assignee: "Milan",
+    team: ["Milan", "Nika", "Leo"],
+    estimate: "1h",
+    tag: "review",
+    accent: "#047857",
+    createdAt: "2026-03-09",
+    completed: false,
+  },
+  {
+    id: "task-199",
+    title: "Audit workflow 199",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for onboarding.",
+    column: "done",
+    priority: "critical",
+    progress: 100,
+    due: "Mar 3, 2026",
+    assignee: "Sara",
+    team: ["Sara", "Maya", "Ava"],
+    estimate: "2h",
+    tag: "meeting",
+    accent: "#7c2d12",
+    createdAt: "2026-03-01",
+    completed: true,
+  },
+  {
+    id: "task-200",
+    title: "Refine dashboard 200",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for campaign.",
+    column: "today",
+    priority: "low",
+    progress: 70,
+    due: "Mar 4, 2026",
+    assignee: "Nika",
+    team: ["Nika", "Leo", "Noah"],
+    estimate: "3h",
+    tag: "design",
+    accent: "#111827",
+    createdAt: "2026-03-02",
+    completed: false,
+  },
+  {
+    id: "task-201",
+    title: "Draft onboarding 201",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for API.",
+    column: "upcoming",
+    priority: "medium",
+    progress: 79,
+    due: "Mar 5, 2026",
+    assignee: "Maya",
+    team: ["Maya", "Ava", "Iris"],
+    estimate: "4h",
+    tag: "frontend",
+    accent: "#0f766e",
+    createdAt: "2026-03-03",
+    completed: false,
+  },
+  {
+    id: "task-202",
+    title: "Align campaign 202",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for theme.",
+    column: "blocked",
+    priority: "high",
+    progress: 42,
+    due: "Mar 6, 2026",
+    assignee: "Leo",
+    team: ["Leo", "Noah", "Milan"],
+    estimate: "5h",
+    tag: "backend",
+    accent: "#1d4ed8",
+    createdAt: "2026-03-04",
+    completed: false,
+  },
+  {
+    id: "task-203",
+    title: "Review API 203",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for checklist.",
+    column: "done",
+    priority: "critical",
+    progress: 100,
+    due: "Mar 7, 2026",
+    assignee: "Ava",
+    team: ["Ava", "Iris", "Sara"],
+    estimate: "6h",
+    tag: "ops",
+    accent: "#be123c",
+    createdAt: "2026-03-05",
+    completed: true,
+  },
+  {
+    id: "task-204",
+    title: "Ship theme 204",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for profile.",
+    column: "today",
+    priority: "low",
+    progress: 36,
+    due: "Mar 8, 2026",
+    assignee: "Noah",
+    team: ["Noah", "Milan", "Nika"],
+    estimate: "1h",
+    tag: "research",
+    accent: "#92400e",
+    createdAt: "2026-03-06",
+    completed: false,
+  },
+  {
+    id: "task-205",
+    title: "Map checklist 205",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for timeline.",
+    column: "upcoming",
+    priority: "medium",
+    progress: 45,
+    due: "Mar 9, 2026",
+    assignee: "Iris",
+    team: ["Iris", "Sara", "Maya"],
+    estimate: "2h",
+    tag: "content",
+    accent: "#4338ca",
+    createdAt: "2026-03-07",
+    completed: false,
+  },
+  {
+    id: "task-206",
+    title: "Test profile 206",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for report.",
+    column: "blocked",
+    priority: "high",
+    progress: 42,
+    due: "Mar 10, 2026",
+    assignee: "Milan",
+    team: ["Milan", "Nika", "Leo"],
+    estimate: "3h",
+    tag: "review",
+    accent: "#047857",
+    createdAt: "2026-03-08",
+    completed: false,
+  },
+  {
+    id: "task-207",
+    title: "Polish timeline 207",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for workflow.",
+    column: "done",
+    priority: "critical",
+    progress: 100,
+    due: "Mar 11, 2026",
+    assignee: "Sara",
+    team: ["Sara", "Maya", "Ava"],
+    estimate: "4h",
+    tag: "meeting",
+    accent: "#7c2d12",
+    createdAt: "2026-03-09",
+    completed: true,
+  },
+  {
+    id: "task-208",
+    title: "Write report 208",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for dashboard.",
+    column: "today",
+    priority: "low",
+    progress: 72,
+    due: "Mar 12, 2026",
+    assignee: "Nika",
+    team: ["Nika", "Leo", "Noah"],
+    estimate: "5h",
+    tag: "design",
+    accent: "#111827",
+    createdAt: "2026-03-01",
+    completed: false,
+  },
+  {
+    id: "task-209",
+    title: "Audit workflow 209",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for onboarding.",
+    column: "upcoming",
+    priority: "medium",
+    progress: 81,
+    due: "Mar 13, 2026",
+    assignee: "Maya",
+    team: ["Maya", "Ava", "Iris"],
+    estimate: "6h",
+    tag: "frontend",
+    accent: "#0f766e",
+    createdAt: "2026-03-02",
+    completed: false,
+  },
+  {
+    id: "task-210",
+    title: "Refine dashboard 210",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for campaign.",
+    column: "blocked",
+    priority: "high",
+    progress: 42,
+    due: "Mar 14, 2026",
+    assignee: "Leo",
+    team: ["Leo", "Noah", "Milan"],
+    estimate: "1h",
+    tag: "backend",
+    accent: "#1d4ed8",
+    createdAt: "2026-03-03",
+    completed: false,
+  },
+  {
+    id: "task-211",
+    title: "Draft onboarding 211",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for API.",
+    column: "done",
+    priority: "critical",
+    progress: 100,
+    due: "Mar 15, 2026",
+    assignee: "Ava",
+    team: ["Ava", "Iris", "Sara"],
+    estimate: "2h",
+    tag: "ops",
+    accent: "#be123c",
+    createdAt: "2026-03-04",
+    completed: true,
+  },
+  {
+    id: "task-212",
+    title: "Align campaign 212",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for theme.",
+    column: "today",
+    priority: "low",
+    progress: 38,
+    due: "Mar 16, 2026",
+    assignee: "Noah",
+    team: ["Noah", "Milan", "Nika"],
+    estimate: "3h",
+    tag: "research",
+    accent: "#92400e",
+    createdAt: "2026-03-05",
+    completed: false,
+  },
+  {
+    id: "task-213",
+    title: "Review API 213",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for checklist.",
+    column: "upcoming",
+    priority: "medium",
+    progress: 47,
+    due: "Mar 17, 2026",
+    assignee: "Iris",
+    team: ["Iris", "Sara", "Maya"],
+    estimate: "4h",
+    tag: "content",
+    accent: "#4338ca",
+    createdAt: "2026-03-06",
+    completed: false,
+  },
+  {
+    id: "task-214",
+    title: "Ship theme 214",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for profile.",
+    column: "blocked",
+    priority: "high",
+    progress: 42,
+    due: "Mar 18, 2026",
+    assignee: "Milan",
+    team: ["Milan", "Nika", "Leo"],
+    estimate: "5h",
+    tag: "review",
+    accent: "#047857",
+    createdAt: "2026-03-07",
+    completed: false,
+  },
+  {
+    id: "task-215",
+    title: "Map checklist 215",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for timeline.",
+    column: "done",
+    priority: "critical",
+    progress: 100,
+    due: "Mar 19, 2026",
+    assignee: "Sara",
+    team: ["Sara", "Maya", "Ava"],
+    estimate: "6h",
+    tag: "meeting",
+    accent: "#7c2d12",
+    createdAt: "2026-03-08",
+    completed: true,
+  },
+  {
+    id: "task-216",
+    title: "Test profile 216",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for report.",
+    column: "today",
+    priority: "low",
+    progress: 74,
+    due: "Mar 20, 2026",
+    assignee: "Nika",
+    team: ["Nika", "Leo", "Noah"],
+    estimate: "1h",
+    tag: "design",
+    accent: "#111827",
+    createdAt: "2026-03-09",
+    completed: false,
+  },
+  {
+    id: "task-217",
+    title: "Polish timeline 217",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for workflow.",
+    column: "upcoming",
+    priority: "medium",
+    progress: 83,
+    due: "Mar 21, 2026",
+    assignee: "Maya",
+    team: ["Maya", "Ava", "Iris"],
+    estimate: "2h",
+    tag: "frontend",
+    accent: "#0f766e",
+    createdAt: "2026-03-01",
+    completed: false,
+  },
+  {
+    id: "task-218",
+    title: "Write report 218",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for dashboard.",
+    column: "blocked",
+    priority: "high",
+    progress: 42,
+    due: "Mar 22, 2026",
+    assignee: "Leo",
+    team: ["Leo", "Noah", "Milan"],
+    estimate: "3h",
+    tag: "backend",
+    accent: "#1d4ed8",
+    createdAt: "2026-03-02",
+    completed: false,
+  },
+  {
+    id: "task-219",
+    title: "Audit workflow 219",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for onboarding.",
+    column: "done",
+    priority: "critical",
+    progress: 100,
+    due: "Mar 23, 2026",
+    assignee: "Ava",
+    team: ["Ava", "Iris", "Sara"],
+    estimate: "4h",
+    tag: "ops",
+    accent: "#be123c",
+    createdAt: "2026-03-03",
+    completed: true,
+  },
+  {
+    id: "task-220",
+    title: "Refine dashboard 220",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for campaign.",
+    column: "today",
+    priority: "low",
+    progress: 40,
+    due: "Mar 24, 2026",
+    assignee: "Noah",
+    team: ["Noah", "Milan", "Nika"],
+    estimate: "5h",
+    tag: "research",
+    accent: "#92400e",
+    createdAt: "2026-03-04",
+    completed: false,
+  },
+  {
+    id: "task-221",
+    title: "Draft onboarding 221",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for API.",
+    column: "upcoming",
+    priority: "medium",
+    progress: 49,
+    due: "Mar 25, 2026",
+    assignee: "Iris",
+    team: ["Iris", "Sara", "Maya"],
+    estimate: "6h",
+    tag: "content",
+    accent: "#4338ca",
+    createdAt: "2026-03-05",
+    completed: false,
+  },
+  {
+    id: "task-222",
+    title: "Align campaign 222",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for theme.",
+    column: "blocked",
+    priority: "high",
+    progress: 42,
+    due: "Mar 26, 2026",
+    assignee: "Milan",
+    team: ["Milan", "Nika", "Leo"],
+    estimate: "1h",
+    tag: "review",
+    accent: "#047857",
+    createdAt: "2026-03-06",
+    completed: false,
+  },
+  {
+    id: "task-223",
+    title: "Review API 223",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for checklist.",
+    column: "done",
+    priority: "critical",
+    progress: 100,
+    due: "Mar 27, 2026",
+    assignee: "Sara",
+    team: ["Sara", "Maya", "Ava"],
+    estimate: "2h",
+    tag: "meeting",
+    accent: "#7c2d12",
+    createdAt: "2026-03-07",
+    completed: true,
+  },
+  {
+    id: "task-224",
+    title: "Ship theme 224",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for profile.",
+    column: "today",
+    priority: "low",
+    progress: 76,
+    due: "Mar 28, 2026",
+    assignee: "Nika",
+    team: ["Nika", "Leo", "Noah"],
+    estimate: "3h",
+    tag: "design",
+    accent: "#111827",
+    createdAt: "2026-03-08",
+    completed: false,
+  },
+  {
+    id: "task-225",
+    title: "Map checklist 225",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for timeline.",
+    column: "upcoming",
+    priority: "medium",
+    progress: 85,
+    due: "Mar 1, 2026",
+    assignee: "Maya",
+    team: ["Maya", "Ava", "Iris"],
+    estimate: "4h",
+    tag: "frontend",
+    accent: "#0f766e",
+    createdAt: "2026-03-09",
+    completed: false,
+  },
+  {
+    id: "task-226",
+    title: "Test profile 226",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for report.",
+    column: "blocked",
+    priority: "high",
+    progress: 42,
+    due: "Mar 2, 2026",
+    assignee: "Leo",
+    team: ["Leo", "Noah", "Milan"],
+    estimate: "5h",
+    tag: "backend",
+    accent: "#1d4ed8",
+    createdAt: "2026-03-01",
+    completed: false,
+  },
+  {
+    id: "task-227",
+    title: "Polish timeline 227",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for workflow.",
+    column: "done",
+    priority: "critical",
+    progress: 100,
+    due: "Mar 3, 2026",
+    assignee: "Ava",
+    team: ["Ava", "Iris", "Sara"],
+    estimate: "6h",
+    tag: "ops",
+    accent: "#be123c",
+    createdAt: "2026-03-02",
+    completed: true,
+  },
+  {
+    id: "task-228",
+    title: "Write report 228",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for dashboard.",
+    column: "today",
+    priority: "low",
+    progress: 42,
+    due: "Mar 4, 2026",
+    assignee: "Noah",
+    team: ["Noah", "Milan", "Nika"],
+    estimate: "1h",
+    tag: "research",
+    accent: "#92400e",
+    createdAt: "2026-03-03",
+    completed: false,
+  },
+  {
+    id: "task-229",
+    title: "Audit workflow 229",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for onboarding.",
+    column: "upcoming",
+    priority: "medium",
+    progress: 51,
+    due: "Mar 5, 2026",
+    assignee: "Iris",
+    team: ["Iris", "Sara", "Maya"],
+    estimate: "2h",
+    tag: "content",
+    accent: "#4338ca",
+    createdAt: "2026-03-04",
+    completed: false,
+  },
+  {
+    id: "task-230",
+    title: "Refine dashboard 230",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for campaign.",
+    column: "blocked",
+    priority: "high",
+    progress: 42,
+    due: "Mar 6, 2026",
+    assignee: "Milan",
+    team: ["Milan", "Nika", "Leo"],
+    estimate: "3h",
+    tag: "review",
+    accent: "#047857",
+    createdAt: "2026-03-05",
+    completed: false,
+  },
+  {
+    id: "task-231",
+    title: "Draft onboarding 231",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for API.",
+    column: "done",
+    priority: "critical",
+    progress: 100,
+    due: "Mar 7, 2026",
+    assignee: "Sara",
+    team: ["Sara", "Maya", "Ava"],
+    estimate: "4h",
+    tag: "meeting",
+    accent: "#7c2d12",
+    createdAt: "2026-03-06",
+    completed: true,
+  },
+  {
+    id: "task-232",
+    title: "Align campaign 232",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for theme.",
+    column: "today",
+    priority: "low",
+    progress: 78,
+    due: "Mar 8, 2026",
+    assignee: "Nika",
+    team: ["Nika", "Leo", "Noah"],
+    estimate: "5h",
+    tag: "design",
+    accent: "#111827",
+    createdAt: "2026-03-07",
+    completed: false,
+  },
+  {
+    id: "task-233",
+    title: "Review API 233",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for checklist.",
+    column: "upcoming",
+    priority: "medium",
+    progress: 87,
+    due: "Mar 9, 2026",
+    assignee: "Maya",
+    team: ["Maya", "Ava", "Iris"],
+    estimate: "6h",
+    tag: "frontend",
+    accent: "#0f766e",
+    createdAt: "2026-03-08",
+    completed: false,
+  },
+  {
+    id: "task-234",
+    title: "Ship theme 234",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for profile.",
+    column: "blocked",
+    priority: "high",
+    progress: 42,
+    due: "Mar 10, 2026",
+    assignee: "Leo",
+    team: ["Leo", "Noah", "Milan"],
+    estimate: "1h",
+    tag: "backend",
+    accent: "#1d4ed8",
+    createdAt: "2026-03-09",
+    completed: false,
+  },
+  {
+    id: "task-235",
+    title: "Map checklist 235",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for timeline.",
+    column: "done",
+    priority: "critical",
+    progress: 100,
+    due: "Mar 11, 2026",
+    assignee: "Ava",
+    team: ["Ava", "Iris", "Sara"],
+    estimate: "2h",
+    tag: "ops",
+    accent: "#be123c",
+    createdAt: "2026-03-01",
+    completed: true,
+  },
+  {
+    id: "task-236",
+    title: "Test profile 236",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for report.",
+    column: "today",
+    priority: "low",
+    progress: 44,
+    due: "Mar 12, 2026",
+    assignee: "Noah",
+    team: ["Noah", "Milan", "Nika"],
+    estimate: "3h",
+    tag: "research",
+    accent: "#92400e",
+    createdAt: "2026-03-02",
+    completed: false,
+  },
+  {
+    id: "task-237",
+    title: "Polish timeline 237",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for workflow.",
+    column: "upcoming",
+    priority: "medium",
+    progress: 53,
+    due: "Mar 13, 2026",
+    assignee: "Iris",
+    team: ["Iris", "Sara", "Maya"],
+    estimate: "4h",
+    tag: "content",
+    accent: "#4338ca",
+    createdAt: "2026-03-03",
+    completed: false,
+  },
+  {
+    id: "task-238",
+    title: "Write report 238",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for dashboard.",
+    column: "blocked",
+    priority: "high",
+    progress: 42,
+    due: "Mar 14, 2026",
+    assignee: "Milan",
+    team: ["Milan", "Nika", "Leo"],
+    estimate: "5h",
+    tag: "review",
+    accent: "#047857",
+    createdAt: "2026-03-04",
+    completed: false,
+  },
+  {
+    id: "task-239",
+    title: "Audit workflow 239",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for onboarding.",
+    column: "done",
+    priority: "critical",
+    progress: 100,
+    due: "Mar 15, 2026",
+    assignee: "Sara",
+    team: ["Sara", "Maya", "Ava"],
+    estimate: "6h",
+    tag: "meeting",
+    accent: "#7c2d12",
+    createdAt: "2026-03-05",
+    completed: true,
+  },
+  {
+    id: "task-240",
+    title: "Refine dashboard 240",
+    detail: "Keep scope clear, move the next blocker, and document the decision path for campaign.",
+    column: "today",
+    priority: "low",
+    progress: 80,
+    due: "Mar 16, 2026",
+    assignee: "Nika",
+    team: ["Nika", "Leo", "Noah"],
+    estimate: "1h",
+    tag: "design",
+    accent: "#111827",
+    createdAt: "2026-03-06",
+    completed: false,
+  },
+];
+
+const sprintDetail =
+  "A compact delivery window focused on cross-functional cleanup, predictable handoff, and tighter " +
+  "weekly momentum.";
 
 const sprints: Sprint[] = [
   {
-    "id": "sprint-1",
-    "name": "Sprint 1",
-    "detail": "A compact delivery window focused on cross-functional cleanup, predictable handoff, and tighter weekly momentum.",
-    "completion": 36,
-    "tasks": [
-      "task-1",
-      "task-2",
-      "task-3",
-      "task-4",
-      "task-5",
-      "task-6",
-      "task-7"
-    ]
+    id: "sprint-1",
+    name: "Sprint 1",
+    detail: sprintDetail,
+    completion: 36,
+    tasks: ["task-1", "task-2", "task-3", "task-4", "task-5", "task-6", "task-7"],
   },
   {
-    "id": "sprint-2",
-    "name": "Sprint 2",
-    "detail": "A compact delivery window focused on cross-functional cleanup, predictable handoff, and tighter weekly momentum.",
-    "completion": 47,
-    "tasks": [
-      "task-7",
-      "task-8",
-      "task-9",
-      "task-10",
-      "task-11",
-      "task-12",
-      "task-13"
-    ]
+    id: "sprint-2",
+    name: "Sprint 2",
+    detail: sprintDetail,
+    completion: 47,
+    tasks: ["task-7", "task-8", "task-9", "task-10", "task-11", "task-12", "task-13"],
   },
   {
-    "id": "sprint-3",
-    "name": "Sprint 3",
-    "detail": "A compact delivery window focused on cross-functional cleanup, predictable handoff, and tighter weekly momentum.",
-    "completion": 58,
-    "tasks": [
-      "task-13",
-      "task-14",
-      "task-15",
-      "task-16",
-      "task-17",
-      "task-18",
-      "task-19"
-    ]
+    id: "sprint-3",
+    name: "Sprint 3",
+    detail: sprintDetail,
+    completion: 58,
+    tasks: ["task-13", "task-14", "task-15", "task-16", "task-17", "task-18", "task-19"],
   },
   {
-    "id": "sprint-4",
-    "name": "Sprint 4",
-    "detail": "A compact delivery window focused on cross-functional cleanup, predictable handoff, and tighter weekly momentum.",
-    "completion": 69,
-    "tasks": [
-      "task-19",
-      "task-20",
-      "task-21",
-      "task-22",
-      "task-23",
-      "task-24",
-      "task-25"
-    ]
+    id: "sprint-4",
+    name: "Sprint 4",
+    detail: sprintDetail,
+    completion: 69,
+    tasks: ["task-19", "task-20", "task-21", "task-22", "task-23", "task-24", "task-25"],
   },
   {
-    "id": "sprint-5",
-    "name": "Sprint 5",
-    "detail": "A compact delivery window focused on cross-functional cleanup, predictable handoff, and tighter weekly momentum.",
-    "completion": 80,
-    "tasks": [
-      "task-25",
-      "task-26",
-      "task-27",
-      "task-28",
-      "task-29",
-      "task-30",
-      "task-31"
-    ]
+    id: "sprint-5",
+    name: "Sprint 5",
+    detail: sprintDetail,
+    completion: 80,
+    tasks: ["task-25", "task-26", "task-27", "task-28", "task-29", "task-30", "task-31"],
   },
   {
-    "id": "sprint-6",
-    "name": "Sprint 6",
-    "detail": "A compact delivery window focused on cross-functional cleanup, predictable handoff, and tighter weekly momentum.",
-    "completion": 91,
-    "tasks": [
-      "task-31",
-      "task-32",
-      "task-33",
-      "task-34",
-      "task-35",
-      "task-36",
-      "task-37"
-    ]
+    id: "sprint-6",
+    name: "Sprint 6",
+    detail: sprintDetail,
+    completion: 91,
+    tasks: ["task-31", "task-32", "task-33", "task-34", "task-35", "task-36", "task-37"],
   },
   {
-    "id": "sprint-7",
-    "name": "Sprint 7",
-    "detail": "A compact delivery window focused on cross-functional cleanup, predictable handoff, and tighter weekly momentum.",
-    "completion": 32,
-    "tasks": [
-      "task-37",
-      "task-38",
-      "task-39",
-      "task-40",
-      "task-41",
-      "task-42",
-      "task-43"
-    ]
+    id: "sprint-7",
+    name: "Sprint 7",
+    detail: sprintDetail,
+    completion: 32,
+    tasks: ["task-37", "task-38", "task-39", "task-40", "task-41", "task-42", "task-43"],
   },
   {
-    "id": "sprint-8",
-    "name": "Sprint 8",
-    "detail": "A compact delivery window focused on cross-functional cleanup, predictable handoff, and tighter weekly momentum.",
-    "completion": 43,
-    "tasks": [
-      "task-43",
-      "task-44",
-      "task-45",
-      "task-46",
-      "task-47",
-      "task-48",
-      "task-49"
-    ]
+    id: "sprint-8",
+    name: "Sprint 8",
+    detail: sprintDetail,
+    completion: 43,
+    tasks: ["task-43", "task-44", "task-45", "task-46", "task-47", "task-48", "task-49"],
   },
   {
-    "id": "sprint-9",
-    "name": "Sprint 9",
-    "detail": "A compact delivery window focused on cross-functional cleanup, predictable handoff, and tighter weekly momentum.",
-    "completion": 54,
-    "tasks": [
-      "task-49",
-      "task-50",
-      "task-51",
-      "task-52",
-      "task-53",
-      "task-54",
-      "task-55"
-    ]
+    id: "sprint-9",
+    name: "Sprint 9",
+    detail: sprintDetail,
+    completion: 54,
+    tasks: ["task-49", "task-50", "task-51", "task-52", "task-53", "task-54", "task-55"],
   },
   {
-    "id": "sprint-10",
-    "name": "Sprint 10",
-    "detail": "A compact delivery window focused on cross-functional cleanup, predictable handoff, and tighter weekly momentum.",
-    "completion": 65,
-    "tasks": [
-      "task-55",
-      "task-56",
-      "task-57",
-      "task-58",
-      "task-59",
-      "task-60",
-      "task-61"
-    ]
+    id: "sprint-10",
+    name: "Sprint 10",
+    detail: sprintDetail,
+    completion: 65,
+    tasks: ["task-55", "task-56", "task-57", "task-58", "task-59", "task-60", "task-61"],
   },
   {
-    "id": "sprint-11",
-    "name": "Sprint 11",
-    "detail": "A compact delivery window focused on cross-functional cleanup, predictable handoff, and tighter weekly momentum.",
-    "completion": 76,
-    "tasks": [
-      "task-61",
-      "task-62",
-      "task-63",
-      "task-64",
-      "task-65",
-      "task-66",
-      "task-67"
-    ]
+    id: "sprint-11",
+    name: "Sprint 11",
+    detail: sprintDetail,
+    completion: 76,
+    tasks: ["task-61", "task-62", "task-63", "task-64", "task-65", "task-66", "task-67"],
   },
   {
-    "id": "sprint-12",
-    "name": "Sprint 12",
-    "detail": "A compact delivery window focused on cross-functional cleanup, predictable handoff, and tighter weekly momentum.",
-    "completion": 87,
-    "tasks": [
-      "task-67",
-      "task-68",
-      "task-69",
-      "task-70",
-      "task-71",
-      "task-72",
-      "task-73"
-    ]
+    id: "sprint-12",
+    name: "Sprint 12",
+    detail: sprintDetail,
+    completion: 87,
+    tasks: ["task-67", "task-68", "task-69", "task-70", "task-71", "task-72", "task-73"],
   },
   {
-    "id": "sprint-13",
-    "name": "Sprint 13",
-    "detail": "A compact delivery window focused on cross-functional cleanup, predictable handoff, and tighter weekly momentum.",
-    "completion": 28,
-    "tasks": [
-      "task-73",
-      "task-74",
-      "task-75",
-      "task-76",
-      "task-77",
-      "task-78",
-      "task-79"
-    ]
+    id: "sprint-13",
+    name: "Sprint 13",
+    detail: sprintDetail,
+    completion: 28,
+    tasks: ["task-73", "task-74", "task-75", "task-76", "task-77", "task-78", "task-79"],
   },
   {
-    "id": "sprint-14",
-    "name": "Sprint 14",
-    "detail": "A compact delivery window focused on cross-functional cleanup, predictable handoff, and tighter weekly momentum.",
-    "completion": 39,
-    "tasks": [
-      "task-79",
-      "task-80",
-      "task-81",
-      "task-82",
-      "task-83",
-      "task-84",
-      "task-85"
-    ]
+    id: "sprint-14",
+    name: "Sprint 14",
+    detail: sprintDetail,
+    completion: 39,
+    tasks: ["task-79", "task-80", "task-81", "task-82", "task-83", "task-84", "task-85"],
   },
   {
-    "id": "sprint-15",
-    "name": "Sprint 15",
-    "detail": "A compact delivery window focused on cross-functional cleanup, predictable handoff, and tighter weekly momentum.",
-    "completion": 50,
-    "tasks": [
-      "task-85",
-      "task-86",
-      "task-87",
-      "task-88",
-      "task-89",
-      "task-90",
-      "task-91"
-    ]
+    id: "sprint-15",
+    name: "Sprint 15",
+    detail: sprintDetail,
+    completion: 50,
+    tasks: ["task-85", "task-86", "task-87", "task-88", "task-89", "task-90", "task-91"],
   },
   {
-    "id": "sprint-16",
-    "name": "Sprint 16",
-    "detail": "A compact delivery window focused on cross-functional cleanup, predictable handoff, and tighter weekly momentum.",
-    "completion": 61,
-    "tasks": [
-      "task-91",
-      "task-92",
-      "task-93",
-      "task-94",
-      "task-95",
-      "task-96",
-      "task-97"
-    ]
+    id: "sprint-16",
+    name: "Sprint 16",
+    detail: sprintDetail,
+    completion: 61,
+    tasks: ["task-91", "task-92", "task-93", "task-94", "task-95", "task-96", "task-97"],
   },
   {
-    "id": "sprint-17",
-    "name": "Sprint 17",
-    "detail": "A compact delivery window focused on cross-functional cleanup, predictable handoff, and tighter weekly momentum.",
-    "completion": 72,
-    "tasks": [
-      "task-97",
-      "task-98",
-      "task-99",
-      "task-100",
-      "task-101",
-      "task-102",
-      "task-103"
-    ]
+    id: "sprint-17",
+    name: "Sprint 17",
+    detail: sprintDetail,
+    completion: 72,
+    tasks: ["task-97", "task-98", "task-99", "task-100", "task-101", "task-102", "task-103"],
   },
   {
-    "id": "sprint-18",
-    "name": "Sprint 18",
-    "detail": "A compact delivery window focused on cross-functional cleanup, predictable handoff, and tighter weekly momentum.",
-    "completion": 83,
-    "tasks": [
-      "task-103",
-      "task-104",
-      "task-105",
-      "task-106",
-      "task-107",
-      "task-108",
-      "task-109"
-    ]
+    id: "sprint-18",
+    name: "Sprint 18",
+    detail: sprintDetail,
+    completion: 83,
+    tasks: ["task-103", "task-104", "task-105", "task-106", "task-107", "task-108", "task-109"],
   },
   {
-    "id": "sprint-19",
-    "name": "Sprint 19",
-    "detail": "A compact delivery window focused on cross-functional cleanup, predictable handoff, and tighter weekly momentum.",
-    "completion": 94,
-    "tasks": [
-      "task-109",
-      "task-110",
-      "task-111",
-      "task-112",
-      "task-113",
-      "task-114",
-      "task-115"
-    ]
+    id: "sprint-19",
+    name: "Sprint 19",
+    detail: sprintDetail,
+    completion: 94,
+    tasks: ["task-109", "task-110", "task-111", "task-112", "task-113", "task-114", "task-115"],
   },
   {
-    "id": "sprint-20",
-    "name": "Sprint 20",
-    "detail": "A compact delivery window focused on cross-functional cleanup, predictable handoff, and tighter weekly momentum.",
-    "completion": 35,
-    "tasks": [
-      "task-115",
-      "task-116",
-      "task-117",
-      "task-118",
-      "task-119",
-      "task-120",
-      "task-121"
-    ]
+    id: "sprint-20",
+    name: "Sprint 20",
+    detail: sprintDetail,
+    completion: 35,
+    tasks: ["task-115", "task-116", "task-117", "task-118", "task-119", "task-120", "task-121"],
   },
   {
-    "id": "sprint-21",
-    "name": "Sprint 21",
-    "detail": "A compact delivery window focused on cross-functional cleanup, predictable handoff, and tighter weekly momentum.",
-    "completion": 46,
-    "tasks": [
-      "task-121",
-      "task-122",
-      "task-123",
-      "task-124",
-      "task-125",
-      "task-126",
-      "task-127"
-    ]
+    id: "sprint-21",
+    name: "Sprint 21",
+    detail: sprintDetail,
+    completion: 46,
+    tasks: ["task-121", "task-122", "task-123", "task-124", "task-125", "task-126", "task-127"],
   },
   {
-    "id": "sprint-22",
-    "name": "Sprint 22",
-    "detail": "A compact delivery window focused on cross-functional cleanup, predictable handoff, and tighter weekly momentum.",
-    "completion": 57,
-    "tasks": [
-      "task-127",
-      "task-128",
-      "task-129",
-      "task-130",
-      "task-131",
-      "task-132",
-      "task-133"
-    ]
+    id: "sprint-22",
+    name: "Sprint 22",
+    detail: sprintDetail,
+    completion: 57,
+    tasks: ["task-127", "task-128", "task-129", "task-130", "task-131", "task-132", "task-133"],
   },
   {
-    "id": "sprint-23",
-    "name": "Sprint 23",
-    "detail": "A compact delivery window focused on cross-functional cleanup, predictable handoff, and tighter weekly momentum.",
-    "completion": 68,
-    "tasks": [
-      "task-133",
-      "task-134",
-      "task-135",
-      "task-136",
-      "task-137",
-      "task-138",
-      "task-139"
-    ]
+    id: "sprint-23",
+    name: "Sprint 23",
+    detail: sprintDetail,
+    completion: 68,
+    tasks: ["task-133", "task-134", "task-135", "task-136", "task-137", "task-138", "task-139"],
   },
   {
-    "id": "sprint-24",
-    "name": "Sprint 24",
-    "detail": "A compact delivery window focused on cross-functional cleanup, predictable handoff, and tighter weekly momentum.",
-    "completion": 79,
-    "tasks": [
-      "task-139",
-      "task-140",
-      "task-141",
-      "task-142",
-      "task-143",
-      "task-144",
-      "task-145"
-    ]
+    id: "sprint-24",
+    name: "Sprint 24",
+    detail: sprintDetail,
+    completion: 79,
+    tasks: ["task-139", "task-140", "task-141", "task-142", "task-143", "task-144", "task-145"],
   },
   {
-    "id": "sprint-25",
-    "name": "Sprint 25",
-    "detail": "A compact delivery window focused on cross-functional cleanup, predictable handoff, and tighter weekly momentum.",
-    "completion": 90,
-    "tasks": [
-      "task-145",
-      "task-146",
-      "task-147",
-      "task-148",
-      "task-149",
-      "task-150",
-      "task-151"
-    ]
+    id: "sprint-25",
+    name: "Sprint 25",
+    detail: sprintDetail,
+    completion: 90,
+    tasks: ["task-145", "task-146", "task-147", "task-148", "task-149", "task-150", "task-151"],
   },
   {
-    "id": "sprint-26",
-    "name": "Sprint 26",
-    "detail": "A compact delivery window focused on cross-functional cleanup, predictable handoff, and tighter weekly momentum.",
-    "completion": 31,
-    "tasks": [
-      "task-151",
-      "task-152",
-      "task-153",
-      "task-154",
-      "task-155",
-      "task-156",
-      "task-157"
-    ]
+    id: "sprint-26",
+    name: "Sprint 26",
+    detail: sprintDetail,
+    completion: 31,
+    tasks: ["task-151", "task-152", "task-153", "task-154", "task-155", "task-156", "task-157"],
   },
   {
-    "id": "sprint-27",
-    "name": "Sprint 27",
-    "detail": "A compact delivery window focused on cross-functional cleanup, predictable handoff, and tighter weekly momentum.",
-    "completion": 42,
-    "tasks": [
-      "task-157",
-      "task-158",
-      "task-159",
-      "task-160",
-      "task-161",
-      "task-162",
-      "task-163"
-    ]
+    id: "sprint-27",
+    name: "Sprint 27",
+    detail: sprintDetail,
+    completion: 42,
+    tasks: ["task-157", "task-158", "task-159", "task-160", "task-161", "task-162", "task-163"],
   },
   {
-    "id": "sprint-28",
-    "name": "Sprint 28",
-    "detail": "A compact delivery window focused on cross-functional cleanup, predictable handoff, and tighter weekly momentum.",
-    "completion": 53,
-    "tasks": [
-      "task-163",
-      "task-164",
-      "task-165",
-      "task-166",
-      "task-167",
-      "task-168",
-      "task-169"
-    ]
+    id: "sprint-28",
+    name: "Sprint 28",
+    detail: sprintDetail,
+    completion: 53,
+    tasks: ["task-163", "task-164", "task-165", "task-166", "task-167", "task-168", "task-169"],
   },
   {
-    "id": "sprint-29",
-    "name": "Sprint 29",
-    "detail": "A compact delivery window focused on cross-functional cleanup, predictable handoff, and tighter weekly momentum.",
-    "completion": 64,
-    "tasks": [
-      "task-169",
-      "task-170",
-      "task-171",
-      "task-172",
-      "task-173",
-      "task-174",
-      "task-175"
-    ]
+    id: "sprint-29",
+    name: "Sprint 29",
+    detail: sprintDetail,
+    completion: 64,
+    tasks: ["task-169", "task-170", "task-171", "task-172", "task-173", "task-174", "task-175"],
   },
   {
-    "id": "sprint-30",
-    "name": "Sprint 30",
-    "detail": "A compact delivery window focused on cross-functional cleanup, predictable handoff, and tighter weekly momentum.",
-    "completion": 75,
-    "tasks": [
-      "task-175",
-      "task-176",
-      "task-177",
-      "task-178",
-      "task-179",
-      "task-180",
-      "task-181"
-    ]
+    id: "sprint-30",
+    name: "Sprint 30",
+    detail: sprintDetail,
+    completion: 75,
+    tasks: ["task-175", "task-176", "task-177", "task-178", "task-179", "task-180", "task-181"],
   },
   {
-    "id": "sprint-31",
-    "name": "Sprint 31",
-    "detail": "A compact delivery window focused on cross-functional cleanup, predictable handoff, and tighter weekly momentum.",
-    "completion": 86,
-    "tasks": [
-      "task-181",
-      "task-182",
-      "task-183",
-      "task-184",
-      "task-185",
-      "task-186",
-      "task-187"
-    ]
+    id: "sprint-31",
+    name: "Sprint 31",
+    detail: sprintDetail,
+    completion: 86,
+    tasks: ["task-181", "task-182", "task-183", "task-184", "task-185", "task-186", "task-187"],
   },
   {
-    "id": "sprint-32",
-    "name": "Sprint 32",
-    "detail": "A compact delivery window focused on cross-functional cleanup, predictable handoff, and tighter weekly momentum.",
-    "completion": 27,
-    "tasks": [
-      "task-187",
-      "task-188",
-      "task-189",
-      "task-190",
-      "task-191",
-      "task-192",
-      "task-193"
-    ]
+    id: "sprint-32",
+    name: "Sprint 32",
+    detail: sprintDetail,
+    completion: 27,
+    tasks: ["task-187", "task-188", "task-189", "task-190", "task-191", "task-192", "task-193"],
   },
   {
-    "id": "sprint-33",
-    "name": "Sprint 33",
-    "detail": "A compact delivery window focused on cross-functional cleanup, predictable handoff, and tighter weekly momentum.",
-    "completion": 38,
-    "tasks": [
-      "task-193",
-      "task-194",
-      "task-195",
-      "task-196",
-      "task-197",
-      "task-198",
-      "task-199"
-    ]
+    id: "sprint-33",
+    name: "Sprint 33",
+    detail: sprintDetail,
+    completion: 38,
+    tasks: ["task-193", "task-194", "task-195", "task-196", "task-197", "task-198", "task-199"],
   },
   {
-    "id": "sprint-34",
-    "name": "Sprint 34",
-    "detail": "A compact delivery window focused on cross-functional cleanup, predictable handoff, and tighter weekly momentum.",
-    "completion": 49,
-    "tasks": [
-      "task-199",
-      "task-200",
-      "task-201",
-      "task-202",
-      "task-203",
-      "task-204",
-      "task-205"
-    ]
+    id: "sprint-34",
+    name: "Sprint 34",
+    detail: sprintDetail,
+    completion: 49,
+    tasks: ["task-199", "task-200", "task-201", "task-202", "task-203", "task-204", "task-205"],
   },
   {
-    "id": "sprint-35",
-    "name": "Sprint 35",
-    "detail": "A compact delivery window focused on cross-functional cleanup, predictable handoff, and tighter weekly momentum.",
-    "completion": 60,
-    "tasks": [
-      "task-205",
-      "task-206",
-      "task-207",
-      "task-208",
-      "task-209",
-      "task-210",
-      "task-211"
-    ]
+    id: "sprint-35",
+    name: "Sprint 35",
+    detail: sprintDetail,
+    completion: 60,
+    tasks: ["task-205", "task-206", "task-207", "task-208", "task-209", "task-210", "task-211"],
   },
   {
-    "id": "sprint-36",
-    "name": "Sprint 36",
-    "detail": "A compact delivery window focused on cross-functional cleanup, predictable handoff, and tighter weekly momentum.",
-    "completion": 71,
-    "tasks": [
-      "task-211",
-      "task-212",
-      "task-213",
-      "task-214",
-      "task-215",
-      "task-216",
-      "task-217"
-    ]
-  }
-]
+    id: "sprint-36",
+    name: "Sprint 36",
+    detail: sprintDetail,
+    completion: 71,
+    tasks: ["task-211", "task-212", "task-213", "task-214", "task-215", "task-216", "task-217"],
+  },
+];
 
 const activities: Activity[] = [
   {
-    "id": "activity-1",
-    "title": "Maya updated draft onboarding",
-    "detail": "3 linked tasks changed status, notes were refreshed, and one decision was pinned.",
-    "time": "1h ago"
+    id: "activity-1",
+    title: "Maya updated draft onboarding",
+    detail: "3 linked tasks changed status, notes were refreshed, and one decision was pinned.",
+    time: "1h ago",
   },
   {
-    "id": "activity-2",
-    "title": "Leo updated align campaign",
-    "detail": "4 linked tasks changed status, notes were refreshed, and one decision was pinned.",
-    "time": "2h ago"
+    id: "activity-2",
+    title: "Leo updated align campaign",
+    detail: "4 linked tasks changed status, notes were refreshed, and one decision was pinned.",
+    time: "2h ago",
   },
   {
-    "id": "activity-3",
-    "title": "Ava updated review API",
-    "detail": "5 linked tasks changed status, notes were refreshed, and one decision was pinned.",
-    "time": "3h ago"
+    id: "activity-3",
+    title: "Ava updated review API",
+    detail: "5 linked tasks changed status, notes were refreshed, and one decision was pinned.",
+    time: "3h ago",
   },
   {
-    "id": "activity-4",
-    "title": "Noah updated ship theme",
-    "detail": "6 linked tasks changed status, notes were refreshed, and one decision was pinned.",
-    "time": "4h ago"
+    id: "activity-4",
+    title: "Noah updated ship theme",
+    detail: "6 linked tasks changed status, notes were refreshed, and one decision was pinned.",
+    time: "4h ago",
   },
   {
-    "id": "activity-5",
-    "title": "Iris updated map checklist",
-    "detail": "7 linked tasks changed status, notes were refreshed, and one decision was pinned.",
-    "time": "5h ago"
+    id: "activity-5",
+    title: "Iris updated map checklist",
+    detail: "7 linked tasks changed status, notes were refreshed, and one decision was pinned.",
+    time: "5h ago",
   },
   {
-    "id": "activity-6",
-    "title": "Milan updated test profile",
-    "detail": "2 linked tasks changed status, notes were refreshed, and one decision was pinned.",
-    "time": "6h ago"
+    id: "activity-6",
+    title: "Milan updated test profile",
+    detail: "2 linked tasks changed status, notes were refreshed, and one decision was pinned.",
+    time: "6h ago",
   },
   {
-    "id": "activity-7",
-    "title": "Sara updated polish timeline",
-    "detail": "3 linked tasks changed status, notes were refreshed, and one decision was pinned.",
-    "time": "7h ago"
+    id: "activity-7",
+    title: "Sara updated polish timeline",
+    detail: "3 linked tasks changed status, notes were refreshed, and one decision was pinned.",
+    time: "7h ago",
   },
   {
-    "id": "activity-8",
-    "title": "Nika updated write report",
-    "detail": "4 linked tasks changed status, notes were refreshed, and one decision was pinned.",
-    "time": "8h ago"
+    id: "activity-8",
+    title: "Nika updated write report",
+    detail: "4 linked tasks changed status, notes were refreshed, and one decision was pinned.",
+    time: "8h ago",
   },
   {
-    "id": "activity-9",
-    "title": "Maya updated audit workflow",
-    "detail": "5 linked tasks changed status, notes were refreshed, and one decision was pinned.",
-    "time": "9h ago"
+    id: "activity-9",
+    title: "Maya updated audit workflow",
+    detail: "5 linked tasks changed status, notes were refreshed, and one decision was pinned.",
+    time: "9h ago",
   },
   {
-    "id": "activity-10",
-    "title": "Leo updated refine dashboard",
-    "detail": "6 linked tasks changed status, notes were refreshed, and one decision was pinned.",
-    "time": "10h ago"
+    id: "activity-10",
+    title: "Leo updated refine dashboard",
+    detail: "6 linked tasks changed status, notes were refreshed, and one decision was pinned.",
+    time: "10h ago",
   },
   {
-    "id": "activity-11",
-    "title": "Ava updated draft onboarding",
-    "detail": "7 linked tasks changed status, notes were refreshed, and one decision was pinned.",
-    "time": "11h ago"
+    id: "activity-11",
+    title: "Ava updated draft onboarding",
+    detail: "7 linked tasks changed status, notes were refreshed, and one decision was pinned.",
+    time: "11h ago",
   },
   {
-    "id": "activity-12",
-    "title": "Noah updated align campaign",
-    "detail": "2 linked tasks changed status, notes were refreshed, and one decision was pinned.",
-    "time": "12h ago"
+    id: "activity-12",
+    title: "Noah updated align campaign",
+    detail: "2 linked tasks changed status, notes were refreshed, and one decision was pinned.",
+    time: "12h ago",
   },
   {
-    "id": "activity-13",
-    "title": "Iris updated review API",
-    "detail": "3 linked tasks changed status, notes were refreshed, and one decision was pinned.",
-    "time": "13h ago"
+    id: "activity-13",
+    title: "Iris updated review API",
+    detail: "3 linked tasks changed status, notes were refreshed, and one decision was pinned.",
+    time: "13h ago",
   },
   {
-    "id": "activity-14",
-    "title": "Milan updated ship theme",
-    "detail": "4 linked tasks changed status, notes were refreshed, and one decision was pinned.",
-    "time": "14h ago"
+    id: "activity-14",
+    title: "Milan updated ship theme",
+    detail: "4 linked tasks changed status, notes were refreshed, and one decision was pinned.",
+    time: "14h ago",
   },
   {
-    "id": "activity-15",
-    "title": "Sara updated map checklist",
-    "detail": "5 linked tasks changed status, notes were refreshed, and one decision was pinned.",
-    "time": "15h ago"
+    id: "activity-15",
+    title: "Sara updated map checklist",
+    detail: "5 linked tasks changed status, notes were refreshed, and one decision was pinned.",
+    time: "15h ago",
   },
   {
-    "id": "activity-16",
-    "title": "Nika updated test profile",
-    "detail": "6 linked tasks changed status, notes were refreshed, and one decision was pinned.",
-    "time": "16h ago"
+    id: "activity-16",
+    title: "Nika updated test profile",
+    detail: "6 linked tasks changed status, notes were refreshed, and one decision was pinned.",
+    time: "16h ago",
   },
   {
-    "id": "activity-17",
-    "title": "Maya updated polish timeline",
-    "detail": "7 linked tasks changed status, notes were refreshed, and one decision was pinned.",
-    "time": "17h ago"
+    id: "activity-17",
+    title: "Maya updated polish timeline",
+    detail: "7 linked tasks changed status, notes were refreshed, and one decision was pinned.",
+    time: "17h ago",
   },
   {
-    "id": "activity-18",
-    "title": "Leo updated write report",
-    "detail": "2 linked tasks changed status, notes were refreshed, and one decision was pinned.",
-    "time": "18h ago"
+    id: "activity-18",
+    title: "Leo updated write report",
+    detail: "2 linked tasks changed status, notes were refreshed, and one decision was pinned.",
+    time: "18h ago",
   },
   {
-    "id": "activity-19",
-    "title": "Ava updated audit workflow",
-    "detail": "3 linked tasks changed status, notes were refreshed, and one decision was pinned.",
-    "time": "19h ago"
+    id: "activity-19",
+    title: "Ava updated audit workflow",
+    detail: "3 linked tasks changed status, notes were refreshed, and one decision was pinned.",
+    time: "19h ago",
   },
   {
-    "id": "activity-20",
-    "title": "Noah updated refine dashboard",
-    "detail": "4 linked tasks changed status, notes were refreshed, and one decision was pinned.",
-    "time": "20h ago"
+    id: "activity-20",
+    title: "Noah updated refine dashboard",
+    detail: "4 linked tasks changed status, notes were refreshed, and one decision was pinned.",
+    time: "20h ago",
   },
   {
-    "id": "activity-21",
-    "title": "Iris updated draft onboarding",
-    "detail": "5 linked tasks changed status, notes were refreshed, and one decision was pinned.",
-    "time": "21h ago"
+    id: "activity-21",
+    title: "Iris updated draft onboarding",
+    detail: "5 linked tasks changed status, notes were refreshed, and one decision was pinned.",
+    time: "21h ago",
   },
   {
-    "id": "activity-22",
-    "title": "Milan updated align campaign",
-    "detail": "6 linked tasks changed status, notes were refreshed, and one decision was pinned.",
-    "time": "22h ago"
+    id: "activity-22",
+    title: "Milan updated align campaign",
+    detail: "6 linked tasks changed status, notes were refreshed, and one decision was pinned.",
+    time: "22h ago",
   },
   {
-    "id": "activity-23",
-    "title": "Sara updated review API",
-    "detail": "7 linked tasks changed status, notes were refreshed, and one decision was pinned.",
-    "time": "23h ago"
+    id: "activity-23",
+    title: "Sara updated review API",
+    detail: "7 linked tasks changed status, notes were refreshed, and one decision was pinned.",
+    time: "23h ago",
   },
   {
-    "id": "activity-24",
-    "title": "Nika updated ship theme",
-    "detail": "2 linked tasks changed status, notes were refreshed, and one decision was pinned.",
-    "time": "24h ago"
+    id: "activity-24",
+    title: "Nika updated ship theme",
+    detail: "2 linked tasks changed status, notes were refreshed, and one decision was pinned.",
+    time: "24h ago",
   },
   {
-    "id": "activity-25",
-    "title": "Maya updated map checklist",
-    "detail": "3 linked tasks changed status, notes were refreshed, and one decision was pinned.",
-    "time": "25h ago"
+    id: "activity-25",
+    title: "Maya updated map checklist",
+    detail: "3 linked tasks changed status, notes were refreshed, and one decision was pinned.",
+    time: "25h ago",
   },
   {
-    "id": "activity-26",
-    "title": "Leo updated test profile",
-    "detail": "4 linked tasks changed status, notes were refreshed, and one decision was pinned.",
-    "time": "26h ago"
+    id: "activity-26",
+    title: "Leo updated test profile",
+    detail: "4 linked tasks changed status, notes were refreshed, and one decision was pinned.",
+    time: "26h ago",
   },
   {
-    "id": "activity-27",
-    "title": "Ava updated polish timeline",
-    "detail": "5 linked tasks changed status, notes were refreshed, and one decision was pinned.",
-    "time": "27h ago"
+    id: "activity-27",
+    title: "Ava updated polish timeline",
+    detail: "5 linked tasks changed status, notes were refreshed, and one decision was pinned.",
+    time: "27h ago",
   },
   {
-    "id": "activity-28",
-    "title": "Noah updated write report",
-    "detail": "6 linked tasks changed status, notes were refreshed, and one decision was pinned.",
-    "time": "28h ago"
-  }
-]
+    id: "activity-28",
+    title: "Noah updated write report",
+    detail: "6 linked tasks changed status, notes were refreshed, and one decision was pinned.",
+    time: "28h ago",
+  },
+];
 
 const habits: Habit[] = [
   {
-    "id": "habit-1",
-    "label": "Plan tomorrow 1",
-    "streak": 5,
-    "rate": 62
+    id: "habit-1",
+    label: "Plan tomorrow 1",
+    streak: 5,
+    rate: 62,
   },
   {
-    "id": "habit-2",
-    "label": "Review blockers 2",
-    "streak": 7,
-    "rate": 69
+    id: "habit-2",
+    label: "Review blockers 2",
+    streak: 7,
+    rate: 69,
   },
   {
-    "id": "habit-3",
-    "label": "Deep work 3",
-    "streak": 9,
-    "rate": 76
+    id: "habit-3",
+    label: "Deep work 3",
+    streak: 9,
+    rate: 76,
   },
   {
-    "id": "habit-4",
-    "label": "Standup notes 4",
-    "streak": 11,
-    "rate": 83
+    id: "habit-4",
+    label: "Standup notes 4",
+    streak: 11,
+    rate: 83,
   },
   {
-    "id": "habit-5",
-    "label": "Ship one thing 5",
-    "streak": 13,
-    "rate": 90
+    id: "habit-5",
+    label: "Ship one thing 5",
+    streak: 13,
+    rate: 90,
   },
   {
-    "id": "habit-6",
-    "label": "Inbox zero 6",
-    "streak": 15,
-    "rate": 57
+    id: "habit-6",
+    label: "Inbox zero 6",
+    streak: 15,
+    rate: 57,
   },
   {
-    "id": "habit-7",
-    "label": "Plan tomorrow 7",
-    "streak": 17,
-    "rate": 64
+    id: "habit-7",
+    label: "Plan tomorrow 7",
+    streak: 17,
+    rate: 64,
   },
   {
-    "id": "habit-8",
-    "label": "Review blockers 8",
-    "streak": 19,
-    "rate": 71
+    id: "habit-8",
+    label: "Review blockers 8",
+    streak: 19,
+    rate: 71,
   },
   {
-    "id": "habit-9",
-    "label": "Deep work 9",
-    "streak": 3,
-    "rate": 78
+    id: "habit-9",
+    label: "Deep work 9",
+    streak: 3,
+    rate: 78,
   },
   {
-    "id": "habit-10",
-    "label": "Standup notes 10",
-    "streak": 5,
-    "rate": 85
+    id: "habit-10",
+    label: "Standup notes 10",
+    streak: 5,
+    rate: 85,
   },
   {
-    "id": "habit-11",
-    "label": "Ship one thing 11",
-    "streak": 7,
-    "rate": 92
+    id: "habit-11",
+    label: "Ship one thing 11",
+    streak: 7,
+    rate: 92,
   },
   {
-    "id": "habit-12",
-    "label": "Inbox zero 12",
-    "streak": 9,
-    "rate": 59
-  }
-]
+    id: "habit-12",
+    label: "Inbox zero 12",
+    streak: 9,
+    rate: 59,
+  },
+];
 
 const trackingNotes = [
   "Tracking note 1: keep ownership visible, reduce idle work, and move the next smallest valuable task.",
@@ -6184,120 +4940,151 @@ const trackingNotes = [
   "Tracking note 537: keep ownership visible, reduce idle work, and move the next smallest valuable task.",
   "Tracking note 538: keep ownership visible, reduce idle work, and move the next smallest valuable task.",
   "Tracking note 539: keep ownership visible, reduce idle work, and move the next smallest valuable task.",
-  "Tracking note 540: keep ownership visible, reduce idle work, and move the next smallest valuable task."
-] as const
+  "Tracking note 540: keep ownership visible, reduce idle work, and move the next smallest valuable task.",
+] as const;
 
 const columnLabels: Record<ColumnId, string> = {
-  "today": "Today",
-  "upcoming": "Upcoming",
-  "blocked": "Blocked",
-  "done": "Done"
-}
+  today: "Today",
+  upcoming: "Upcoming",
+  blocked: "Blocked",
+  done: "Done",
+};
 
 const dashboards: Array<{ id: DashboardId; label: string; detail: string }> = [
   {
-    "id": "overview",
-    "label": "Overview",
-    "detail": "Profile, progress, energy, and delivery pace."
+    id: "overview",
+    label: "Overview",
+    detail: "Profile, progress, energy, and delivery pace.",
   },
   {
-    "id": "board",
-    "label": "Board",
-    "detail": "Dense kanban scan with fast interaction."
+    id: "board",
+    label: "Board",
+    detail: "Dense kanban scan with fast interaction.",
   },
   {
-    "id": "calendar",
-    "label": "Calendar",
-    "detail": "Due dates, weekly load, and schedule pressure."
+    id: "calendar",
+    label: "Calendar",
+    detail: "Due dates, weekly load, and schedule pressure.",
   },
   {
-    "id": "focus",
-    "label": "Focus",
-    "detail": "Only the highest-value tasks and routines."
-  }
-]
+    id: "focus",
+    label: "Focus",
+    detail: "Only the highest-value tasks and routines.",
+  },
+];
 
 const filters: Array<{ id: FilterId; label: string }> = [
   {
-    "id": "all",
-    "label": "All"
+    id: "all",
+    label: "All",
   },
   {
-    "id": "mine",
-    "label": "Mine"
+    id: "mine",
+    label: "Mine",
   },
   {
-    "id": "urgent",
-    "label": "Urgent"
+    id: "urgent",
+    label: "Urgent",
   },
   {
-    "id": "due-soon",
-    "label": "Due soon"
+    id: "due-soon",
+    label: "Due soon",
   },
   {
-    "id": "completed",
-    "label": "Completed"
-  }
-]
+    id: "completed",
+    label: "Completed",
+  },
+];
 
 function App() {
-  const searchId = useId()
-  const [theme, setTheme] = useState<ThemeMode>('light')
-  const [dashboard, setDashboard] = useState<DashboardId>('overview')
-  const [filter, setFilter] = useState<FilterId>('all')
-  const [query, setQuery] = useState('')
-  const deferredQuery = useDeferredValue(query)
-  const [tasksState, setTasksState] = useState(tasks)
-  const [activeSprintId] = useState(sprints[2].id)
-  const [profileName] = useState("Niki Romanov")
-  const [profileRole] = useState("Product designer & solo builder")
+  const searchId = useId();
+  const [theme, setTheme] = useState<ThemeMode>("light");
+  const [dashboard, setDashboard] = useState<DashboardId>("overview");
+  const [filter, setFilter] = useState<FilterId>("all");
+  const [query, setQuery] = useState("");
+  const deferredQuery = useDeferredValue(query);
+  const [tasksState, setTasksState] = useState(tasks);
+  const [activeSprintId] = useState(sprints[2].id);
+  const [profileName] = useState("Niki Romanov");
+  const [profileRole] = useState("Product designer & solo builder");
 
   useEffect(() => {
-    document.documentElement.dataset.theme = theme
-  }, [theme])
+    document.documentElement.dataset.theme = theme;
+  }, [theme]);
 
-  const activeSprint = useMemo(() => sprints.find((sprint) => sprint.id === activeSprintId) ?? sprints[0], [activeSprintId])
+  const activeSprint = useMemo(
+    () => sprints.find((sprint) => sprint.id === activeSprintId) ?? sprints[0],
+    [activeSprintId],
+  );
 
   const visibleTasks = useMemo(() => {
-    const term = deferredQuery.trim().toLowerCase()
+    const term = deferredQuery.trim().toLowerCase();
     return tasksState.filter((task) => {
-      const matchesSearch = term.length === 0 || `${task.title} ${task.detail} ${task.assignee} ${task.tag}`.toLowerCase().includes(term)
-      const matchesFilter = filter === 'all' ? true : filter === 'mine' ? task.assignee === 'Nika' : filter === 'urgent' ? task.priority === 'high' || task.priority === 'critical' : filter === 'due-soon' ? ['Mar 1, 2026', 'Mar 2, 2026', 'Mar 3, 2026', 'Mar 4, 2026', 'Mar 5, 2026'].includes(task.due) : task.completed
-      const matchesDashboard = dashboard !== "focus" || (task.priority === "high" || task.priority === "critical")
-      return matchesSearch && matchesFilter && matchesDashboard
-    })
-  }, [dashboard, deferredQuery, filter, tasksState])
+      const matchesSearch =
+        term.length === 0 || `${task.title} ${task.detail} ${task.assignee} ${task.tag}`.toLowerCase().includes(term);
+      const matchesFilter =
+        filter === "all"
+          ? true
+          : filter === "mine"
+            ? task.assignee === "Nika"
+            : filter === "urgent"
+              ? task.priority === "high" || task.priority === "critical"
+              : filter === "due-soon"
+                ? ["Mar 1, 2026", "Mar 2, 2026", "Mar 3, 2026", "Mar 4, 2026", "Mar 5, 2026"].includes(task.due)
+                : task.completed;
+      const matchesDashboard = dashboard !== "focus" || task.priority === "high" || task.priority === "critical";
+      return matchesSearch && matchesFilter && matchesDashboard;
+    });
+  }, [dashboard, deferredQuery, filter, tasksState]);
 
-  const groupedTasks = useMemo(() => ({
-    today: visibleTasks.filter((task) => task.column === "today"),
-    upcoming: visibleTasks.filter((task) => task.column === "upcoming"),
-    blocked: visibleTasks.filter((task) => task.column === "blocked"),
-    done: visibleTasks.filter((task) => task.column === "done"),
-  }), [visibleTasks])
+  const groupedTasks = useMemo(
+    () => ({
+      today: visibleTasks.filter((task) => task.column === "today"),
+      upcoming: visibleTasks.filter((task) => task.column === "upcoming"),
+      blocked: visibleTasks.filter((task) => task.column === "blocked"),
+      done: visibleTasks.filter((task) => task.column === "done"),
+    }),
+    [visibleTasks],
+  );
 
   const totals = useMemo(() => {
-    const total = tasksState.length
-    const done = tasksState.filter((task) => task.completed).length
-    const urgent = tasksState.filter((task) => task.priority === "high" || task.priority === "critical").length
-    const avgProgress = Math.round(tasksState.reduce((sum, task) => sum + task.progress, 0) / Math.max(total, 1))
-    return { total, done, urgent, avgProgress }
-  }, [tasksState])
+    const total = tasksState.length;
+    const done = tasksState.filter((task) => task.completed).length;
+    const urgent = tasksState.filter((task) => task.priority === "high" || task.priority === "critical").length;
+    const avgProgress = Math.round(tasksState.reduce((sum, task) => sum + task.progress, 0) / Math.max(total, 1));
+    return { total, done, urgent, avgProgress };
+  }, [tasksState]);
 
-  const myTasks = useMemo(() => visibleTasks.filter((task) => task.assignee === "Nika").slice(0, 6), [visibleTasks])
+  const myTasks = useMemo(() => visibleTasks.filter((task) => task.assignee === "Nika").slice(0, 6), [visibleTasks]);
 
-  const dueSoon = useMemo(() => [...visibleTasks].sort((a, b) => a.due.localeCompare(b.due)).slice(0, 8), [visibleTasks])
+  const dueSoon = useMemo(
+    () => [...visibleTasks].sort((a, b) => a.due.localeCompare(b.due)).slice(0, 8),
+    [visibleTasks],
+  );
 
-  const priorityMix = useMemo(() => priorities.map((priority) => ({ priority, count: visibleTasks.filter((task) => task.priority === priority).length })), [visibleTasks])
+  const priorityMix = useMemo(
+    () =>
+      priorities.map((priority) => ({
+        priority,
+        count: visibleTasks.filter((task) => task.priority === priority).length,
+      })),
+    [visibleTasks],
+  );
 
   const updateTask = (id: string, patch: Partial<Task>) => {
     startTransition(() => {
-      setTasksState((current) => current.map((task) => (task.id === id ? { ...task, ...patch } : task)))
-    })
-  }
+      setTasksState((current) => current.map((task) => (task.id === id ? { ...task, ...patch } : task)));
+    });
+  };
 
   const toggleDone = (task: Task) => {
-    updateTask(task.id, task.completed ? { completed: false, column: "today", progress: 72 } : { completed: true, column: "done", progress: 100 })
-  }
+    updateTask(
+      task.id,
+      task.completed
+        ? { completed: false, column: "today", progress: 72 }
+        : { completed: true, column: "done", progress: 100 },
+    );
+  };
 
   return (
     <>
@@ -6313,24 +5100,58 @@ function App() {
             </div>
           </div>
           <div className="metric-grid">
-            <article className="metric-card"><strong>{totals.total}</strong><span>tracked tasks</span></article>
-            <article className="metric-card"><strong>{totals.done}</strong><span>completed</span></article>
-            <article className="metric-card"><strong>{totals.urgent}</strong><span>urgent</span></article>
-            <article className="metric-card"><strong>{totals.avgProgress}%</strong><span>avg progress</span></article>
+            <article className="metric-card">
+              <strong>{totals.total}</strong>
+              <span>tracked tasks</span>
+            </article>
+            <article className="metric-card">
+              <strong>{totals.done}</strong>
+              <span>completed</span>
+            </article>
+            <article className="metric-card">
+              <strong>{totals.urgent}</strong>
+              <span>urgent</span>
+            </article>
+            <article className="metric-card">
+              <strong>{totals.avgProgress}%</strong>
+              <span>avg progress</span>
+            </article>
           </div>
           <nav className="dashboard-nav">
             {dashboards.map((item) => (
-              <button key={item.id} className={item.id === dashboard ? "nav-button active" : "nav-button"} onClick={() => setDashboard(item.id)} type="button">
+              <button
+                key={item.id}
+                className={item.id === dashboard ? "nav-button active" : "nav-button"}
+                onClick={() => setDashboard(item.id)}
+                type="button"
+              >
                 <strong>{item.label}</strong>
                 <span>{item.detail}</span>
               </button>
             ))}
           </nav>
           <section className="flat-card">
-            <div className="section-head compact"><div><p className="eyebrow">Theme</p><h3>Light / dark</h3></div></div>
+            <div className="section-head compact">
+              <div>
+                <p className="eyebrow">Theme</p>
+                <h3>Light / dark</h3>
+              </div>
+            </div>
             <div className="theme-toggle">
-              <button className={theme === "light" ? "chip active" : "chip"} onClick={() => setTheme("light")} type="button">Light</button>
-              <button className={theme === "dark" ? "chip active" : "chip"} onClick={() => setTheme("dark")} type="button">Dark</button>
+              <button
+                className={theme === "light" ? "chip active" : "chip"}
+                onClick={() => setTheme("light")}
+                type="button"
+              >
+                Light
+              </button>
+              <button
+                className={theme === "dark" ? "chip active" : "chip"}
+                onClick={() => setTheme("dark")}
+                type="button"
+              >
+                Dark
+              </button>
             </div>
             <p className="muted small">Dark theme mirrors the same palette through inverted surface variables.</p>
           </section>
@@ -6344,7 +5165,13 @@ function App() {
             </div>
             <label className="searchbox" htmlFor={searchId}>
               <span>Search</span>
-              <input id={searchId} onChange={(event) => setQuery(event.target.value)} placeholder="Task, assignee, tag, note" type="search" value={query} />
+              <input
+                id={searchId}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Task, assignee, tag, note"
+                type="search"
+                value={query}
+              />
             </label>
           </header>
 
@@ -6356,11 +5183,20 @@ function App() {
             </div>
             <div className="hero-progress">
               <strong>{activeSprint.completion}%</strong>
-              <div className="progress-track"><i style={{ width: `${activeSprint.completion}%` }} /></div>
+              <div className="progress-track">
+                <i style={{ width: `${activeSprint.completion}%` }} />
+              </div>
             </div>
             <div className="hero-actions">
               {filters.map((item) => (
-                <button key={item.id} className={item.id === filter ? "chip active" : "chip"} onClick={() => setFilter(item.id)} type="button">{item.label}</button>
+                <button
+                  key={item.id}
+                  className={item.id === filter ? "chip active" : "chip"}
+                  onClick={() => setFilter(item.id)}
+                  type="button"
+                >
+                  {item.label}
+                </button>
               ))}
             </div>
           </section>
@@ -6368,13 +5204,25 @@ function App() {
           <section className="board-grid">
             {columns.map((column) => (
               <article key={column} className="column-card">
-                <div className="section-head"><div><p className="eyebrow">Status</p><h3>{columnLabels[column]}</h3></div><span>{groupedTasks[column].length}</span></div>
+                <div className="section-head">
+                  <div>
+                    <p className="eyebrow">Status</p>
+                    <h3>{columnLabels[column]}</h3>
+                  </div>
+                  <span>{groupedTasks[column].length}</span>
+                </div>
                 <div className="task-list">
                   {groupedTasks[column].slice(0, 8).map((task) => (
                     <div key={task.id} className="task-card" style={{ borderColor: task.accent }}>
                       <div className="task-head">
                         <span className="priority-badge">{task.priority}</span>
-                        <button className={task.completed ? "chip active small-chip" : "chip small-chip"} onClick={() => toggleDone(task)} type="button">{task.completed ? "Done" : "Mark done"}</button>
+                        <button
+                          className={task.completed ? "chip active small-chip" : "chip small-chip"}
+                          onClick={() => toggleDone(task)}
+                          type="button"
+                        >
+                          {task.completed ? "Done" : "Mark done"}
+                        </button>
                       </div>
                       <strong>{task.title}</strong>
                       <p className="muted">{task.detail}</p>
@@ -6383,10 +5231,18 @@ function App() {
                         <span>{task.due}</span>
                         <span>{task.estimate}</span>
                       </div>
-                      <div className="progress-track thin"><i style={{ width: `${task.progress}%`, background: task.accent }} /></div>
+                      <div className="progress-track thin">
+                        <i style={{ width: `${task.progress}%`, background: task.accent }} />
+                      </div>
                       <div className="task-footer">
                         <span className="tag-badge">{task.tag}</span>
-                        <button className="text-button" onClick={() => updateTask(task.id, { column: column === "blocked" ? "today" : "blocked" })} type="button">{column === "blocked" ? "Unblock" : "Block"}</button>
+                        <button
+                          className="text-button"
+                          onClick={() => updateTask(task.id, { column: column === "blocked" ? "today" : "blocked" })}
+                          type="button"
+                        >
+                          {column === "blocked" ? "Unblock" : "Block"}
+                        </button>
                       </div>
                     </div>
                   ))}
@@ -6397,22 +5253,47 @@ function App() {
 
           <section className="lower-grid">
             <article className="flat-card">
-              <div className="section-head"><div><p className="eyebrow">My tasks</p><h3>Direct ownership</h3></div></div>
+              <div className="section-head">
+                <div>
+                  <p className="eyebrow">My tasks</p>
+                  <h3>Direct ownership</h3>
+                </div>
+              </div>
               <div className="stack">
                 {myTasks.map((task) => (
-                  <button key={task.id} className="list-row" onClick={() => updateTask(task.id, { progress: Math.min(task.progress + 5, 100) })} type="button">
-                    <div><strong>{task.title}</strong><p className="muted">{task.due} · {task.tag}</p></div>
+                  <button
+                    key={task.id}
+                    className="list-row"
+                    onClick={() => updateTask(task.id, { progress: Math.min(task.progress + 5, 100) })}
+                    type="button"
+                  >
+                    <div>
+                      <strong>{task.title}</strong>
+                      <p className="muted">
+                        {task.due} · {task.tag}
+                      </p>
+                    </div>
                     <span>{task.progress}%</span>
                   </button>
                 ))}
               </div>
             </article>
             <article className="flat-card">
-              <div className="section-head"><div><p className="eyebrow">Due soon</p><h3>Immediate follow-ups</h3></div></div>
+              <div className="section-head">
+                <div>
+                  <p className="eyebrow">Due soon</p>
+                  <h3>Immediate follow-ups</h3>
+                </div>
+              </div>
               <div className="stack">
                 {dueSoon.map((task) => (
                   <div key={task.id} className="list-row static-row">
-                    <div><strong>{task.title}</strong><p className="muted">{task.assignee} · {task.priority}</p></div>
+                    <div>
+                      <strong>{task.title}</strong>
+                      <p className="muted">
+                        {task.assignee} · {task.priority}
+                      </p>
+                    </div>
                     <span>{task.due}</span>
                   </div>
                 ))}
@@ -6423,30 +5304,55 @@ function App() {
 
         <aside className="rail right-rail">
           <section className="flat-card">
-            <div className="section-head compact"><div><p className="eyebrow">Tracking</p><h3>Priority mix</h3></div></div>
+            <div className="section-head compact">
+              <div>
+                <p className="eyebrow">Tracking</p>
+                <h3>Priority mix</h3>
+              </div>
+            </div>
             <div className="stack">
               {priorityMix.map((item, index) => (
                 <div key={item.priority} className="priority-row">
                   <span>{item.priority}</span>
-                  <div className="progress-track thin"><i style={{ width: `${Math.max((item.count / Math.max(visibleTasks.length, 1)) * 100, 8)}%`, background: accents[index % accents.length] }} /></div>
+                  <div className="progress-track thin">
+                    <i
+                      style={{
+                        width: `${Math.max((item.count / Math.max(visibleTasks.length, 1)) * 100, 8)}%`,
+                        background: accents[index % accents.length],
+                      }}
+                    />
+                  </div>
                   <b>{item.count}</b>
                 </div>
               ))}
             </div>
           </section>
           <section className="flat-card">
-            <div className="section-head compact"><div><p className="eyebrow">Habits</p><h3>Personal cadence</h3></div></div>
+            <div className="section-head compact">
+              <div>
+                <p className="eyebrow">Habits</p>
+                <h3>Personal cadence</h3>
+              </div>
+            </div>
             <div className="stack">
               {habits.slice(0, 6).map((habit) => (
                 <div key={habit.id} className="habit-row">
-                  <div><strong>{habit.label}</strong><p className="muted">{habit.streak} day streak</p></div>
+                  <div>
+                    <strong>{habit.label}</strong>
+                    <p className="muted">{habit.streak} day streak</p>
+                  </div>
                   <span>{habit.rate}%</span>
                 </div>
               ))}
             </div>
           </section>
           <section className="flat-card">
-            <div className="section-head compact"><div><p className="eyebrow">Activity</p><h3>Recent changes</h3></div></div>
+            <div className="section-head compact">
+              <div>
+                <p className="eyebrow">Activity</p>
+                <h3>Recent changes</h3>
+              </div>
+            </div>
             <div className="stack">
               {activities.slice(0, 8).map((item) => (
                 <article key={item.id} className="activity-row">
@@ -6458,13 +5364,18 @@ function App() {
             </div>
           </section>
           <section className="flat-card">
-            <div className="section-head compact"><div><p className="eyebrow">Notes</p><h3>Tracking log</h3></div></div>
+            <div className="section-head compact">
+              <div>
+                <p className="eyebrow">Notes</p>
+                <h3>Tracking log</h3>
+              </div>
+            </div>
             <p className="muted">{trackingNotes[(visibleTasks.length * 3) % trackingNotes.length]}</p>
           </section>
         </aside>
       </div>
     </>
-  )
+  );
 }
 
 const styles = `
@@ -6493,12 +5404,48 @@ const styles = `
 html, body, #root { margin: 0; min-height: 100%; }
 body { background: var(--bg); color: var(--text); min-height: 100vh; }
 button, input { font: inherit; }
-.todo-shell { display: grid; grid-template-columns: 280px minmax(0, 1fr) 320px; gap: 16px; min-height: 100vh; padding: 16px; background: var(--bg); color: var(--text); }
-.rail, .topbar, .hero-banner, .column-card, .flat-card { background: var(--panel); border: 1px solid var(--line); border-radius: 0; box-shadow: none; }
+.todo-shell
+{
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr) 320px;
+  gap: 16px;
+  min-height: 100vh;
+  padding: 16px;
+  background: var(--bg);
+  color: var(--text);
+}
+.rail,
+.topbar,
+.hero-banner,
+.column-card,
+.flat-card
+{
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 0;
+  box-shadow: none;
+}
 .rail { display: flex; flex-direction: column; gap: 16px; padding: 16px; }
 .main-column { display: flex; flex-direction: column; gap: 16px; }
-.profile-card.solid { display: flex; gap: 14px; align-items: center; padding: 16px; background: var(--panel-2); border: 1px solid var(--line); }
-.avatar { width: 60px; height: 60px; display: grid; place-items: center; background: var(--text); color: var(--bg); font-weight: 700; }
+.profile-card.solid
+{
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  padding: 16px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+}
+.avatar
+{
+  width: 60px;
+  height: 60px;
+  display: grid;
+  place-items: center;
+  background: var(--text);
+  color: var(--bg);
+  font-weight: 700;
+}
 .eyebrow { margin: 0 0 6px; text-transform: uppercase; letter-spacing: 0.14em; font-size: 11px; color: var(--muted); }
 h1, h2, h3, p { margin: 0; }
 .muted { color: var(--muted); line-height: 1.5; }
@@ -6508,19 +5455,57 @@ h1, h2, h3, p { margin: 0; }
 .metric-card strong { font-size: 28px; }
 .metric-card span { color: var(--muted); font-size: 13px; }
 .dashboard-nav, .stack, .task-list { display: flex; flex-direction: column; gap: 10px; }
-.nav-button { padding: 14px; border: 1px solid var(--line); background: var(--panel); color: var(--text); text-align: left; cursor: pointer; }
+.nav-button
+{
+  padding: 14px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
 .nav-button.active { background: var(--panel-2); }
 .nav-button span { display: block; margin-top: 6px; color: var(--muted); font-size: 13px; }
 .flat-card { padding: 16px; }
-.theme-toggle, .hero-actions, .task-meta, .task-footer { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-.chip { padding: 9px 12px; border: 1px solid var(--line); background: var(--panel); color: var(--text); cursor: pointer; }
+.theme-toggle,
+.hero-actions,
+.task-meta,
+.task-footer
+{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.chip
+{
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--text);
+  cursor: pointer;
+}
 .chip.active { background: var(--text); color: var(--bg); border-color: var(--text); }
 .small-chip { padding: 6px 10px; font-size: 12px; }
 .topbar { padding: 18px; display: flex; justify-content: space-between; gap: 16px; align-items: center; }
 .topbar h2 { font-size: clamp(28px, 4vw, 42px); max-width: 12ch; }
 .searchbox { min-width: 280px; display: grid; gap: 8px; color: var(--muted); }
-.searchbox input { padding: 12px 14px; border: 1px solid var(--line); background: var(--panel-2); color: var(--text); outline: none; }
-.hero-banner { padding: 18px; display: grid; grid-template-columns: minmax(0, 1fr) 220px minmax(0, 0.8fr); gap: 16px; align-items: center; }
+.searchbox input
+{
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  background: var(--panel-2);
+  color: var(--text);
+  outline: none;
+}
+.hero-banner
+{
+  padding: 18px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 220px minmax(0, 0.8fr);
+  gap: 16px;
+  align-items: center;
+}
 .hero-progress { display: grid; gap: 8px; align-items: center; }
 .hero-progress strong { font-size: 44px; }
 .progress-track { height: 12px; background: var(--panel-2); border: 1px solid var(--line); position: relative; }
@@ -6533,23 +5518,104 @@ h1, h2, h3, p { margin: 0; }
 .section-head span { color: var(--muted); font-size: 13px; }
 .task-card { padding: 14px; border: 2px solid var(--line); display: grid; gap: 10px; background: var(--panel); }
 .task-head { display: flex; justify-content: space-between; gap: 10px; align-items: center; }
-.priority-badge, .tag-badge { padding: 5px 9px; border: 1px solid var(--line); font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; }
+.priority-badge,
+.tag-badge
+{
+  padding: 5px 9px;
+  border: 1px solid var(--line);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
 .task-meta span, .task-footer span { color: var(--muted); font-size: 12px; }
 .text-button { border: 0; background: transparent; color: var(--text); cursor: pointer; padding: 0; }
 .lower-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
-.list-row { padding: 12px 14px; border: 1px solid var(--line); background: var(--panel); color: var(--text); display: flex; justify-content: space-between; gap: 14px; align-items: center; text-align: left; cursor: pointer; }
+.list-row
+{
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--text);
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: center;
+  text-align: left;
+  cursor: pointer;
+}
 .static-row { cursor: default; }
-.priority-row, .habit-row { display: grid; grid-template-columns: 82px minmax(0, 1fr) 34px; gap: 10px; align-items: center; }
+.priority-row,
+.habit-row
+{
+  display: grid;
+  grid-template-columns: 82px minmax(0, 1fr) 34px;
+  gap: 10px;
+  align-items: center;
+}
 .activity-row { padding: 12px 0; border-top: 1px solid var(--line); }
 .activity-row:first-child { border-top: 0; padding-top: 0; }
 .activity-row span { color: var(--muted); font-size: 12px; }
-@media (max-width: 1380px) { .todo-shell { grid-template-columns: 240px minmax(0, 1fr); } .right-rail { grid-column: 1 / 3; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; } .board-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (max-width: 980px) { .todo-shell { grid-template-columns: 1fr; } .right-rail { grid-column: auto; grid-template-columns: 1fr; } .hero-banner { grid-template-columns: 1fr; } .lower-grid, .board-grid { grid-template-columns: 1fr; } .topbar { flex-direction: column; align-items: stretch; } }
-@media (max-width: 640px) { .todo-shell { padding: 10px; gap: 10px; } .metric-grid { grid-template-columns: 1fr 1fr; } .priority-row, .habit-row, .list-row { grid-template-columns: 1fr; display: grid; } }
-`
+@media (max-width: 1380px) {
+  .todo-shell {
+    grid-template-columns: 240px minmax(0, 1fr);
+  }
 
-createRoot(document.getElementById('root')!).render(
+  .right-rail {
+    grid-column: 1 / 3;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+  }
+
+  .board-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 980px) {
+  .todo-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .right-rail {
+    grid-column: auto;
+    grid-template-columns: 1fr;
+  }
+
+  .hero-banner {
+    grid-template-columns: 1fr;
+  }
+
+  .lower-grid,
+  .board-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .topbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+@media (max-width: 640px) {
+  .todo-shell {
+    padding: 10px;
+    gap: 10px;
+  }
+
+  .metric-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .priority-row,
+  .habit-row,
+  .list-row {
+    grid-template-columns: 1fr;
+    display: grid;
+  }
+}
+`;
+
+createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <App />
   </StrictMode>,
-)
+);
