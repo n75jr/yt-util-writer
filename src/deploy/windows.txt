@@ -1,0 +1,30 @@
+VSCode
+Steam
+  VTubeStudio
+Python
+  UV
+
+{
+   "editor.rulers": [120]
+}
+
+cd C:\app\yt-util-writer-dev
+uv venv .venv
+uv sync
+cd C:\app\yt-util-writer-dev\.venv\Scripts
+C:\app\yt-util-writer-dev\.venv\Scripts\activate.bat
+
+C:\app\yt-util-writer-dev\.venv\Scripts\activate.bat
+cd C:\app\yt-util-writer-dev\src\writer
+python type_writer.py 0001 -i
+python type_writer.py 0002 -i
+python type_writer.py 0003 -i
+python type_writer.py 0004 -i
+python type_writer.py 0005 -i
+
+C:\app\yt-util-writer-dev\.venv\Scripts\activate.bat
+cd C:\app\yt-util-writer-dev\src\vtube\studio
+
+C:\app\yt-util-writer-dev\.venv\Scripts\activate.bat
+cd C:\app\yt-util-writer-dev\src\obs
+python obs_visible_reload.py 4456 30
