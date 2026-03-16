@@ -1,17 +1,18 @@
 from __future__ import annotations
 
+import os
+import random
 import shutil
+import subprocess
+import sys
+from datetime import datetime, timedelta
 from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
 
 DIRECTORY_PATH = "/Users/niki75jr/My/Work/onSide/yt/upl/video/author"
-EXCLUDED_NUMBERS = [
-    0,
-    2, 3, 4, 5
-]
-MAX_IMAGES = 20
-SOURCE_FILE_NAME = "cover000.png"
+SOURCE_FILE_NAME = "cover0000.png"
+OUTPUT_IMAGE_COUNT = 20
 
 
 def get_directory_number(directory_name: str) -> int | None:
@@ -21,21 +22,45 @@ def get_directory_number(directory_name: str) -> int | None:
     return int(prefix)
 
 
-def iter_target_directories(base_path: Path) -> list[tuple[int, Path]]:
-    directories: list[tuple[int, Path]] = []
+def normalize_directory_number(argument: str) -> int:
+    normalized_argument = argument.strip()
+    if not normalized_argument:
+        raise ValueError("Номер директории не может быть пустым")
+
+    try:
+        directory_number = int(normalized_argument)
+    except ValueError as error:
+        raise ValueError(f"Некорректный номер директории: {argument}") from error
+
+    if directory_number < 0:
+        raise ValueError(f"Номер директории не может быть отрицательным: {argument}")
+
+    return directory_number
+
+
+def get_directory_prefix(directory_number: int) -> str:
+    return f"{directory_number:04d}"
+
+
+def get_directory_path(base_path: Path, directory_number: int) -> Path | None:
+    prefix = get_directory_prefix(directory_number)
 
     for item in base_path.iterdir():
-        if not item.is_dir():
-            continue
+        if item.is_dir() and item.name.startswith(prefix):
+            return item
 
-        directory_number = get_directory_number(item.name)
-        if directory_number is None or directory_number in EXCLUDED_NUMBERS:
-            continue
+    return None
 
-        directories.append((directory_number, item))
 
-    directories.sort(key=lambda item: item[0])
-    return directories[:MAX_IMAGES]
+def get_target_numbers() -> list[int]:
+    if len(sys.argv) < 2:
+        raise ValueError("Передайте номера директорий через аргументы. Например: python cover_number_generator.py 1 6 10")
+
+    target_numbers: list[int] = []
+    for argument in sys.argv[1:]:
+        target_numbers.append(normalize_directory_number(argument))
+
+    return target_numbers
 
 
 def draw_number(image_path: Path, number: int) -> None:
@@ -72,6 +97,27 @@ def draw_number(image_path: Path, number: int) -> None:
         result.save(image_path)
 
 
+def apply_file_dates(file_path: Path, file_datetime: datetime) -> None:
+    timestamp = file_datetime.timestamp()
+    os.utime(file_path, (timestamp, timestamp))
+
+    setfile_path = shutil.which("SetFile")
+    if setfile_path is None:
+        return
+
+    formatted_datetime = file_datetime.strftime("%m/%d/%Y %H:%M:%S")
+    subprocess.run(
+        [setfile_path, "-d", formatted_datetime, str(file_path)],
+        check=False,
+        capture_output=True,
+    )
+    subprocess.run(
+        [setfile_path, "-m", formatted_datetime, str(file_path)],
+        check=False,
+        capture_output=True,
+    )
+
+
 def process_directory(directory_number: int, directory_path: Path) -> bool:
     cover_path = directory_path / "cover"
     source_file_path = cover_path / SOURCE_FILE_NAME
@@ -79,9 +125,14 @@ def process_directory(directory_number: int, directory_path: Path) -> bool:
     if not cover_path.is_dir() or not source_file_path.is_file():
         return False
 
-    target_file_path = cover_path / f"{directory_number:04d}.png"
-    shutil.copy2(source_file_path, target_file_path)
-    draw_number(target_file_path, directory_number)
+    current_datetime = datetime.now()
+    for image_number in range(1, OUTPUT_IMAGE_COUNT + 1):
+        target_file_path = cover_path / f"cover{image_number:04d}.png"
+        shutil.copy2(source_file_path, target_file_path)
+        draw_number(target_file_path, image_number)
+        apply_file_dates(target_file_path, current_datetime)
+        current_datetime += timedelta(minutes=random.randint(1, 5))
+
     return True
 
 
@@ -90,10 +141,18 @@ def main() -> None:
     if not base_path.is_dir():
         raise FileNotFoundError(f"Directory not found: {base_path}")
 
+    target_numbers = get_target_numbers()
     processed_count = 0
-    for directory_number, directory_path in iter_target_directories(base_path):
+    for directory_number in target_numbers:
+        directory_path = get_directory_path(base_path, directory_number)
+        if directory_path is None:
+            print(f"Directory not found for number prefix: {get_directory_prefix(directory_number)}")
+            continue
+
         if process_directory(directory_number, directory_path):
-            processed_count += 1
+            processed_count += OUTPUT_IMAGE_COUNT
+        else:
+            print(f"Cover not found in directory: {directory_path}")
 
     print(f"Processed {processed_count} cover images.")
 
