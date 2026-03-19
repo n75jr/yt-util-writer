@@ -5,7 +5,7 @@
       <sourceFolder url="file://$MODULE_DIR$/src/vtube/studio" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/.venv" />
     </content>
-    <orderEntry type="jdk" jdkName="Python 3.13 virtualenv at ~/My/Work/onSide/yt/upl/code/util-writer/.venv" jdkType="Python SDK" />
+    <orderEntry type="jdk" jdkName="Python 3.13 virtualenv at ~/My/Work/onSide/yt/upl/code/project/p001_util-writer/.venv" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
 </module>

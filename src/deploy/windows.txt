@@ -8,6 +8,15 @@ Python
    "editor.rulers": [120]
 }
 
+# macOS
+source /Users/niki75jr/My/Work/onSide/yt/upl/code/project/p001_util-writer/.venv/bin/activate
+/Users/niki75jr/My/Work/onSide/yt/upl/code/project/p001_util-writer/src/writer/data
+
+python3 /Users/niki75jr/My/Work/onSide/yt/upl/code/project/p001_util-writer/src/obs/obs_visible_reload.py 4455 30
+cd /Users/niki75jr/My/Work/onSide/yt/upl/code/project/p001_util-writer/src/vtube/studio/data
+python3 /Users/niki75jr/My/Work/onSide/yt/upl/code/project/p001_util-writer/src/vtube/studio/src002_play_record.py 8001
+
+# Windows
 cd C:\app\yt-util-writer-dev
 uv venv .venv
 uv sync
@@ -24,6 +33,7 @@ python type_writer.py 0005 -i
 
 C:\app\yt-util-writer-dev\.venv\Scripts\activate.bat
 cd C:\app\yt-util-writer-dev\src\vtube\studio
+python src002_play_record.py 8001
 
 C:\app\yt-util-writer-dev\.venv\Scripts\activate.bat
 cd C:\app\yt-util-writer-dev\src\obs
