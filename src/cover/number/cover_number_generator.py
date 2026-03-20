@@ -1,10 +1,10 @@
 from __future__ import annotations
 
+import argparse
 import os
 import random
 import shutil
 import subprocess
-import sys
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -52,12 +52,26 @@ def get_directory_path(base_path: Path, directory_number: int) -> Path | None:
     return None
 
 
-def get_target_numbers() -> list[int]:
-    if len(sys.argv) < 2:
-        raise ValueError("Передайте номера директорий через аргументы. Например: python cover_number_generator.py 1 6 10")
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Генерация набора cover-изображений с числовыми метками."
+    )
+    parser.add_argument(
+        "directory_numbers",
+        nargs="+",
+        help="Номера директорий, например: 1 6 10",
+    )
+    return parser.parse_args()
+
+
+def get_target_numbers(arguments: list[str]) -> list[int]:
+    if not arguments:
+        raise ValueError(
+            "Передайте номера директорий. Например: python cover_number_generator.py 1 6 10"
+        )
 
     target_numbers: list[int] = []
-    for argument in sys.argv[1:]:
+    for argument in arguments:
         target_numbers.append(normalize_directory_number(argument))
 
     return target_numbers
@@ -137,11 +151,25 @@ def process_directory(directory_number: int, directory_path: Path) -> bool:
 
 
 def main() -> None:
+    # use_cli_args = True
+    use_cli_args = False
+    directory_numbers: list[str] = [
+        "1",
+        "2",
+        "4",
+        "5",
+    ]
+
     base_path = Path(DIRECTORY_PATH)
     if not base_path.is_dir():
         raise FileNotFoundError(f"Directory not found: {base_path}")
 
-    target_numbers = get_target_numbers()
+    if use_cli_args:
+        args = parse_args()
+        target_numbers = get_target_numbers(args.directory_numbers)
+    else:
+        target_numbers = get_target_numbers(directory_numbers)
+
     processed_count = 0
     for directory_number in target_numbers:
         directory_path = get_directory_path(base_path, directory_number)
