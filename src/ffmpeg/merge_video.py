@@ -97,9 +97,9 @@ def main() -> None:
     merge_files: list[str] = [
         # "/absolute/path/to/part1.mp4",
         # "/absolute/path/to/part2.mp4",
-        "/Users/niki75jr/My/Work/onSide/yt/upl/video/author/untitled folder/0002_react_musicfy_0001.mkv",
-        "/Users/niki75jr/My/Work/onSide/yt/upl/video/author/untitled folder/0002_react_musicfy_0002.mkv",
-        "/Users/niki75jr/My/Work/onSide/yt/upl/video/author/untitled folder/0002_react_musicfy_0003.mkv",
+        "/Users/niki75jr/My/Work/onSide/yt/upl/video/author/0003_react_groceryStore/0003_react_groceryStore_0001.mov",
+        "/Users/niki75jr/My/Work/onSide/yt/upl/video/author/0003_react_groceryStore/0003_react_groceryStore_0002.mov",
+        "/Users/niki75jr/My/Work/onSide/yt/upl/video/author/0003_react_groceryStore/0003_react_groceryStore_0003.mov",
     ]
 
     if use_cli_args:

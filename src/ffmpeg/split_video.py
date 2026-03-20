@@ -163,10 +163,10 @@ def remux_for_concat(input_path: Path, output_path: Path) -> None:
 
 
 def normalize_intro_to_source(
-    intro_path: Path,
-    output_path: Path,
-    target_width: int,
-    target_height: int,
+        intro_path: Path,
+        output_path: Path,
+        target_width: int,
+        target_height: int,
 ) -> None:
     intro_input = ffmpeg.input(str(intro_path))
     scaled_video = (
@@ -318,11 +318,16 @@ def split_video(
 
 def main() -> None:
     use_cli_args = False
-    input_file = "/Users/niki75jr/My/Work/onSide/yt/upl/video/author/_prepare/0001_react_weatherDashboard.mkv"
+    input_file = """
+    /Users/niki75jr/My/Work/onSide/yt/upl/video/author/0005_react_bank/0005_react_bank.mkv
+    """.strip()
     chunk_minutes = DEFAULT_CHUNK_MINUTES
     audio_path: str | None = None
-    # audio_path: str | None = "/Users/niki75jr/My/Work/onSide/yt/upl/video/author/0000_util/sound_keyboard_typing.mp3"
-    intro_path: str | None = "/Users/niki75jr/My/Work/onSide/yt/upl/video/author/0001_react_weatherDashboard/0000.mov"
+    intro_path: str | None = None
+    intro_path: str | None = """
+    /Users/niki75jr/My/Work/onSide/yt/upl/video/author/0005_react_bank/0000.mov
+    """.strip()
+    audio_path: str | None = "/Users/niki75jr/My/Work/onSide/yt/upl/video/author/0000_util/sound_keyboard_typing.mp3"
 
     if use_cli_args or len(sys.argv) > 1:
         args = parse_args()
