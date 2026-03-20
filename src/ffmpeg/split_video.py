@@ -1,12 +1,56 @@
 import argparse
 import shutil
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 
 import ffmpeg
 
 DEFAULT_CHUNK_MINUTES = 60
+
+
+def get_video_resolution(file_path: str) -> tuple[int, int]:
+    result = subprocess.run(
+        [
+            "ffprobe",
+            "-v",
+            "error",
+            "-select_streams",
+            "v:0",
+            "-show_entries",
+            "stream=width,height",
+            "-of",
+            "csv=p=0:s=x",
+            file_path,
+        ],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    width, height = result.stdout.strip().split("x")
+    return int(width), int(height)
+
+
+def has_audio_stream(file_path: str) -> bool:
+    result = subprocess.run(
+        [
+            "ffprobe",
+            "-v",
+            "error",
+            "-select_streams",
+            "a:0",
+            "-show_entries",
+            "stream=index",
+            "-of",
+            "csv=p=0",
+            file_path,
+        ],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    return bool(result.stdout.strip())
 
 
 def get_duration(file_path: str) -> float:
@@ -101,7 +145,60 @@ def cut_segment(input_file: str, start_time: float, duration: float, output_path
     (
         ffmpeg
         .input(input_file, ss=start_time, t=duration)
-        .output(str(output_path), c="copy")
+        .output(str(output_path), c="copy", avoid_negative_ts="make_zero")
+        .overwrite_output()
+        .run()
+    )
+
+
+def remux_for_concat(input_path: Path, output_path: Path) -> None:
+    (
+        ffmpeg
+        .input(str(input_path))
+        .output(str(output_path), c="copy", avoid_negative_ts="make_zero")
+        .global_args("-fflags", "+genpts")
+        .overwrite_output()
+        .run()
+    )
+
+
+def normalize_intro_to_source(
+    intro_path: Path,
+    output_path: Path,
+    target_width: int,
+    target_height: int,
+) -> None:
+    intro_input = ffmpeg.input(str(intro_path))
+    scaled_video = (
+        intro_input.video
+        .filter("scale", target_width, target_height, force_original_aspect_ratio="decrease")
+        .filter("pad", target_width, target_height, "(ow-iw)/2", "(oh-ih)/2")
+    )
+
+    if has_audio_stream(str(intro_path)):
+        (
+            ffmpeg
+            .output(
+                scaled_video,
+                intro_input.audio,
+                str(output_path),
+                vcodec="libx264",
+                acodec="copy",
+                pix_fmt="yuv420p",
+            )
+            .overwrite_output()
+            .run()
+        )
+        return
+
+    (
+        ffmpeg
+        .output(
+            scaled_video,
+            str(output_path),
+            vcodec="libx264",
+            pix_fmt="yuv420p",
+        )
         .overwrite_output()
         .run()
     )
@@ -124,15 +221,14 @@ def concat_files(input_files: list[Path], output_path: Path) -> None:
         (
             ffmpeg
             .input(concat_file.name, format="concat", safe=0)
-            .output(str(output_path), c="copy")
+            .output(str(output_path), c="copy", avoid_negative_ts="make_zero")
+            .global_args("-fflags", "+genpts")
             .overwrite_output()
             .run()
         )
 
 
 def add_looped_audio(input_video: Path, audio_path: Path, output_path: Path) -> None:
-    target_duration = get_duration(str(input_video))
-
     video_input = ffmpeg.input(str(input_video))
     audio_input = ffmpeg.input(str(audio_path), stream_loop=-1)
 
@@ -142,9 +238,9 @@ def add_looped_audio(input_video: Path, audio_path: Path, output_path: Path) -> 
             video_input.video,
             audio_input.audio,
             str(output_path),
-            vcodec="copy",
-            acodec="aac",
-            t=target_duration,
+            c="copy",
+            shortest=None,
+            avoid_negative_ts="make_zero",
         )
         .overwrite_output()
         .run()
@@ -170,6 +266,8 @@ def split_video(
         raise FileNotFoundError(f"Аудио не найдено: {audio_file_path}")
 
     source_duration = get_duration(str(input_path))
+    source_resolution = get_video_resolution(str(input_path))
+
     segment_plan = build_segment_plan(source_duration, chunk_minutes)
 
     if not segment_plan:
@@ -195,8 +293,17 @@ def split_video(
 
             current_path = segment_path
             if intro_file_path is not None:
+                normalized_intro_path = temp_dir / f"intro_normalized{input_path.suffix}"
+                normalized_segment_path = temp_dir / f"segment_normalized{input_path.suffix}"
                 intro_output_path = temp_dir / f"with_intro{input_path.suffix}"
-                concat_files([intro_file_path, current_path], intro_output_path)
+                normalize_intro_to_source(
+                    intro_file_path,
+                    normalized_intro_path,
+                    source_resolution[0],
+                    source_resolution[1],
+                )
+                remux_for_concat(current_path, normalized_segment_path)
+                concat_files([normalized_intro_path, normalized_segment_path], intro_output_path)
                 current_path = intro_output_path
 
             if audio_file_path is not None:
@@ -210,16 +317,14 @@ def split_video(
 
 
 def main() -> None:
-    use_cli_args = True
     use_cli_args = False
     input_file = "/Users/niki75jr/My/Work/onSide/yt/upl/video/author/_prepare/0001_react_weatherDashboard.mkv"
     chunk_minutes = DEFAULT_CHUNK_MINUTES
     audio_path: str | None = None
-    intro_path: str | None = None
     # audio_path: str | None = "/Users/niki75jr/My/Work/onSide/yt/upl/video/author/0000_util/sound_keyboard_typing.mp3"
     intro_path: str | None = "/Users/niki75jr/My/Work/onSide/yt/upl/video/author/0001_react_weatherDashboard/0000.mov"
 
-    if use_cli_args:
+    if use_cli_args or len(sys.argv) > 1:
         args = parse_args()
         target_input_file = args.input_file
         target_chunk_minutes = args.chunk_minutes
@@ -241,6 +346,8 @@ def main() -> None:
     if not output_files:
         return
 
+    source_duration = get_duration(target_input_file)
+    print(f"Длина исходного видео: {format_duration(source_duration)}")
     print(f"Создано файлов: {len(output_files)}")
     for output_file, output_duration in output_files:
         print(f"{output_file} -> {format_duration(output_duration)}")
