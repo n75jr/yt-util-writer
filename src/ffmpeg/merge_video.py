@@ -60,10 +60,10 @@ def merge_videos(input_files: list[str]) -> tuple[str, float, float]:
     )
 
     with tempfile.NamedTemporaryFile(
-        mode="w",
-        suffix=".txt",
-        encoding="utf-8",
-        delete=True,
+            mode="w",
+            suffix=".txt",
+            encoding="utf-8",
+            delete=True,
     ) as concat_file:
         concat_file.write(concat_file_content)
         concat_file.flush()
